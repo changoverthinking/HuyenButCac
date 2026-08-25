@@ -1,0 +1,32 @@
+@import "tailwindcss";
+@import "./themes/themes.css";
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: "Noto Serif", "Times New Roman", serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.hbc-editor {
+  outline: none;
+  min-height: 200px;
+}
+.hbc-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-text-muted);
+}

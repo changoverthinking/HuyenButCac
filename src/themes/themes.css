@@ -1,0 +1,138 @@
+/*
+  6 theme tu tiên – cổ trang.
+  Mỗi theme định nghĩa đủ token: background, surface, text, border, accent,
+  focus, error, warning, success, node, connector, editor, canvas.
+*/
+
+:root {
+  --radius-base: 10px;
+  --font-scale: 1;
+}
+
+/* 1. Mặc Vân Tiên Cảnh — đen xanh, mây mờ, bạc, linh khí xanh */
+[data-theme="mac-van-tien-canh"] {
+  --color-bg: #0b1418;
+  --color-surface: #121e24;
+  --color-surface-alt: #182a32;
+  --color-text: #e6f1f2;
+  --color-text-muted: #9db3b8;
+  --color-border: #24414c;
+  --color-accent: #4fd1c5;
+  --color-focus: #7ee8de;
+  --color-error: #e5686b;
+  --color-warning: #e0b95e;
+  --color-success: #6fcf97;
+  --color-node: #16323a;
+  --color-connector: #3a6a76;
+  --color-editor-bg: #0e1a1f;
+  --color-canvas-bg: #0a1216;
+}
+
+/* 2. Xích Viêm Ma Tôn — đen than, đỏ thẫm, vàng đồng, tàn lửa nhẹ */
+[data-theme="xich-viem-ma-ton"] {
+  --color-bg: #150c0c;
+  --color-surface: #1f1212;
+  --color-surface-alt: #2a1818;
+  --color-text: #f5e6e0;
+  --color-text-muted: #b98f85;
+  --color-border: #3d2320;
+  --color-accent: #c23b2e;
+  --color-focus: #e0664f;
+  --color-error: #ff5252;
+  --color-warning: #d9a441;
+  --color-success: #7fae6b;
+  --color-node: #2c1614;
+  --color-connector: #6b3a2c;
+  --color-editor-bg: #180e0d;
+  --color-canvas-bg: #120a0a;
+}
+
+/* 3. Thanh Trúc Cổ Phong — trắng ngà, xanh trúc, nâu gỗ */
+[data-theme="thanh-truc-co-phong"] {
+  --color-bg: #f7f4ea;
+  --color-surface: #fffdf6;
+  --color-surface-alt: #eee8d5;
+  --color-text: #2c2a20;
+  --color-text-muted: #756f57;
+  --color-border: #d8d0b3;
+  --color-accent: #4a7c59;
+  --color-focus: #6ea87f;
+  --color-error: #b5453a;
+  --color-warning: #b8863a;
+  --color-success: #4a7c59;
+  --color-node: #eef2e6;
+  --color-connector: #8a9a7a;
+  --color-editor-bg: #fbf9ef;
+  --color-canvas-bg: #f2eedd;
+}
+
+/* 4. Tử Vân Thiên Cung — tím đậm, xanh đen, ánh sao, bạc */
+[data-theme="tu-van-thien-cung"] {
+  --color-bg: #120f1e;
+  --color-surface: #1a1730;
+  --color-surface-alt: #221e3d;
+  --color-text: #ece8fa;
+  --color-text-muted: #a89fc9;
+  --color-border: #322a55;
+  --color-accent: #9d7fe8;
+  --color-focus: #c3aefc;
+  --color-error: #f06a8b;
+  --color-warning: #e3c05e;
+  --color-success: #7fd1a3;
+  --color-node: #211d3c;
+  --color-connector: #4d3f7a;
+  --color-editor-bg: #16132a;
+  --color-canvas-bg: #100d1c;
+}
+
+/* 5. Kim Các Thiên Thư — nâu đen, vàng kim, đỏ son */
+[data-theme="kim-cac-thien-thu"] {
+  --color-bg: #1a140c;
+  --color-surface: #241b10;
+  --color-surface-alt: #2f2314;
+  --color-text: #f2e6cf;
+  --color-text-muted: #b8a483;
+  --color-border: #453218;
+  --color-accent: #d4a63c;
+  --color-focus: #eec767;
+  --color-error: #c0392b;
+  --color-warning: #d4a63c;
+  --color-success: #7a9d54;
+  --color-node: #2c2013;
+  --color-connector: #6e5326;
+  --color-editor-bg: #1e1610;
+  --color-canvas-bg: #17110a;
+}
+
+/* 6. Thủy Mặc Sơn Hà — trắng xám, mực đen, xanh nhạt */
+[data-theme="thuy-mac-son-ha"] {
+  --color-bg: #f4f4f2;
+  --color-surface: #ffffff;
+  --color-surface-alt: #e9e9e6;
+  --color-text: #1f2225;
+  --color-text-muted: #6b6f72;
+  --color-border: #d6d6d2;
+  --color-accent: #3a5a6b;
+  --color-focus: #5f8598;
+  --color-error: #b3413a;
+  --color-warning: #b08a3e;
+  --color-success: #4a7a5e;
+  --color-node: #eef1f2;
+  --color-connector: #8fa3ab;
+  --color-editor-bg: #fbfbfa;
+  --color-canvas-bg: #eceded;
+}
+
+/* Chế độ hỗ trợ tiếp cận */
+[data-reduce-motion="true"] * {
+  animation-duration: 0.001ms !important;
+  transition-duration: 0.001ms !important;
+}
+
+[data-high-contrast="true"] {
+  --color-border: var(--color-text);
+}
+
+body {
+  font-size: calc(1rem * var(--font-scale));
+}

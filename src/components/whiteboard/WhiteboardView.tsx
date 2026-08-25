@@ -1,0 +1,111 @@
+import { useEffect, useRef, useState } from "react";
+import type { Whiteboard, WhiteboardObject, WhiteboardObjectKind } from "../../types/entities";
+import {
+  addBoardObject, createWhiteboard, deleteBoardObject, getBoardObjects,
+  listWhiteboards, updateBoardObject,
+} from "../../features/whiteboard/whiteboardService";
+
+export function WhiteboardView() {
+  const [boards, setBoards] = useState<Whiteboard[]>([]);
+  const [active, setActive] = useState<string | null>(null);
+  const [objects, setObjects] = useState<WhiteboardObject[]>([]);
+  const [zoom, setZoom] = useState(1);
+  const [pan] = useState({ x: 0, y: 0 });
+  const [selected, setSelected] = useState<string | null>(null);
+  const drag = useRef<{ id: string; dx: number; dy: number } | null>(null);
+
+  const reload = async (id = active) => {
+    setBoards(await listWhiteboards());
+    if (id) setObjects(await getBoardObjects(id));
+  };
+
+  useEffect(() => {
+    void listWhiteboards().then(async (items) => {
+      const next = items.length ? items : [await createWhiteboard()];
+      setBoards(next);
+      setActive(next[0].id);
+      setObjects(await getBoardObjects(next[0].id));
+    });
+  }, []);
+
+  const add = async (kind: WhiteboardObjectKind) => {
+    if (!active) return;
+    await addBoardObject(active, kind, 150 + objects.length * 25, 120 + objects.length * 20);
+    await reload();
+  };
+
+  return (
+    <div className="h-full flex flex-col">
+      <header className="flex gap-2 p-2 border-b overflow-x-auto" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
+        <button onClick={async () => { const board = await createWhiteboard(); setActive(board.id); await reload(board.id); }}>＋ Bảng ({boards.length})</button>
+        <select
+          aria-label="Chọn bảng trắng"
+          value={active ?? ""}
+          onChange={(event) => { setActive(event.target.value); void reload(event.target.value); }}
+          className="rounded px-2 bg-transparent border"
+          style={{ borderColor: "var(--color-border)" }}
+        >
+          {boards.map((board) => <option key={board.id} value={board.id}>{board.title}</option>)}
+        </select>
+        {(["note", "rectangle", "ellipse", "text"] as WhiteboardObjectKind[]).map((kind) => (
+          <button key={kind} className="px-3 py-1 rounded" style={{ background: "var(--color-surface-alt)" }} onClick={() => void add(kind)}>＋ {kind}</button>
+        ))}
+        <button disabled={!selected} onClick={async () => {
+          if (!selected) return;
+          await deleteBoardObject(selected); setSelected(null); await reload();
+        }}>Xóa</button>
+        <span className="ml-auto">{Math.round(zoom * 100)}%</span>
+      </header>
+      <div
+        className="flex-1 relative overflow-hidden touch-none"
+        style={{ backgroundColor: "var(--color-canvas-bg)", backgroundImage: "radial-gradient(var(--color-border) 1px,transparent 1px)", backgroundSize: `${24 * zoom}px ${24 * zoom}px` }}
+        onWheel={(event) => { event.preventDefault(); setZoom((value) => Math.min(2.5, Math.max(0.35, value * (event.deltaY > 0 ? 0.9 : 1.1)))); }}
+        onPointerMove={(event) => {
+          const current = drag.current;
+          if (!current) return;
+          setObjects((items) => items.map((item) => item.id === current.id ? {
+            ...item,
+            x: (event.clientX - current.dx - pan.x) / zoom,
+            y: (event.clientY - current.dy - pan.y) / zoom,
+          } : item));
+        }}
+        onPointerUp={() => {
+          const current = drag.current;
+          const item = objects.find((entry) => entry.id === current?.id);
+          if (item) void updateBoardObject(item.id, { x: item.x, y: item.y });
+          drag.current = null;
+        }}
+      >
+        <div className="absolute origin-top-left" style={{ transform: `translate(${pan.x}px,${pan.y}px) scale(${zoom})` }}>
+          {objects.map((item) => (
+            <div
+              key={item.id}
+              onPointerDown={(event) => {
+                setSelected(item.id);
+                drag.current = { id: item.id, dx: event.clientX - (item.x * zoom + pan.x), dy: event.clientY - (item.y * zoom + pan.y) };
+              }}
+              className="absolute p-3 shadow-md"
+              style={{
+                left: item.x, top: item.y, width: item.width, height: item.height,
+                background: item.kind === "text" ? "transparent" : item.color,
+                border: item.kind === "rectangle" || item.kind === "ellipse" ? "2px solid var(--color-text)" : "1px solid var(--color-border)",
+                borderRadius: item.kind === "ellipse" ? "50%" : "10px",
+                outline: selected === item.id ? "3px solid var(--color-focus)" : "none",
+                color: item.kind === "note" ? "#241b10" : "var(--color-text)",
+              }}
+            >
+              <textarea
+                aria-label="Nội dung đối tượng"
+                value={item.text}
+                onPointerDown={(event) => event.stopPropagation()}
+                onChange={(event) => setObjects((items) => items.map((entry) => entry.id === item.id ? { ...entry, text: event.target.value } : entry))}
+                onBlur={(event) => void updateBoardObject(item.id, { text: event.target.value })}
+                className="w-full h-full resize-none bg-transparent outline-none"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
