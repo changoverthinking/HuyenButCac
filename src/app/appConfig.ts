@@ -4,7 +4,7 @@ export const APP_CONFIG = {
   appNameVi: "Huyền Bút Các",
   appNameEn: "Mystic Notes",
   appId: "com.huyenbut.notes",
-  repository: "huyen-but-notes",
+  repository: "HuyenButCac",
   version: "0.1.0-checkpoint1",
 };
 
