@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## Checkpoint 9 — 14 giao diện đồng bộ — 2026-08-25
+- Thiết kế lại hệ màu trình nhạc, loại bỏ màu xanh/nâu cố định.
+- Trình nhạc đổi đồng bộ nền, viền, ngọc, ánh sáng và màu nút theo theme đang chọn.
+- Thêm 8 theme: Bạch Nguyệt Hàn Cung, Đào Hoa Mộng Cảnh, Cửu U Huyền Dạ, Thiên Thanh Lưu Ly, Hoàng Hôn Cổ Thành, Ngọc Sơn Vân Hải, Huyết Nguyệt Ma Cảnh, Tinh Hà Vạn Tượng.
+- Tổng cộng 14 theme sáng/tối với bảng màu riêng.
+- Bộ chọn theme thêm mẫu ba màu để nhận biết nhanh.
+- TypeScript, 38/38 test, lint và production PWA build đều đạt.
+
+## Checkpoint 8.2 Immortal Music — 2026-08-25
+- Thiết kế lại trình phát nhạc theo phong cách cổ trang/tu tiên.
+- Bong bóng nhạc thành ngọc bội nhiều lớp, phát sáng nhẹ khi đang phát.
+- Thanh điều khiển dùng nền kính tối, viền đồng-ngọc, hoa văn góc và nút phát dạng ngọc.
+- Thư viện nhạc đổi tên thành “Tiên Âm Các”, thống nhất ngôn ngữ giao diện.
+- Giữ nguyên responsive dọc/ngang và toàn bộ chức năng MP3.
+- TypeScript, 38/38 test, lint và production PWA build đều đạt.
+
+## Checkpoint 8.1 Landscape & Pinch Zoom — 2026-08-25
+- Sửa điện thoại xoay ngang bị nhận thành giao diện desktop.
+- Ẩn thanh tab desktop và thu gọn thanh điều hướng khi màn hình cảm ứng nằm ngang.
+- Trình nhạc tiếp tục hiển thị dạng bong bóng ở cả màn hình dọc và ngang.
+- Thêm chụm hai ngón để phóng to/thu nhỏ Sơ đồ và Bảng trắng từ 35% đến 250%.
+- Điều chỉnh kéo đối tượng theo đúng tỷ lệ zoom.
+- TypeScript, 38/38 test và production PWA build đều đạt.
+
 ## Checkpoint 8 Mobile — 2026-08-25
 - Trình phát nhạc trên điện thoại đổi thành bong bóng nổi: chạm để mở, chạm nút thu nhỏ để trở về hình tròn.
 - Trình nhạc không còn chiếm một hàng cố định, trả lại không gian viết và vẽ.

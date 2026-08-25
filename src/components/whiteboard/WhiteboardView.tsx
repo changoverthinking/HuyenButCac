@@ -13,6 +13,17 @@ export function WhiteboardView() {
   const [pan] = useState({ x: 0, y: 0 });
   const [selected, setSelected] = useState<string | null>(null);
   const drag = useRef<{ id: string; startClientX: number; startClientY: number; startX: number; startY: number } | null>(null);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ distance: number; zoom: number } | null>(null);
+
+  const clampZoom = (value: number) => Math.min(2.5, Math.max(0.35, value));
+  const updatePinch = () => {
+    const points = [...pointers.current.values()];
+    if (points.length < 2) { pinch.current = null; return; }
+    const distance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+    if (!pinch.current) { pinch.current = { distance, zoom }; return; }
+    setZoom(clampZoom(pinch.current.zoom * distance / Math.max(1, pinch.current.distance)));
+  };
 
   const reload = async (id = active) => {
     setBoards(await listWhiteboards());
@@ -73,8 +84,16 @@ export function WhiteboardView() {
       <div
         className="flex-1 relative overflow-hidden touch-none"
         style={{ backgroundColor: "var(--color-canvas-bg)", backgroundImage: "radial-gradient(var(--color-border) 1px,transparent 1px)", backgroundSize: `${24 * zoom}px ${24 * zoom}px` }}
-        onWheel={(event) => { event.preventDefault(); setZoom((value) => Math.min(2.5, Math.max(0.35, value * (event.deltaY > 0 ? 0.9 : 1.1)))); }}
+        onWheel={(event) => { event.preventDefault(); setZoom((value) => clampZoom(value * (event.deltaY > 0 ? 0.9 : 1.1))); }}
+        onPointerDown={(event) => {
+          pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+          if (pointers.current.size >= 2) { drag.current = null; updatePinch(); event.currentTarget.setPointerCapture(event.pointerId); }
+        }}
         onPointerMove={(event) => {
+          if (pointers.current.has(event.pointerId)) {
+            pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+            if (pointers.current.size >= 2) { updatePinch(); return; }
+          }
           const current = drag.current;
           if (!current) return;
           setObjects((items) => items.map((item) => item.id === current.id ? {
@@ -83,19 +102,21 @@ export function WhiteboardView() {
             y: current.startY + (event.clientY - current.startClientY) / zoom,
           } : item));
         }}
-        onPointerUp={() => {
+        onPointerUp={(event) => {
+          pointers.current.delete(event.pointerId); updatePinch();
           const current = drag.current;
           const item = objects.find((entry) => entry.id === current?.id);
           if (item) void updateBoardObject(item.id, { x: item.x, y: item.y });
           drag.current = null;
         }}
-        onPointerCancel={() => { drag.current = null; }}
+        onPointerCancel={(event) => { pointers.current.delete(event.pointerId); updatePinch(); drag.current = null; }}
       >
         <div className="absolute origin-top-left" style={{ transform: `translate(${pan.x}px,${pan.y}px) scale(${zoom})` }}>
           {objects.map((item) => (
             <div
               key={item.id}
               onPointerDown={(event) => {
+                if (pointers.current.size > 0) return;
                 setSelected(item.id);
                 drag.current = { id: item.id, startClientX: event.clientX, startClientY: event.clientY, startX: item.x, startY: item.y };
                 event.currentTarget.setPointerCapture(event.pointerId);

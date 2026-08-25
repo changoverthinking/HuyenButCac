@@ -30,7 +30,7 @@ export default function App() {
 
       {/* Tab desktop */}
       <div
-        className="hidden md:flex items-center gap-1 px-4 py-2 border-b"
+        className="desktop-mode-tabs hidden md:flex items-center gap-1 px-4 py-2 border-b"
         style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
       >
         {MODE_TABS.map((t) => (

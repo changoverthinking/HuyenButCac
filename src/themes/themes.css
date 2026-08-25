@@ -26,6 +26,7 @@
   --color-connector: #3a6a76;
   --color-editor-bg: #0e1a1f;
   --color-canvas-bg: #0a1216;
+  --music-bg-1:#173038;--music-bg-2:#071216;--music-metal:#c8a766;--music-gem:#47cbb9;--music-gem-light:#dffff7;--music-ink:#061411;
 }
 
 /* 2. Xích Viêm Ma Tôn — đen than, đỏ thẫm, vàng đồng, tàn lửa nhẹ */
@@ -45,6 +46,7 @@
   --color-connector: #6b3a2c;
   --color-editor-bg: #180e0d;
   --color-canvas-bg: #120a0a;
+  --music-bg-1:#341718;--music-bg-2:#120707;--music-metal:#d3a251;--music-gem:#d94b3f;--music-gem-light:#ffd8c8;--music-ink:#1a0806;
 }
 
 /* 3. Thanh Trúc Cổ Phong — trắng ngà, xanh trúc, nâu gỗ */
@@ -64,6 +66,7 @@
   --color-connector: #8a9a7a;
   --color-editor-bg: #fbf9ef;
   --color-canvas-bg: #f2eedd;
+  --music-bg-1:#fffdf5;--music-bg-2:#e8dfc9;--music-metal:#9a743b;--music-gem:#5f9b6e;--music-gem-light:#e6f7e8;--music-ink:#14281a;
 }
 
 /* 4. Tử Vân Thiên Cung — tím đậm, xanh đen, ánh sao, bạc */
@@ -83,6 +86,7 @@
   --color-connector: #4d3f7a;
   --color-editor-bg: #16132a;
   --color-canvas-bg: #100d1c;
+  --music-bg-1:#292248;--music-bg-2:#100b21;--music-metal:#c2b1ef;--music-gem:#9b78ef;--music-gem-light:#eee8ff;--music-ink:#140d29;
 }
 
 /* 5. Kim Các Thiên Thư — nâu đen, vàng kim, đỏ son */
@@ -102,6 +106,7 @@
   --color-connector: #6e5326;
   --color-editor-bg: #1e1610;
   --color-canvas-bg: #17110a;
+  --music-bg-1:#352817;--music-bg-2:#171006;--music-metal:#e0b952;--music-gem:#c9942d;--music-gem-light:#fff0bd;--music-ink:#211404;
 }
 
 /* 6. Thủy Mặc Sơn Hà — trắng xám, mực đen, xanh nhạt */
@@ -121,6 +126,55 @@
   --color-connector: #8fa3ab;
   --color-editor-bg: #fbfbfa;
   --color-canvas-bg: #eceded;
+  --music-bg-1:#ffffff;--music-bg-2:#e5e8e9;--music-metal:#4c6875;--music-gem:#597c8d;--music-gem-light:#e9f5f9;--music-ink:#10181c;
+}
+
+/* 7. Bạch Nguyệt Hàn Cung — lam băng, bạc nguyệt */
+[data-theme="bach-nguyet-han-cung"] {
+  --color-bg:#08131f;--color-surface:#0f2132;--color-surface-alt:#173149;--color-text:#e9f7ff;--color-text-muted:#96b4c8;--color-border:#294b64;--color-accent:#7cc9ed;--color-focus:#b8e6ff;--color-error:#ed7180;--color-warning:#e7c36b;--color-success:#69c9ad;--color-node:#17344b;--color-connector:#477894;--color-editor-bg:#0a1927;--color-canvas-bg:#06101b;
+  --music-bg-1:#17334b;--music-bg-2:#071421;--music-metal:#d8eaf3;--music-gem:#71c4ea;--music-gem-light:#f2fbff;--music-ink:#071622;
+}
+
+/* 8. Đào Hoa Mộng Cảnh — hồng đào, rượu vang, ngà */
+[data-theme="dao-hoa-mong-canh"] {
+  --color-bg:#21131b;--color-surface:#301d28;--color-surface-alt:#432938;--color-text:#fff0f3;--color-text-muted:#c9a0ae;--color-border:#5b3446;--color-accent:#df789e;--color-focus:#f4adc3;--color-error:#f05e72;--color-warning:#dcb46a;--color-success:#83b78c;--color-node:#442a38;--color-connector:#7e4b61;--color-editor-bg:#271720;--color-canvas-bg:#1a0e15;
+  --music-bg-1:#4a2939;--music-bg-2:#1b0d15;--music-metal:#ecc3ad;--music-gem:#df789e;--music-gem-light:#ffe8ef;--music-ink:#2a0c18;
+}
+
+/* 9. Cửu U Huyền Dạ — hắc diệu, tím vực, lục hồn */
+[data-theme="cuu-u-huyen-da"] {
+  --color-bg:#080a11;--color-surface:#10141e;--color-surface-alt:#181e2b;--color-text:#e5ebee;--color-text-muted:#87939f;--color-border:#26303e;--color-accent:#34b5a6;--color-focus:#72ded1;--color-error:#dc536a;--color-warning:#c3a161;--color-success:#54b889;--color-node:#151f29;--color-connector:#375962;--color-editor-bg:#0b0e15;--color-canvas-bg:#06080d;
+  --music-bg-1:#171d2b;--music-bg-2:#05070c;--music-metal:#8468c9;--music-gem:#36b9a9;--music-gem-light:#cffff7;--music-ink:#031512;
+}
+
+/* 10. Thiên Thanh Lưu Ly — lưu ly sáng, thanh thủy */
+[data-theme="thien-thanh-luu-ly"] {
+  --color-bg:#eaf7f8;--color-surface:#f8ffff;--color-surface-alt:#d7eef1;--color-text:#17363c;--color-text-muted:#628087;--color-border:#b8d9de;--color-accent:#218fa5;--color-focus:#36aec2;--color-error:#bd4e55;--color-warning:#b78639;--color-success:#3b8e72;--color-node:#e1f3f4;--color-connector:#77abb3;--color-editor-bg:#f4fcfc;--color-canvas-bg:#e0f0f2;
+  --music-bg-1:#f8ffff;--music-bg-2:#cee7ea;--music-metal:#4f8792;--music-gem:#43b7c5;--music-gem-light:#efffff;--music-ink:#0b3037;
+}
+
+/* 11. Hoàng Hôn Cổ Thành — hổ phách, gạch son, trời chiều */
+[data-theme="hoang-hon-co-thanh"] {
+  --color-bg:#1d120f;--color-surface:#2a1914;--color-surface-alt:#3a241b;--color-text:#f7e8d5;--color-text-muted:#bca08a;--color-border:#513426;--color-accent:#d07b3e;--color-focus:#ec9d5b;--color-error:#d85548;--color-warning:#e1b35e;--color-success:#829d65;--color-node:#3a241a;--color-connector:#79503a;--color-editor-bg:#231510;--color-canvas-bg:#170d0b;
+  --music-bg-1:#44291c;--music-bg-2:#170b08;--music-metal:#e0b66a;--music-gem:#d16f37;--music-gem-light:#ffe2b8;--music-ink:#251006;
+}
+
+/* 12. Ngọc Sơn Vân Hải — ngà, ngọc bích, vàng nhạt */
+[data-theme="ngoc-son-van-hai"] {
+  --color-bg:#eef5ef;--color-surface:#fbfffb;--color-surface-alt:#dcebe0;--color-text:#20352f;--color-text-muted:#647d74;--color-border:#bfd2c6;--color-accent:#3e8872;--color-focus:#62aa93;--color-error:#b94c4a;--color-warning:#af833f;--color-success:#4d8e64;--color-node:#e1eee5;--color-connector:#88aa9a;--color-editor-bg:#f7fbf7;--color-canvas-bg:#e6eee8;
+  --music-bg-1:#fbfffb;--music-bg-2:#d4e5d9;--music-metal:#a8854d;--music-gem:#4a9b82;--music-gem-light:#eafff5;--music-ink:#123128;
+}
+
+/* 13. Huyết Nguyệt Ma Cảnh — đỏ trăng máu, tím ma khí */
+[data-theme="huyet-nguyet-ma-canh"] {
+  --color-bg:#160a13;--color-surface:#24101e;--color-surface-alt:#35162b;--color-text:#f7e9f0;--color-text-muted:#b690a5;--color-border:#4b203b;--color-accent:#d1465b;--color-focus:#ef7583;--color-error:#ff5366;--color-warning:#d7a64e;--color-success:#6fa875;--color-node:#351426;--color-connector:#74324f;--color-editor-bg:#1c0c17;--color-canvas-bg:#10070e;
+  --music-bg-1:#3b162c;--music-bg-2:#11050d;--music-metal:#aa72d5;--music-gem:#d4455d;--music-gem-light:#ffd7de;--music-ink:#26050c;
+}
+
+/* 14. Tinh Hà Vạn Tượng — lam vũ trụ, sao vàng */
+[data-theme="tinh-ha-van-tuong"] {
+  --color-bg:#080d22;--color-surface:#101936;--color-surface-alt:#18234a;--color-text:#edf0ff;--color-text-muted:#9ca9d0;--color-border:#2a396c;--color-accent:#657edb;--color-focus:#91a5f1;--color-error:#e16076;--color-warning:#e0bb69;--color-success:#62b89a;--color-node:#162144;--color-connector:#3c4f8b;--color-editor-bg:#0b122b;--color-canvas-bg:#060a1b;
+  --music-bg-1:#17244b;--music-bg-2:#05091a;--music-metal:#e0bb69;--music-gem:#637fe1;--music-gem-light:#e4e9ff;--music-ink:#08102f;
 }
 
 /* Chế độ hỗ trợ tiếp cận */

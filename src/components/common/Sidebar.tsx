@@ -120,8 +120,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                   setShowThemePicker(false);
                 }}
               >
-                {themeId === t.id ? "● " : "○ "}
-                {t.label}
+                <span className="inline-flex items-center gap-2 w-full">
+                  <span>{themeId === t.id ? "●" : "○"}</span>
+                  <span className="flex-1">{t.label}</span>
+                  <span className="inline-flex -space-x-1">{t.colors.map((color)=><span key={color} className="w-3.5 h-3.5 rounded-full border" style={{background:color,borderColor:"var(--color-border)"}} />)}</span>
+                </span>
               </button>
             ))}
           </div>

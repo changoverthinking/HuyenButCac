@@ -37,7 +37,15 @@ export type ThemeId =
   | "thanh-truc-co-phong"
   | "tu-van-thien-cung"
   | "kim-cac-thien-thu"
-  | "thuy-mac-son-ha";
+  | "thuy-mac-son-ha"
+  | "bach-nguyet-han-cung"
+  | "dao-hoa-mong-canh"
+  | "cuu-u-huyen-da"
+  | "thien-thanh-luu-ly"
+  | "hoang-hon-co-thanh"
+  | "ngoc-son-van-hai"
+  | "huyet-nguyet-ma-canh"
+  | "tinh-ha-van-tuong";
 
 // ---- Giai đoạn 4: Viết dự án (mục 9 master prompt) ----
 

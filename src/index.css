@@ -36,6 +36,62 @@ body {
 .music-library { position: absolute; bottom: 100%; right: .75rem; width: min(430px, calc(100vw - 1.5rem)); max-height: 60vh; }
 .music-bubble { display: none; }
 
+/* Trình nhạc phong cách cổ trang: viền đồng, ngọc bội và hoa văn góc. */
+.immortal-panel {
+  position: relative;
+  border: 1px solid var(--music-metal, var(--color-accent));
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / .09), transparent 34%),
+    linear-gradient(160deg, var(--music-bg-1, var(--color-surface)), var(--music-bg-2, var(--color-bg)));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--music-metal, var(--color-accent)) 18%, transparent), inset 0 -12px 30px rgb(0 0 0 / .12), 0 9px 28px rgb(0 0 0 / .3);
+  overflow: hidden;
+}
+.immortal-panel::before,
+.immortal-panel::after {
+  content: "◇";
+  position: absolute;
+  z-index: 0;
+  color: var(--music-metal, var(--color-accent));
+  opacity: .58;
+  font-size: .75rem;
+  line-height: 1;
+  pointer-events: none;
+}
+.immortal-panel::before { top: .25rem; left: .35rem; }
+.immortal-panel::after { right: .35rem; bottom: .25rem; transform: rotate(180deg); }
+.immortal-panel > * { position: relative; z-index: 1; }
+.immortal-title { color: var(--music-metal, var(--color-accent)); letter-spacing: .08em; text-shadow: 0 1px 12px color-mix(in srgb, var(--music-gem, var(--color-accent)) 28%, transparent); }
+.immortal-title span { font-size: .65em; opacity: .7; }
+.music-controls.immortal-panel { border-radius: .95rem; }
+.music-library.immortal-panel { border-radius: 1rem; }
+.music-square-button,
+.music-plain-button { transition: transform .16s ease, filter .16s ease, background .16s ease; }
+.music-square-button { color:var(--color-text); background: linear-gradient(145deg, color-mix(in srgb, var(--music-bg-1, var(--color-surface-alt)) 82%, white), var(--music-bg-2, var(--color-bg))); border: 1px solid var(--music-metal, var(--color-border)); }
+.music-plain-button { min-width: 2rem; min-height: 2rem; border-radius: .55rem; }
+.music-square-button:active,.music-plain-button:active,.music-play-button:active { transform: scale(.92); }
+.music-plain-button:hover { background: rgb(255 255 255 / .06); }
+.music-play-button {
+  color: var(--music-ink, var(--color-bg));
+  border: 1px solid color-mix(in srgb, var(--music-gem-light, white) 72%, var(--music-metal, var(--color-accent)));
+  background: radial-gradient(circle at 34% 28%, var(--music-gem-light, white) 0 8%, var(--music-gem, var(--color-accent)) 46%, color-mix(in srgb, var(--music-gem, var(--color-accent)) 68%, black) 100%);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--music-ink, black) 22%, transparent), 0 0 18px color-mix(in srgb, var(--music-gem, var(--color-accent)) 42%, transparent);
+  transition: transform .16s ease, box-shadow .2s ease;
+}
+.music-play-button.is-playing { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--music-ink, black) 22%, transparent), 0 0 25px color-mix(in srgb, var(--music-gem, var(--color-accent)) 62%, transparent); }
+.jade-orb {
+  position: relative;
+  color: var(--music-ink, var(--color-bg));
+  border: 2px solid var(--music-metal, var(--color-accent));
+  background: radial-gradient(circle at 32% 25%, var(--music-gem-light, white) 0 8%, color-mix(in srgb, var(--music-gem, var(--color-accent)) 64%, white) 29%, var(--music-gem, var(--color-accent)) 62%, color-mix(in srgb, var(--music-gem, var(--color-accent)) 62%, black) 100%);
+  box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--music-ink, black) 24%, transparent), 0 0 0 3px color-mix(in srgb, var(--music-metal, var(--color-accent)) 20%, transparent), 0 9px 28px rgb(0 0 0 / .4), 0 0 22px color-mix(in srgb, var(--music-gem, var(--color-accent)) 38%, transparent);
+}
+.jade-orb::after { content:""; position:absolute; inset:-7px; border:1px solid color-mix(in srgb, var(--music-metal, var(--color-accent)) 48%, transparent); border-radius:999px; opacity:.8; }
+.jade-orb.is-playing { animation: jade-pulse 2.2s ease-in-out infinite; }
+@keyframes jade-pulse { 50% { box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--music-ink, black) 22%, transparent), 0 0 0 5px color-mix(in srgb, var(--music-metal, var(--color-accent)) 16%, transparent), 0 9px 28px rgb(0 0 0 / .4), 0 0 32px color-mix(in srgb, var(--music-gem, var(--color-accent)) 58%, transparent); } }
+.music-seek { height: 1rem; }
+.music-seek::-webkit-slider-runnable-track { height: .32rem; border-radius: 999px; background: linear-gradient(90deg, var(--music-gem, var(--color-accent)), color-mix(in srgb, var(--music-metal, var(--color-border)) 48%, var(--music-bg-2, var(--color-bg)))); }
+.music-seek::-webkit-slider-thumb { margin-top: -.34rem; }
+
 @media (max-width: 767px) {
   .rich-text-toolbar { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-inline: contain; }
   .rich-text-toolbar > * { flex: 0 0 auto; }
@@ -45,7 +101,7 @@ body {
   .music-player.is-open { left: max(.5rem, env(safe-area-inset-left)); right: max(.5rem, env(safe-area-inset-right)); }
   .music-player.is-open .music-bubble { display: none; }
   .music-player.is-collapsed .music-controls { display: none; }
-  .music-player.is-open .music-controls { display: flex; border: 1px solid var(--color-border); border-radius: 1rem; box-shadow: 0 8px 28px rgb(0 0 0 / .38); background: var(--color-surface); }
+  .music-player.is-open .music-controls { display: flex; border-radius: 1rem; }
   .music-library { position: fixed; left: max(.5rem, env(safe-area-inset-left)); right: max(.5rem, env(safe-area-inset-right)); bottom: calc(8.65rem + env(safe-area-inset-bottom)); width: auto; max-height: min(56vh, 28rem); }
 }
 
@@ -57,6 +113,23 @@ body {
   .music-player { bottom: calc(3.15rem + env(safe-area-inset-bottom)); }
   .music-library { bottom: calc(7.25rem + env(safe-area-inset-bottom)); max-height: 48vh; }
   .music-bubble { width: 3rem; height: 3rem; }
+}
+
+/* Điện thoại xoay ngang thường rộng hơn 768px nhưng vẫn có chiều cao thấp và cảm ứng. */
+@media (hover: none) and (pointer: coarse) and (orientation: landscape),
+       (max-height: 520px) and (orientation: landscape) {
+  .desktop-mode-tabs { display: none !important; }
+  .mobile-bottom-nav { display: flex !important; min-height: 2.65rem; padding-top: .1rem; }
+  .mobile-nav-item { flex-direction: row; gap: .3rem; padding: .15rem .65rem; }
+  .mobile-nav-item > span { font-size: 1rem; }
+  .music-player { position: fixed; right: max(.65rem, env(safe-area-inset-right)); bottom: calc(3rem + env(safe-area-inset-bottom)); border: 0; background: transparent !important; }
+  .music-bubble { display: grid; place-items: center; width: 3rem; height: 3rem; border-radius: 999px; box-shadow: 0 8px 28px rgb(0 0 0 / .38); font-size: 1.25rem; }
+  .music-player.is-collapsed .music-controls { display: none; }
+  .music-player.is-open { left: max(.5rem, env(safe-area-inset-left)); right: max(.5rem, env(safe-area-inset-right)); }
+  .music-player.is-open .music-bubble { display: none; }
+  .music-player.is-open .music-controls { display: flex; height: 3.2rem; border-radius: 1rem; }
+  .music-library { position: fixed; left: max(.5rem, env(safe-area-inset-left)); right: max(.5rem, env(safe-area-inset-right)); bottom: calc(6.55rem + env(safe-area-inset-bottom)); width: auto; max-height: 48vh; }
+  .whiteboard-toolbar > div { padding-top: .25rem; padding-bottom: .25rem; }
 }
 
 ::selection {

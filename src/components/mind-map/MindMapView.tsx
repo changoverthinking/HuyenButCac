@@ -25,8 +25,19 @@ export function MindMapView() {
   const [nodes, setNodes] = useState<MindMapNode[]>([]);
   const [edges, setEdges] = useState<MindMapEdge[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
   const drag = useRef<DragState | null>(null);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ distance: number; zoom: number } | null>(null);
   const selectedNode = nodes.find((node) => node.id === selected) ?? null;
+  const clampZoom = (value: number) => Math.min(2.5, Math.max(0.35, value));
+  const updatePinch = () => {
+    const points = [...pointers.current.values()];
+    if (points.length < 2) { pinch.current = null; return; }
+    const distance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+    if (!pinch.current) { pinch.current = { distance, zoom }; return; }
+    setZoom(clampZoom(pinch.current.zoom * distance / Math.max(1, pinch.current.distance)));
+  };
 
   const reload = async (id = active) => {
     setMaps(await listMindMaps());
@@ -146,21 +157,26 @@ export function MindMapView() {
           >
             Xóa
           </button>
+          <span className="rounded px-2 py-2 text-xs" style={{background:"var(--color-surface)"}}>{Math.round(zoom*100)}%</span>
         </div>
 
         <svg
           className="w-full h-full touch-none"
+          style={{transform:`scale(${zoom})`,transformOrigin:"0 0",width:`${100/zoom}%`,height:`${100/zoom}%`}}
+          onWheel={(event)=>{event.preventDefault();setZoom((value)=>clampZoom(value*(event.deltaY>0?.9:1.1)));}}
+          onPointerDownCapture={(event)=>{pointers.current.set(event.pointerId,{x:event.clientX,y:event.clientY});if(pointers.current.size>=2){drag.current=null;updatePinch();event.currentTarget.setPointerCapture(event.pointerId);}}}
           onPointerMove={(event) => {
+            if(pointers.current.has(event.pointerId)){pointers.current.set(event.pointerId,{x:event.clientX,y:event.clientY});if(pointers.current.size>=2){updatePinch();return;}}
             const current = drag.current;
             if (!current) return;
-            const x = current.startNodeX + event.clientX - current.startClientX;
-            const y = current.startNodeY + event.clientY - current.startClientY;
+            const x = current.startNodeX + (event.clientX - current.startClientX) / zoom;
+            const y = current.startNodeY + (event.clientY - current.startClientY) / zoom;
             setNodes((items) => items.map((node) => (
               node.id === current.id ? { ...node, x, y } : node
             )));
           }}
-          onPointerUp={finishDrag}
-          onPointerCancel={finishDrag}
+          onPointerUp={(event)=>{pointers.current.delete(event.pointerId);updatePinch();finishDrag();}}
+          onPointerCancel={(event)=>{pointers.current.delete(event.pointerId);updatePinch();finishDrag();}}
           onPointerLeave={finishDrag}
         >
           {edges.map((edge) => {
@@ -182,6 +198,7 @@ export function MindMapView() {
               key={node.id}
               transform={`translate(${node.x} ${node.y})`}
               onPointerDown={(event) => {
+                if(pointers.current.size>1)return;
                 event.preventDefault();
                 setSelected(node.id);
                 drag.current = {
