@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## Checkpoint 8 Mobile — 2026-08-25
+- Trình phát nhạc trên điện thoại đổi thành bong bóng nổi: chạm để mở, chạm nút thu nhỏ để trở về hình tròn.
+- Trình nhạc không còn chiếm một hàng cố định, trả lại không gian viết và vẽ.
+- Sơ đồ trên điện thoại dùng thanh chọn gọn phía trên thay cho sidebar cố định nửa màn hình.
+- Bảng trắng chia thanh công cụ thành hai hàng cuộn an toàn, dùng nhãn tiếng Việt ngắn gọn.
+- Tối ưu màn hình dọc/ngang, vùng an toàn iPhone và chiều cao viewport động.
+- Thanh định dạng văn bản cuộn ngang trên điện thoại; thêm Palatino, Segoe Script, Brush Script, KaiTi, Yu Mincho và Noto Serif.
+- Kiểm tra lại TypeScript, 38/38 test, lint và production build.
+
 ## Checkpoint 1 — 2026-08-25
 - Khởi tạo dự án (Vite + React 19 + TS strict + Tailwind v4 + Zustand + Dexie).
 - Ghi chú cơ bản: CRUD, autosave, thư mục, ghim/yêu thích, thùng rác, tìm kiếm có/không dấu.

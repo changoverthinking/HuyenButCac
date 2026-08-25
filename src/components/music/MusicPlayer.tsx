@@ -68,13 +68,13 @@ export function MusicPlayer() {
   });
 
   return (
-    <section className="relative z-30 shrink-0 border-t" style={{borderColor:"var(--color-border)",background:"var(--color-surface)"}}>
+    <section className={`music-player z-40 ${expanded?"is-open":"is-collapsed"}`} style={{borderColor:"var(--color-border)",background:"var(--color-surface)"}}>
       <audio ref={audioRef} onTimeUpdate={(e)=>setCurrentTime(e.currentTarget.currentTime)} onLoadedMetadata={(e)=>setDuration(e.currentTarget.duration)} onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onEnded={()=>chooseNext(1,true)} />
       {expanded&&(
-        <div className="absolute bottom-full left-0 right-0 md:left-auto md:right-3 md:w-[430px] max-h-[60vh] flex flex-col border rounded-t-xl shadow-2xl" style={{borderColor:"var(--color-border)",background:"var(--color-surface)"}}>
+        <div className="music-library flex flex-col border rounded-xl shadow-2xl" style={{borderColor:"var(--color-border)",background:"var(--color-surface)"}}>
           <div className="flex items-center justify-between p-3 border-b" style={{borderColor:"var(--color-border)"}}>
             <div><div className="font-semibold">Nhạc nền</div><div className="text-xs" style={{color:"var(--color-text-muted)"}}>{tracks.length} bài · {(totalSize/1024/1024).toFixed(1)} MB lưu trên thiết bị</div></div>
-            <label className="px-3 py-2 rounded text-sm cursor-pointer" style={{background:"var(--color-accent)",color:"var(--color-bg)"}}>＋ Thêm MP3<input type="file" accept="audio/mpeg,.mp3" multiple className="hidden" onChange={async(e)=>{const files=Array.from(e.target.files??[]);if(!files.length)return;try{await addMusicFiles(files);await reload();setMessage(`Đã lưu ${files.length} bài trên thiết bị.`);}catch(error){setMessage((error as Error).message);}e.target.value="";}} /></label>
+            <div className="flex items-center gap-2"><label className="px-3 py-2 rounded text-sm cursor-pointer" style={{background:"var(--color-accent)",color:"var(--color-bg)"}}>＋ MP3<input type="file" accept="audio/mpeg,.mp3" multiple className="hidden" onChange={async(e)=>{const files=Array.from(e.target.files??[]);if(!files.length)return;try{await addMusicFiles(files);await reload();setMessage(`Đã lưu ${files.length} bài trên thiết bị.`);}catch(error){setMessage((error as Error).message);}e.target.value="";}} /></label><button className="md:hidden w-9 h-9 rounded-full" aria-label="Thu nhỏ trình phát nhạc" style={{background:"var(--color-surface-alt)"}} onClick={()=>setExpanded(false)}>⌄</button></div>
           </div>
           {message&&<div className="px-3 py-2 text-xs" style={{color:"var(--color-warning)"}}>{message}</div>}
           <div className="overflow-y-auto p-2">
@@ -88,13 +88,14 @@ export function MusicPlayer() {
           </div>
         </div>
       )}
-      <div className="h-16 md:h-14 px-2 md:px-4 flex items-center gap-2">
+      <button className="music-bubble md:hidden" aria-label="Mở trình phát nhạc" onClick={()=>setExpanded(true)} style={{background:"var(--color-accent)",color:"var(--color-bg)"}}>{playing?"♫":"♪"}</button>
+      <div className="music-controls h-16 md:h-14 px-2 md:px-4 items-center gap-2">
         <button aria-label="Mở thư viện nhạc" className="w-9 h-9 rounded" style={{background:"var(--color-surface-alt)"}} onClick={()=>setExpanded((value)=>!value)}>♫</button>
         <div className="hidden sm:block min-w-0 w-36"><div className="truncate text-sm">{current?.name??"Chưa có nhạc"}</div><div className="text-[11px]" style={{color:"var(--color-text-muted)"}}>{formatTime(currentTime)} / {formatTime(duration)}</div></div>
         <button aria-label="Bài trước" onClick={()=>chooseNext(-1)}>⏮</button>
         <button aria-label={playing?"Tạm dừng":"Phát"} className="w-9 h-9 rounded-full" style={{background:"var(--color-accent)",color:"var(--color-bg)"}} onClick={togglePlay}>{playing?"❚❚":"▶"}</button>
         <button aria-label="Bài tiếp theo" onClick={()=>chooseNext(1)}>⏭</button>
-        <input aria-label="Tua bài hát" className="flex-1 min-w-12 accent-[var(--color-accent)]" type="range" min="0" max={duration||0} step="0.1" value={Math.min(currentTime,duration||0)} onChange={(e)=>{const value=Number(e.target.value);if(audioRef.current)audioRef.current.currentTime=value;setCurrentTime(value);}} />
+        <input aria-label="Tua bài hát" className="music-seek flex-1 min-w-12 accent-[var(--color-accent)]" type="range" min="0" max={duration||0} step="0.1" value={Math.min(currentTime,duration||0)} onChange={(e)=>{const value=Number(e.target.value);if(audioRef.current)audioRef.current.currentTime=value;setCurrentTime(value);}} />
         <button aria-label="Phát ngẫu nhiên" title="Phát ngẫu nhiên" onClick={()=>setShuffle((value)=>!value)} style={{color:shuffle?"var(--color-accent)":"var(--color-text-muted)"}}>🔀</button>
         <button aria-label="Chế độ lặp" title="Tắt lặp / Lặp danh sách / Lặp một bài" onClick={()=>setRepeat(cycleRepeatMode)} style={{color:repeat!=="off"?"var(--color-accent)":"var(--color-text-muted)"}}>{repeat==="one"?"🔂":"🔁"}</button>
         <label className="hidden md:flex items-center gap-1 text-xs">🔊<input aria-label="Âm lượng" className="w-20" type="range" min="0" max="1" step="0.05" value={volume} onChange={(e)=>setVolume(Number(e.target.value))}/></label>

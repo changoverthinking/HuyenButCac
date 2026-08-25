@@ -44,27 +44,31 @@ export function WhiteboardView() {
 
   return (
     <div className="h-full flex flex-col">
-      <header className="flex gap-2 p-2 border-b overflow-x-auto" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
-        <button onClick={async () => { const board = await createWhiteboard(); setActive(board.id); await reload(board.id); }}>＋ Bảng ({boards.length})</button>
+      <header className="whiteboard-toolbar shrink-0 border-b" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
+        <div className="flex gap-2 p-2 min-w-0">
+        <button className="shrink-0" onClick={async () => { const board = await createWhiteboard(); setActive(board.id); await reload(board.id); }}>＋ Bảng <span className="hidden sm:inline">({boards.length})</span></button>
         <select
           aria-label="Chọn bảng trắng"
           value={active ?? ""}
           onChange={(event) => { setActive(event.target.value); void reload(event.target.value); }}
-          className="rounded px-2 bg-transparent border"
+          className="min-w-0 flex-1 rounded px-2 bg-transparent border"
           style={{ borderColor: "var(--color-border)" }}
         >
           {boards.map((board) => <option key={board.id} value={board.id}>{board.title}</option>)}
         </select>
-        <button onClick={async()=>{if(!active)return;const current=boards.find((board)=>board.id===active);const title=window.prompt("Tên bảng trắng:",current?.title??"")?.trim();if(!title)return;await renameWhiteboard(active,title);await reload(active);}}>Đổi tên</button>
-        <button style={{ color: "var(--color-error)" }} onClick={removeActiveBoard}>Xóa bảng</button>
-        {(["note", "rectangle", "ellipse", "text"] as WhiteboardObjectKind[]).map((kind) => (
-          <button key={kind} className="px-3 py-1 rounded" style={{ background: "var(--color-surface-alt)" }} onClick={() => void add(kind)}>＋ {kind}</button>
+        <button className="shrink-0" aria-label="Đổi tên bảng" onClick={async()=>{if(!active)return;const current=boards.find((board)=>board.id===active);const title=window.prompt("Tên bảng trắng:",current?.title??"")?.trim();if(!title)return;await renameWhiteboard(active,title);await reload(active);}}>✎<span className="hidden md:inline"> Đổi tên</span></button>
+        <button className="shrink-0" aria-label="Xóa bảng" style={{ color: "var(--color-error)" }} onClick={removeActiveBoard}>⌫<span className="hidden md:inline"> Xóa bảng</span></button>
+        </div>
+        <div className="flex items-center gap-2 px-2 pb-2 overflow-x-auto">
+        {([{"kind":"note","label":"Ghi chú"},{"kind":"text","label":"Chữ"},{"kind":"rectangle","label":"Chữ nhật"},{"kind":"ellipse","label":"Elip"}] as {kind:WhiteboardObjectKind;label:string}[]).map(({kind,label}) => (
+          <button key={kind} className="shrink-0 px-3 py-1.5 rounded" style={{ background: "var(--color-surface-alt)" }} onClick={() => void add(kind)}>＋ {label}</button>
         ))}
         <button disabled={!selected} onClick={async () => {
           if (!selected) return;
           await deleteBoardObject(selected); setSelected(null); await reload();
         }}>Xóa</button>
-        <span className="ml-auto">{Math.round(zoom * 100)}%</span>
+        <span className="ml-auto shrink-0 text-sm">{Math.round(zoom * 100)}%</span>
+        </div>
       </header>
       <div
         className="flex-1 relative overflow-hidden touch-none"

@@ -16,14 +16,14 @@ export function RichTextToolbar({ editorRef, onFormat, compact = false }: Props)
   };
 
   return (
-    <div className={`flex items-center gap-1.5 flex-wrap ${compact ? "px-3 py-2" : "px-4 py-2"}`}>
+    <div className={`rich-text-toolbar flex items-center gap-1.5 ${compact ? "px-3 py-2" : "px-4 py-2"}`}>
       <button type="button" title="Hoàn tác" className={buttonClass} onMouseDown={(e) => e.preventDefault()} onClick={() => run("undo")}>↶</button>
       <button type="button" title="Làm lại" className={buttonClass} onMouseDown={(e) => e.preventDefault()} onClick={() => run("redo")}>↷</button>
       <select aria-label="Kiểu đoạn" className="px-2 py-1.5 rounded border bg-transparent text-sm" defaultValue="P" onChange={(e) => run("formatBlock", e.target.value)}>
         <option value="P">Đoạn văn</option><option value="H1">Tiêu đề 1</option><option value="H2">Tiêu đề 2</option><option value="H3">Tiêu đề 3</option><option value="BLOCKQUOTE">Trích dẫn</option><option value="PRE">Mã/định dạng sẵn</option>
       </select>
       <select aria-label="Kiểu chữ" className="px-2 py-1.5 rounded border bg-transparent text-sm" defaultValue="Georgia" onChange={(e) => run("fontName", e.target.value)}>
-        <option value="Georgia">Georgia</option><option value="Arial">Arial</option><option value="Times New Roman">Times New Roman</option><option value="Verdana">Verdana</option><option value="Courier New">Courier New</option>
+        <option value="Georgia">Georgia</option><option value="Palatino Linotype">Palatino cổ điển</option><option value="Segoe Script">Segoe Script thư pháp</option><option value="Brush Script MT">Brush Script</option><option value="KaiTi">Khải thư (KaiTi)</option><option value="Yu Mincho">Mincho cổ phong</option><option value="Noto Serif">Noto Serif</option><option value="Arial">Arial</option><option value="Times New Roman">Times New Roman</option><option value="Verdana">Verdana</option><option value="Courier New">Courier New</option>
       </select>
       <select aria-label="Cỡ chữ" className="px-2 py-1.5 rounded border bg-transparent text-sm" defaultValue="3" onChange={(e) => run("fontSize", e.target.value)}>
         <option value="1">10</option><option value="2">13</option><option value="3">16</option><option value="4">18</option><option value="5">24</option><option value="6">32</option><option value="7">48</option>

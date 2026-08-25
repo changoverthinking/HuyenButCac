@@ -86,8 +86,18 @@ export function MindMapView() {
   };
 
   return (
-    <div className="h-full flex">
-      <aside className="w-56 border-r p-3 space-y-2" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
+    <div className="h-full min-h-0 flex flex-col md:flex-row">
+      <div className="md:hidden shrink-0 border-b p-2" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
+        <div className="flex gap-2 min-w-0">
+          <select aria-label="Chọn sơ đồ" className="min-w-0 flex-1 rounded border bg-transparent px-2 py-2" style={{borderColor:"var(--color-border)"}} value={active??""} onChange={(event)=>{setActive(event.target.value);setSelected(null);void reload(event.target.value);}}>
+            {maps.map((map)=><option key={map.id} value={map.id}>{map.title}</option>)}
+          </select>
+          <button aria-label="Tạo sơ đồ" className="mobile-icon-button" style={{background:"var(--color-accent)",color:"var(--color-bg)"}} onClick={async()=>{const created=await createMindMap();setActive(created.map.id);await reload(created.map.id);}}>＋</button>
+          <button aria-label="Đổi tên sơ đồ" className="mobile-icon-button" style={{background:"var(--color-surface-alt)"}} onClick={renameActiveMap}>✎</button>
+          <button aria-label="Xóa sơ đồ" className="mobile-icon-button" style={{background:"var(--color-surface-alt)",color:"var(--color-error)"}} onClick={removeActiveMap}>⌫</button>
+        </div>
+      </div>
+      <aside className="hidden md:block w-56 shrink-0 border-r p-3 space-y-2" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
         <button
           className="w-full rounded p-2"
           style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}
@@ -118,8 +128,8 @@ export function MindMapView() {
         ))}
       </aside>
 
-      <main className="flex-1 relative overflow-hidden" style={{ background: "var(--color-canvas-bg)" }}>
-        <div className="absolute z-10 left-3 top-3 flex gap-2">
+      <main className="flex-1 min-h-0 min-w-0 relative overflow-hidden" style={{ background: "var(--color-canvas-bg)" }}>
+        <div className="absolute z-10 left-2 top-2 md:left-3 md:top-3 flex gap-2">
           <button onClick={add} className="rounded px-3 py-2" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}>
             ＋ Nhánh
           </button>

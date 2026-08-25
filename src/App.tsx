@@ -25,7 +25,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="app-shell flex flex-col h-screen w-screen overflow-hidden">
+    <div className="app-shell flex flex-col w-screen overflow-hidden">
       <UpdatePrompt />
 
       {/* Tab desktop */}
@@ -61,14 +61,14 @@ export default function App() {
 
       {/* Bottom nav mobile (mục 7) */}
       <nav
-        className="md:hidden flex justify-around border-t py-1"
+        className="mobile-bottom-nav md:hidden flex justify-around border-t py-1 shrink-0"
         style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", paddingBottom: "max(.25rem, env(safe-area-inset-bottom))" }}
       >
         {MODE_TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setMode(t.id)}
-            className="flex flex-col items-center px-3 py-1.5 text-xs"
+            className="mobile-nav-item flex flex-col items-center px-3 py-1.5 text-xs"
             style={{ color: mode === t.id ? "var(--color-accent)" : "var(--color-text-muted)" }}
           >
             <span className="text-lg">{t.icon}</span>
