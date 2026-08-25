@@ -17,6 +17,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.app-shell {
+  background-color: var(--color-bg);
+  background-image: linear-gradient(color-mix(in srgb, var(--color-bg) 70%, transparent), color-mix(in srgb, var(--color-bg) 70%, transparent)), var(--custom-background, none);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
 ::selection {
   background: var(--color-accent);
   color: var(--color-bg);
@@ -25,8 +33,19 @@ body {
 .hbc-editor {
   outline: none;
   min-height: 200px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
 }
 .hbc-editor:empty::before {
   content: attr(data-placeholder);
   color: var(--color-text-muted);
 }
+.hbc-editor h1 { font-size: 2rem; line-height: 1.25; font-weight: 700; margin: 1.2em 0 .55em; }
+.hbc-editor h2 { font-size: 1.55rem; line-height: 1.35; font-weight: 700; margin: 1em 0 .5em; }
+.hbc-editor h3 { font-size: 1.25rem; line-height: 1.4; font-weight: 650; margin: .9em 0 .45em; }
+.hbc-editor p { margin: .45em 0; }
+.hbc-editor blockquote { margin: 1em 0; padding: .5em 1em; border-left: 3px solid var(--color-accent); color: var(--color-text-muted); background: var(--color-surface-alt); }
+.hbc-editor pre { white-space: pre-wrap; margin: 1em 0; padding: 1em; border-radius: .6rem; background: var(--color-surface-alt); font-family: "Courier New", monospace; }
+.hbc-editor ul { list-style: disc; padding-left: 1.6em; }
+.hbc-editor ol { list-style: decimal; padding-left: 1.6em; }
+.hbc-editor a { color: var(--color-accent); text-decoration: underline; }

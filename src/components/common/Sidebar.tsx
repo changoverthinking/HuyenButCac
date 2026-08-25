@@ -9,6 +9,8 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const selectedFolderId = useFoldersStore((s) => s.selectedFolderId);
   const selectFolder = useFoldersStore((s) => s.select);
   const createFolder = useFoldersStore((s) => s.create);
+  const renameFolder = useFoldersStore((s) => s.rename);
+  const removeFolder = useFoldersStore((s) => s.remove);
   const showActive = useNotesStore((s) => s.showActive);
   const showTrash = useNotesStore((s) => s.showTrash);
   const view = useNotesStore((s) => s.view);
@@ -16,6 +18,9 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const [showThemePicker, setShowThemePicker] = useState(false);
   const themeId = useThemeStore((s) => s.themeId);
   const setTheme = useThemeStore((s) => s.setTheme);
+  const backgroundUrl = useThemeStore((s) => s.backgroundUrl);
+  const setCustomBackground = useThemeStore((s) => s.setCustomBackground);
+  const clearCustomBackground = useThemeStore((s) => s.clearCustomBackground);
 
   const rootFolders = folders.filter((f) => f.parentId === null);
 
@@ -59,18 +64,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </div>
       <div className="px-2 overflow-y-auto flex-1">
         {rootFolders.map((f) => (
-          <button
-            key={f.id}
-            className="w-full text-left px-3 py-2 rounded-lg mb-1"
-            style={{ background: view === "active" && selectedFolderId === f.id ? "var(--color-surface-alt)" : "transparent" }}
-            onClick={() => {
-              selectFolder(f.id);
-              void showActive(f.id);
-              onNavigate?.();
-            }}
-          >
-            📁 {f.name}
-          </button>
+          <div key={f.id} className="flex items-center rounded-lg mb-1" style={{ background: view === "active" && selectedFolderId === f.id ? "var(--color-surface-alt)" : "transparent" }}>
+            <button className="flex-1 min-w-0 text-left px-3 py-2 truncate" onClick={() => { selectFolder(f.id); void showActive(f.id); onNavigate?.(); }}>📁 {f.name}</button>
+            <button title="Đổi tên thư mục" className="px-1" onClick={async()=>{const name=window.prompt("Tên thư mục:",f.name)?.trim();if(name)await renameFolder(f.id,name);}}>✎</button>
+            <button title="Xóa thư mục" className="px-2" style={{color:"var(--color-error)"}} onClick={async()=>{if(!window.confirm(`Xóa thư mục “${f.name}”? Ghi chú bên trong sẽ được chuyển về Tất cả ghi chú.`))return;await removeFolder(f.id);await showActive();}}>×</button>
+          </div>
         ))}
         <form
           className="flex gap-1 px-1 mt-1"
@@ -92,6 +90,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <div className="p-2 border-t relative" style={{ borderColor: "var(--color-border)" }}>
+        <label className="block w-full text-left px-3 py-2 rounded-lg text-sm cursor-pointer" style={{ color: "var(--color-text-muted)" }}>
+          🖼️ Chọn ảnh nền
+          <input type="file" accept="image/*" className="hidden" onChange={async(e)=>{const file=e.target.files?.[0];if(!file)return;try{await setCustomBackground(file);}catch(error){window.alert((error as Error).message);}e.target.value="";}} />
+        </label>
+        {backgroundUrl&&<button className="w-full text-left px-3 py-2 rounded-lg text-sm" style={{color:"var(--color-error)"}} onClick={()=>void clearCustomBackground()}>↩ Dùng lại nền mặc định</button>}
         <button
           className="w-full text-left px-3 py-2 rounded-lg text-sm"
           style={{ color: "var(--color-text-muted)" }}

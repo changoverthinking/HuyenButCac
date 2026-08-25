@@ -9,7 +9,7 @@ import type {
   ProjectChapter,
   ProjectTask,
   ProjectMilestone,
-  MindMap, MindMapNode, MindMapEdge, Whiteboard, WhiteboardObject,
+  MindMap, MindMapNode, MindMapEdge, Whiteboard, WhiteboardObject, MusicTrack, CustomBackground,
 } from "../types/entities";
 
 export class HuyenButDB extends Dexie {
@@ -27,6 +27,8 @@ export class HuyenButDB extends Dexie {
   mindMapEdges!: Table<MindMapEdge, string>;
   whiteboards!: Table<Whiteboard, string>;
   whiteboardObjects!: Table<WhiteboardObject, string>;
+  musicTracks!: Table<MusicTrack, string>;
+  customBackgrounds!: Table<CustomBackground, string>;
 
   constructor() {
     super("huyen-but-cac");
@@ -61,6 +63,16 @@ export class HuyenButDB extends Dexie {
       projectTasks: "id, projectId, status, order, deletedAt", projectMilestones: "id, projectId, done, deletedAt",
       mindMaps: "id, deletedAt, updatedAt", mindMapNodes: "id, mapId, parentId, deletedAt", mindMapEdges: "id, mapId, sourceId, targetId, deletedAt",
       whiteboards: "id, deletedAt, updatedAt", whiteboardObjects: "id, boardId, kind, deletedAt",
+    });
+    this.version(4).stores({
+      notes: "id, folderId, pinned, favorite, archived, locked, deletedAt, updatedAt, *tags",
+      folders: "id, parentId, deletedAt, order", tags: "id, name, deletedAt", themePreferences: "id",
+      projects: "id, status, kind, archived, deletedAt, updatedAt",
+      projectSections: "id, projectId, order, deletedAt", projectChapters: "id, projectId, sectionId, order, deletedAt",
+      projectTasks: "id, projectId, status, order, deletedAt", projectMilestones: "id, projectId, done, deletedAt",
+      mindMaps: "id, deletedAt, updatedAt", mindMapNodes: "id, mapId, parentId, deletedAt", mindMapEdges: "id, mapId, sourceId, targetId, deletedAt",
+      whiteboards: "id, deletedAt, updatedAt", whiteboardObjects: "id, boardId, kind, deletedAt",
+      musicTracks: "id, deletedAt, createdAt", customBackgrounds: "id, deletedAt, updatedAt",
     });
   }
 }

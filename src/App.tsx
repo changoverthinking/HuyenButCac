@@ -5,6 +5,7 @@ import { NotesModeView } from "./components/notes-mode/NotesModeView";
 import { ProjectsView } from "./components/projects/ProjectsView";
 import { MindMapView } from "./components/mind-map/MindMapView";
 import { WhiteboardView } from "./components/whiteboard/WhiteboardView";
+import { MusicPlayer } from "./components/music/MusicPlayer";
 
 type Mode = "notes" | "projects" | "mindmap" | "whiteboard";
 
@@ -24,7 +25,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: "var(--color-bg)" }}>
+    <div className="app-shell flex flex-col h-screen w-screen overflow-hidden">
       <UpdatePrompt />
 
       {/* Tab desktop */}
@@ -56,10 +57,12 @@ export default function App() {
         {mode === "whiteboard" && <WhiteboardView />}
       </div>
 
+      <MusicPlayer />
+
       {/* Bottom nav mobile (mục 7) */}
       <nav
         className="md:hidden flex justify-around border-t py-1"
-        style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+        style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", paddingBottom: "max(.25rem, env(safe-area-inset-bottom))" }}
       >
         {MODE_TABS.map((t) => (
           <button

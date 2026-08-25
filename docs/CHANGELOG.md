@@ -37,3 +37,32 @@
 - Không cho xóa nút trung tâm; tự phục hồi sơ đồ cũ đã mất nút trung tâm.
 - Cập nhật cấu hình GitHub Pages cho repo `HuyenButCac` và phiên bản `0.4.0-checkpoint5`.
 - 24/24 Vitest đạt; TypeScript strict, lint không lỗi và production PWA build thành công.
+
+## Checkpoint 6 — 2026-08-25
+- Thêm đổi tên và xóa toàn bộ sơ đồ tư duy; xóa giao dịch cả node/connector và tự tạo sơ đồ mới nếu danh sách trống.
+- Thêm đổi tên và xóa toàn bộ bảng trắng; xóa giao dịch toàn bộ đối tượng và tự tạo bảng mới nếu cần.
+- Thêm đổi tên/xóa dự án; xóa mềm đồng bộ phần, chương, task và milestone.
+- Nâng trình soạn thảo dùng chung cho Ghi chú và Viết chương: undo/redo, kiểu đoạn, 5 font, 7 cỡ chữ, đậm/nghiêng/gạch chân/gạch ngang, căn lề, danh sách, màu chữ và xóa định dạng.
+- Bổ sung kiểu hiển thị H1/H2/H3, trích dẫn, mã, danh sách và nội dung dài.
+- Củng cố autosave chương khi thoát chế độ tập trung; cảnh báo tách chương khi vượt 20.000 từ.
+- Thay toàn bộ icon PWA bằng biểu tượng bút lông–cuộn thư–ấn ngọc phong cách tu tiên/thư pháp.
+- 27/27 Vitest đạt; TypeScript strict và production PWA build thành công.
+
+## Checkpoint 7 — 2026-08-25
+- Dexie schema v4 thêm thư viện MP3 và ảnh nền tùy chỉnh, giữ nguyên toàn bộ dữ liệu schema cũ.
+- Trình phát nhạc nền toàn ứng dụng: phát/tạm dừng, tua, trước/sau, âm lượng, ngẫu nhiên, lặp danh sách và lặp một bài.
+- Thư viện nhạc cho phép tải nhiều MP3, lưu lâu dài trên thiết bị, đổi tên và xóa từng bài; hiển thị số bài và dung lượng.
+- Ghi nhớ bài đang chọn, âm lượng, chế độ lặp và ngẫu nhiên; tích hợp Media Session cho điều khiển hệ thống khi trình duyệt hỗ trợ.
+- Cho phép tải ảnh nền, lưu cục bộ, thay thế ảnh hoặc trở về nền mặc định; giới hạn ảnh 20 MB.
+- Tối ưu thanh nhạc và bảng thư viện cho điện thoại, thêm safe-area cho iPhone.
+- 30/30 Vitest đạt; TypeScript strict và production PWA build thành công.
+
+## Checkpoint 7 QA — 2026-08-25
+- Kiểm duyệt lại toàn bộ service dữ liệu và logic player; tăng từ 30 lên 38 bài kiểm thử.
+- Sửa sơ đồ đã xóa có thể tự sinh lại node gốc khi service bị gọi bằng ID cũ.
+- Sửa xóa thư mục cha làm thư mục con mồ côi; nay xóa cả cây và chuyển ghi chú về “Tất cả ghi chú”.
+- Thêm đổi tên/xóa thư mục ngay trên giao diện.
+- Chuẩn hóa âm lượng lưu lỗi/ngoài khoảng để audio không bị lỗi khi khởi động.
+- Tách logic next/previous/shuffle/repeat thành hàm thuần và kiểm thử đủ cuối danh sách, lặp một bài, lặp danh sách, ngẫu nhiên.
+- Xác nhận PWA build có service worker, manifest và icon bắt buộc.
+- Bản GitHub Pages công khai được kiểm tra và vẫn là `0.1.0-checkpoint1`; cần upload bản QA này trước khi nghiệm thu trình duyệt cuối.

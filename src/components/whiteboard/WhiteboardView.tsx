@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { Whiteboard, WhiteboardObject, WhiteboardObjectKind } from "../../types/entities";
 import {
-  addBoardObject, createWhiteboard, deleteBoardObject, getBoardObjects,
-  listWhiteboards, updateBoardObject,
+  addBoardObject, createWhiteboard, deleteBoardObject, deleteWhiteboard, getBoardObjects,
+  listWhiteboards, renameWhiteboard, updateBoardObject,
 } from "../../features/whiteboard/whiteboardService";
 
 export function WhiteboardView() {
@@ -34,6 +34,14 @@ export function WhiteboardView() {
     await reload();
   };
 
+  const removeActiveBoard = async () => {
+    if (!active || !window.confirm("Xóa bảng trắng này và toàn bộ nội dung? Hành động này không thể hoàn tác.")) return;
+    await deleteWhiteboard(active);
+    let remaining=await listWhiteboards();
+    if(!remaining.length) remaining=[await createWhiteboard()];
+    setActive(remaining[0].id); setSelected(null); await reload(remaining[0].id);
+  };
+
   return (
     <div className="h-full flex flex-col">
       <header className="flex gap-2 p-2 border-b overflow-x-auto" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
@@ -47,6 +55,8 @@ export function WhiteboardView() {
         >
           {boards.map((board) => <option key={board.id} value={board.id}>{board.title}</option>)}
         </select>
+        <button onClick={async()=>{if(!active)return;const current=boards.find((board)=>board.id===active);const title=window.prompt("Tên bảng trắng:",current?.title??"")?.trim();if(!title)return;await renameWhiteboard(active,title);await reload(active);}}>Đổi tên</button>
+        <button style={{ color: "var(--color-error)" }} onClick={removeActiveBoard}>Xóa bảng</button>
         {(["note", "rectangle", "ellipse", "text"] as WhiteboardObjectKind[]).map((kind) => (
           <button key={kind} className="px-3 py-1 rounded" style={{ background: "var(--color-surface-alt)" }} onClick={() => void add(kind)}>＋ {kind}</button>
         ))}

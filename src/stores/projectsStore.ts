@@ -15,6 +15,7 @@ interface ProjectsState {
   selectProject: (id: string | null) => Promise<void>;
   createProject: (title: string, kind: ProjectKind) => Promise<string>;
   updateProject: typeof svc.updateProject;
+  deleteProject: (id: string) => Promise<void>;
 
   createSection: (title: string) => Promise<void>;
   createChapter: (title: string, sectionId: string | null) => Promise<void>;
@@ -64,6 +65,12 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
 
   updateProject: async (id, patch) => {
     await svc.updateProject(id, patch);
+    await get().loadProjects();
+  },
+
+  deleteProject: async (id) => {
+    await svc.softDeleteProject(id);
+    if(get().selectedProjectId===id) await get().selectProject(null);
     await get().loadProjects();
   },
 

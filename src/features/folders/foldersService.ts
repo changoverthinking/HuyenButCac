@@ -47,7 +47,17 @@ export async function moveFolder(id: string, newParentId: string | null): Promis
 }
 
 export async function softDeleteFolder(id: string): Promise<void> {
-  await db.folders.update(id, { deletedAt: Date.now(), updatedAt: Date.now() });
+  const deletedAt=Date.now();
+  await db.transaction("rw",db.folders,db.notes,async()=>{
+    const active=await db.folders.filter((folder)=>folder.deletedAt===null).toArray();
+    const ids=new Set<string>([id]);
+    let changed=true;
+    while(changed){changed=false;for(const folder of active){if(folder.parentId&&ids.has(folder.parentId)&&!ids.has(folder.id)){ids.add(folder.id);changed=true;}}}
+    const folders=active.filter((folder)=>ids.has(folder.id));
+    if(folders.length)await db.folders.bulkPut(folders.map((folder)=>({...folder,deletedAt,updatedAt:deletedAt})));
+    const notes=await db.notes.filter((note)=>note.deletedAt===null&&note.folderId!==null&&ids.has(note.folderId)).toArray();
+    if(notes.length)await db.notes.bulkPut(notes.map((note)=>({...note,folderId:null,updatedAt:deletedAt})));
+  });
 }
 
 export async function listFolders(): Promise<Folder[]> {

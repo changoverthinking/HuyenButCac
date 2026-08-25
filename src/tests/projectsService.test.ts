@@ -12,6 +12,8 @@ import {
   updateTaskStatus,
   listTasks,
   exportProjectMarkdown,
+  listProjects,
+  softDeleteProject,
 } from "../features/projects/projectsService";
 
 beforeEach(async () => {
@@ -71,6 +73,15 @@ describe("projectsService — dự án và chương", () => {
     expect(md).toContain("Lời mở đầu");
     expect(md).toContain("Phần A");
     expect(md).toContain("Chương trong phần A");
+  });
+
+  it("xóa dự án đồng thời ẩn toàn bộ phần và chương liên quan", async () => {
+    const project = await createProject({ title: "Dự án xóa", kind: "generic" });
+    const section = await createSection(project.id, "Quyển 1");
+    await createChapter({ projectId: project.id, sectionId: section.id, title: "Chương 1" });
+    await softDeleteProject(project.id);
+    expect(await listProjects()).toHaveLength(0);
+    expect(await listChapters(project.id)).toHaveLength(0);
   });
 });
 

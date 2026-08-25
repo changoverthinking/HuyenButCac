@@ -17,6 +17,8 @@ function ProjectPicker() {
   const loadProjects = useProjectsStore((s) => s.loadProjects);
   const createProject = useProjectsStore((s) => s.createProject);
   const selectProject = useProjectsStore((s) => s.selectProject);
+  const deleteProject = useProjectsStore((s) => s.deleteProject);
+  const updateProject = useProjectsStore((s) => s.updateProject);
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState<ProjectKind>("software");
 
@@ -74,19 +76,14 @@ function ProjectPicker() {
           </p>
         )}
         {projects.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => selectProject(p.id)}
-            className="text-left p-3 rounded-lg border"
-            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
-          >
-            <div className="font-medium" style={{ color: "var(--color-text)" }}>
-              {p.title}
-            </div>
-            <div className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-              {KIND_LABEL[p.kind]} · {p.status}
-            </div>
-          </button>
+          <div key={p.id} className="flex items-center gap-2 p-3 rounded-lg border" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
+            <button onClick={() => selectProject(p.id)} className="text-left flex-1 min-w-0">
+              <div className="font-medium truncate" style={{ color: "var(--color-text)" }}>{p.title}</div>
+              <div className="text-xs" style={{ color: "var(--color-text-muted)" }}>{KIND_LABEL[p.kind]} · {p.status}</div>
+            </button>
+            <button className="text-xs" onClick={async()=>{const title=window.prompt("Đổi tên dự án:",p.title)?.trim();if(title)await updateProject(p.id,{title});}}>Đổi tên</button>
+            <button className="text-xs" style={{color:"var(--color-error)"}} onClick={()=>{if(window.confirm(`Xóa dự án “${p.title}” và toàn bộ chương?`))void deleteProject(p.id);}}>Xóa</button>
+          </div>
         ))}
       </div>
     </div>
@@ -135,7 +132,7 @@ function OutlineTab() {
             <button className="text-left flex-1 text-sm" style={{ color: "var(--color-text)" }} onClick={() => selectChapter(c.id)}>
               {c.title} <span style={{ color: "var(--color-text-muted)" }}>· {c.wordCount} từ</span>
             </button>
-            <button onClick={() => deleteChapter(c.id)} className="text-xs" style={{ color: "var(--color-error)" }}>
+            <button onClick={() => { if(window.confirm(`Xóa chương “${c.title}”?`)) void deleteChapter(c.id); }} className="text-xs" style={{ color: "var(--color-error)" }}>
               Xóa
             </button>
           </li>
@@ -177,7 +174,7 @@ function OutlineTab() {
                   <button className="text-left flex-1 text-sm" style={{ color: "var(--color-text)" }} onClick={() => selectChapter(c.id)}>
                     {c.title} <span style={{ color: "var(--color-text-muted)" }}>· {c.wordCount} từ</span>
                   </button>
-                  <button onClick={() => deleteChapter(c.id)} className="text-xs" style={{ color: "var(--color-error)" }}>
+                  <button onClick={() => { if(window.confirm(`Xóa chương “${c.title}”?`)) void deleteChapter(c.id); }} className="text-xs" style={{ color: "var(--color-error)" }}>
                     Xóa
                   </button>
                 </li>

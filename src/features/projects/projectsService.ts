@@ -47,7 +47,18 @@ export async function updateProject(
 }
 
 export async function softDeleteProject(id: string): Promise<void> {
-  await db.projects.update(id, { deletedAt: now(), updatedAt: now() });
+  const deletedAt=now();
+  await db.transaction("rw",db.projects,db.projectSections,db.projectChapters,db.projectTasks,db.projectMilestones,async()=>{
+    await db.projects.update(id, { deletedAt, updatedAt: deletedAt });
+    const sections=await db.projectSections.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
+    const chapters=await db.projectChapters.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
+    const tasks=await db.projectTasks.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
+    const milestones=await db.projectMilestones.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
+    if(sections.length)await db.projectSections.bulkPut(sections.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
+    if(chapters.length)await db.projectChapters.bulkPut(chapters.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
+    if(tasks.length)await db.projectTasks.bulkPut(tasks.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
+    if(milestones.length)await db.projectMilestones.bulkPut(milestones.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
+  });
 }
 
 export async function listProjects(): Promise<Project[]> {

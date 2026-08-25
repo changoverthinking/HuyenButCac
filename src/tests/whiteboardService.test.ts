@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "../database/db";
-import { addBoardObject, createWhiteboard, deleteBoardObject, getBoardObjects, updateBoardObject } from "../features/whiteboard/whiteboardService";
+import { addBoardObject, createWhiteboard, deleteBoardObject, deleteWhiteboard, getBoardObjects, listWhiteboards, renameWhiteboard, updateBoardObject } from "../features/whiteboard/whiteboardService";
 
 describe("whiteboardService", () => {
   beforeEach(async () => { await db.delete(); await db.open(); });
@@ -24,6 +24,16 @@ describe("whiteboardService", () => {
     const board = await createWhiteboard();
     const object = await addBoardObject(board.id, "rectangle");
     await deleteBoardObject(object.id);
+    expect(await getBoardObjects(board.id)).toHaveLength(0);
+  });
+
+  it("đổi tên và xóa bảng kèm toàn bộ đối tượng", async () => {
+    const board = await createWhiteboard("Cũ");
+    await addBoardObject(board.id, "note");
+    await renameWhiteboard(board.id, "Tên mới");
+    expect((await listWhiteboards())[0].title).toBe("Tên mới");
+    await deleteWhiteboard(board.id);
+    expect(await listWhiteboards()).toHaveLength(0);
     expect(await getBoardObjects(board.id)).toHaveLength(0);
   });
 });

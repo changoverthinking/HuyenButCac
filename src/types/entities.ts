@@ -96,6 +96,21 @@ export interface ThemePreference extends BaseEntity {
   reduceMotion: boolean;
   highContrast: boolean;
   fontScale: number; // 1 = mặc định
+  customBackgroundId?: string | null;
+}
+
+export interface MusicTrack extends BaseEntity {
+  name: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  audioBlob: Blob;
+}
+
+export interface CustomBackground extends BaseEntity {
+  name: string;
+  mimeType: string;
+  imageBlob: Blob;
 }
 
 export interface MindMap extends BaseEntity { title: string; }

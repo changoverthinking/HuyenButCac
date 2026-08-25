@@ -22,12 +22,12 @@ Chỉ đánh dấu STABLE khi: hoạt động thật, lưu được, reload khô
 | Ghim / yêu thích / thẻ (tag) | STABLE | |
 | Thùng rác + khôi phục (soft delete) | STABLE | có xóa vĩnh viễn và xác nhận |
 | Tìm kiếm full-text (tiêu đề + nội dung, có/không dấu) | STABLE | dùng bỏ dấu tiếng Việt thủ công, index Dexie |
-| Rich-text editor (H1-H6, bold/italic/list/checklist/quote/code/table cơ bản) | IMPLEMENTING | dùng contentEditable tự viết tối giản, chưa có TipTap/công thức/menu `/` |
+| Rich-text editor cơ bản | STABLE | H1-H3, đoạn/trích dẫn/mã, 5 font, 7 cỡ, đậm/nghiêng/gạch chân/gạch ngang, màu, căn lề, danh sách, undo/redo |
 | Bảng trong ghi chú | TODO | |
 | Chèn ảnh | TODO | |
 | Mẫu ghi chú (template) | TODO | |
 | Khóa ghi chú bằng PIN + mã hóa AES-GCM thật | TODO | ưu tiên giai đoạn 7 |
-| Undo/redo trong editor | TODO | |
+| Undo/redo trong editor | STABLE | dùng lịch sử chỉnh sửa của trình duyệt |
 
 ## 2. Viết dự án (Giai đoạn 4 — checkpoint 2)
 | Hạng mục | Trạng thái | Ghi chú |
@@ -36,7 +36,8 @@ Chỉ đánh dấu STABLE khi: hoạt động thật, lưu được, reload khô
 | Tạo/chọn dự án, 4 loại (Phần mềm/Game/Công trình/Chung) | STABLE | chưa có icon/bìa/theme riêng cho từng dự án |
 | Cấu trúc Phần→Chương (chưa có "Mục" cấp con của Chương) | IMPLEMENTING | Dự án→Phần→Chương hoạt động; cấp "Mục" trong Chương chưa tách riêng |
 | Kéo sắp xếp chương | IMPLEMENTING | có API `reorderChapter` + test, UI kéo-thả bằng chuột chưa làm (chỉ đổi order qua code) |
-| Trình viết tập trung (focus mode) | STABLE | ẩn UI khác, đếm từ, đồng hồ phiên viết, autosave 400ms |
+| Trình viết tập trung (focus mode) | STABLE | rich text, đếm từ trực tiếp, đồng hồ, autosave 400ms + lưu khi thoát |
+| Tác phẩm hàng trăm nghìn từ | STABLE | lưu theo Phần/Chương riêng; cảnh báo khi một chương vượt 20.000 từ |
 | Mục tiêu số từ / tiến độ ngày / typewriter mode | TODO | |
 | Kanban | STABLE | 5 cột theo đúng trạng thái TODO/IMPLEMENTING/TESTING/STABLE/BLOCKED tinh thần mục 9.4 |
 | Milestone | STABLE | checklist đơn giản, chưa có deadline UI (field có sẵn) |
@@ -49,6 +50,7 @@ Chỉ đánh dấu STABLE khi: hoạt động thật, lưu được, reload khô
 | Hạng mục | Trạng thái |
 |---|---|
 | Tạo nhiều sơ đồ, lưu/reload IndexedDB | STABLE |
+| Đổi tên/xóa toàn bộ sơ đồ | STABLE |
 | Node trung tâm, thêm nhánh, sửa, kéo, xóa đệ quy | STABLE | bảo vệ/tự phục hồi nút trung tâm |
 | Connector cong tự cập nhật | STABLE |
 | Layout nâng cao, export ảnh/PDF/OPML, undo/redo | TODO |
@@ -57,6 +59,7 @@ Chỉ đánh dấu STABLE khi: hoạt động thật, lưu được, reload khô
 | Hạng mục | Trạng thái |
 |---|---|
 | Tạo/chọn nhiều bảng, lưu/reload IndexedDB | STABLE |
+| Đổi tên/xóa toàn bộ bảng | STABLE |
 | Sticky note, text, rectangle, ellipse | STABLE |
 | Chọn, kéo, sửa chữ, xóa, zoom, grid | STABLE | vùng soạn chữ chọn được; tay nắm kéo riêng |
 | Pan, minimap, connector, vẽ tay, group/layer/export | TODO |
@@ -81,6 +84,16 @@ Chỉ đánh dấu STABLE khi: hoạt động thật, lưu được, reload khô
 | iPhone Safari QA thật | TODO — vẫn cần kiểm tra trên thiết bị thật |
 | Accessibility audit | TODO |
 | 6 theme đầy đủ | IMPLEMENTING — tokens đã định nghĩa cho cả 6, UI mới áp dụng đủ cho 2 theme mặc định |
+
+## 8. Cá nhân hóa và nhạc nền
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| Thư viện MP3 lưu cục bộ | STABLE | nhiều tệp, đổi tên/xóa, thống kê dung lượng |
+| Player phát/tạm dừng/tua/trước/sau | STABLE | dùng HTML Audio |
+| Ngẫu nhiên/lặp danh sách/lặp một bài/âm lượng | STABLE | ghi nhớ thiết lập trên thiết bị |
+| Điều khiển Media Session | STABLE | hoạt động khi hệ điều hành/trình duyệt hỗ trợ |
+| Ảnh nền người dùng | STABLE | lưu Blob IndexedDB, thay/xóa và trở về mặc định |
+| Đồng bộ MP3/ảnh nền giữa thiết bị | TODO | hiện chỉ lưu trên thiết bị đã tải lên |
 
 ---
 **Giới hạn hiện tại:** các chức năng nền tảng của Ghi chú, Viết dự án, Mind map và Bảng trắng đã có. Các hạng mục nâng cao ghi TODO trong bảng, đặc biệt mã hóa thật, đồng bộ và cộng tác, chưa được triển khai.

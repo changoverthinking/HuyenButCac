@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { db } from "../database/db";
 import type { ThemeId, ThemePreference } from "../types/entities";
+import { clearCustomBackground, getCustomBackground, saveCustomBackground } from "../features/media/mediaService";
 
 const THEME_PREF_ID = "singleton";
 
@@ -19,10 +20,21 @@ interface ThemeState {
   reduceMotion: boolean;
   highContrast: boolean;
   fontScale: number;
+  backgroundUrl: string | null;
   load: () => Promise<void>;
   setTheme: (id: ThemeId) => Promise<void>;
   toggle: (key: "followSystem" | "reduceMotion" | "highContrast") => Promise<void>;
   setFontScale: (scale: number) => Promise<void>;
+  setCustomBackground: (file: File) => Promise<void>;
+  clearCustomBackground: () => Promise<void>;
+}
+
+let activeBackgroundUrl: string | null = null;
+function applyBackground(blob?: Blob) {
+  if (activeBackgroundUrl) URL.revokeObjectURL(activeBackgroundUrl);
+  activeBackgroundUrl = blob ? URL.createObjectURL(blob) : null;
+  document.documentElement.style.setProperty("--custom-background", activeBackgroundUrl ? `url("${activeBackgroundUrl}")` : "none");
+  return activeBackgroundUrl;
 }
 
 function applyToDom(state: Pick<ThemeState, "themeId" | "reduceMotion" | "highContrast" | "fontScale">) {
@@ -61,11 +73,14 @@ export const useThemeStore = create<ThemeState>((set) => ({
   reduceMotion: false,
   highContrast: false,
   fontScale: 1,
+  backgroundUrl: null,
 
   load: async () => {
     const pref = await db.themePreferences.get(THEME_PREF_ID);
     const state = pref ?? (await persist({}));
-    set(state);
+    const background = await getCustomBackground();
+    const backgroundUrl = applyBackground(background?.imageBlob);
+    set({ ...state, backgroundUrl });
     applyToDom(state);
   },
 
@@ -86,5 +101,17 @@ export const useThemeStore = create<ThemeState>((set) => ({
     const state = await persist({ fontScale: scale });
     set(state);
     applyToDom(state);
+  },
+
+  setCustomBackground: async (file) => {
+    const item = await saveCustomBackground(file);
+    const backgroundUrl = applyBackground(item.imageBlob);
+    set({ backgroundUrl });
+  },
+
+  clearCustomBackground: async () => {
+    await clearCustomBackground();
+    const backgroundUrl = applyBackground();
+    set({ backgroundUrl });
   },
 }));

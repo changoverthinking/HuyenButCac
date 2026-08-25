@@ -9,6 +9,8 @@ interface NotesState {
   searchQuery: string;
   searchResults: Note[];
   loading: boolean;
+  activeFolderId: string | null | undefined;
+  view: "active" | "trash";
 
   loadNotes: (folderId?: string | null) => Promise<void>;
   loadTrash: () => Promise<void>;
@@ -19,6 +21,8 @@ interface NotesState {
   restoreNote: (id: string) => Promise<void>;
   hardDeleteNote: (id: string) => Promise<void>;
   setSearchQuery: (q: string) => Promise<void>;
+  showActive: (folderId?: string | null) => Promise<void>;
+  showTrash: () => Promise<void>;
 }
 
 export const useNotesStore = create<NotesState>((set, get) => ({
@@ -28,11 +32,13 @@ export const useNotesStore = create<NotesState>((set, get) => ({
   searchQuery: "",
   searchResults: [],
   loading: false,
+  activeFolderId: undefined,
+  view: "active",
 
   loadNotes: async (folderId) => {
     set({ loading: true });
     const notes = await notesService.listActiveNotes(folderId);
-    set({ notes, loading: false });
+    set({ notes, loading: false, activeFolderId: folderId });
   },
 
   loadTrash: async () => {
@@ -44,26 +50,30 @@ export const useNotesStore = create<NotesState>((set, get) => ({
 
   createNote: async (folderId) => {
     const note = await notesService.createNote({ folderId });
-    await get().loadNotes();
-    set({ selectedNoteId: note.id });
+    await get().loadNotes(get().activeFolderId);
+    set({ selectedNoteId: note.id, view: "active" });
     return note.id;
   },
 
   updateNote: async (id, patch) => {
     await notesService.updateNote(id, patch);
-    await get().loadNotes();
+    await get().loadNotes(get().activeFolderId);
+    const query = get().searchQuery;
+    if (query.trim()) set({ searchResults: await notesService.searchNotes(query) });
   },
 
   deleteNote: async (id) => {
     await notesService.softDeleteNote(id);
     if (get().selectedNoteId === id) set({ selectedNoteId: null });
-    await get().loadNotes();
+    await get().loadNotes(get().activeFolderId);
+    const query = get().searchQuery;
+    if (query.trim()) set({ searchResults: await notesService.searchNotes(query) });
   },
 
   restoreNote: async (id) => {
     await notesService.restoreNote(id);
     await get().loadTrash();
-    await get().loadNotes();
+    await get().loadNotes(get().activeFolderId);
   },
 
   hardDeleteNote: async (id) => {
@@ -75,5 +85,15 @@ export const useNotesStore = create<NotesState>((set, get) => ({
     set({ searchQuery: q });
     const searchResults = q.trim() ? await notesService.searchNotes(q) : [];
     set({ searchResults });
+  },
+
+  showActive: async (folderId) => {
+    set({ view: "active", selectedNoteId: null, searchQuery: "", searchResults: [] });
+    await get().loadNotes(folderId);
+  },
+
+  showTrash: async () => {
+    set({ view: "trash", selectedNoteId: null, searchQuery: "", searchResults: [] });
+    await get().loadTrash();
   },
 }));

@@ -1,28 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNotesStore } from "../../stores/notesStore";
 import type { Note } from "../../types/entities";
+import { RichTextToolbar } from "./RichTextToolbar";
 
 const AUTOSAVE_DEBOUNCE_MS = 400;
-
-function EditorToolbarButton({
-  label,
-  onClick,
-}: {
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onMouseDown={(e) => e.preventDefault()} // giữ selection khi bấm toolbar
-      onClick={onClick}
-      className="px-2 py-1 rounded text-sm border"
-      style={{ borderColor: "var(--color-border)", color: "var(--color-text)" }}
-    >
-      {label}
-    </button>
-  );
-}
 
 export function NoteEditor({ note }: { note: Note }) {
   const updateNote = useNotesStore((s) => s.updateNote);
@@ -67,32 +48,13 @@ export function NoteEditor({ note }: { note: Note }) {
     }, AUTOSAVE_DEBOUNCE_MS);
   }
 
-  function exec(command: string) {
-    document.execCommand(command);
-    editorRef.current?.focus();
-    scheduleSave({ contentHtml: editorRef.current?.innerHTML ?? "" });
-  }
-
-  function formatBlock(tag: string) {
-    document.execCommand("formatBlock", false, tag);
-    editorRef.current?.focus();
-    scheduleSave({ contentHtml: editorRef.current?.innerHTML ?? "" });
-  }
-
   return (
     <div className="flex flex-col h-full">
       <div
         className="flex items-center gap-2 px-4 py-2 border-b flex-wrap"
         style={{ borderColor: "var(--color-border)" }}
       >
-        <EditorToolbarButton label="H1" onClick={() => formatBlock("H1")} />
-        <EditorToolbarButton label="H2" onClick={() => formatBlock("H2")} />
-        <EditorToolbarButton label="B" onClick={() => exec("bold")} />
-        <EditorToolbarButton label="I" onClick={() => exec("italic")} />
-        <EditorToolbarButton label="U" onClick={() => exec("underline")} />
-        <EditorToolbarButton label="• List" onClick={() => exec("insertUnorderedList")} />
-        <EditorToolbarButton label="1. List" onClick={() => exec("insertOrderedList")} />
-        <EditorToolbarButton label="❝ Quote" onClick={() => formatBlock("BLOCKQUOTE")} />
+        <RichTextToolbar editorRef={editorRef} compact onFormat={() => scheduleSave({ contentHtml: editorRef.current?.innerHTML ?? "" })} />
         <span
           className="ml-auto text-xs"
           style={{ color: "var(--color-text-muted)" }}

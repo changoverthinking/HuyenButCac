@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "../database/db";
-import { addMindMapNode, createMindMap, deleteMindMapNode, getMapGraph, updateMindMapNode } from "../features/mind-map/mindMapService";
+import { addMindMapNode, createMindMap, deleteMindMap, deleteMindMapNode, getMapGraph, listMindMaps, renameMindMap, updateMindMapNode } from "../features/mind-map/mindMapService";
 
 describe("mindMapService", () => {
   beforeEach(async () => { await db.delete(); await db.open(); });
@@ -30,5 +30,31 @@ describe("mindMapService", () => {
     const graph = await getMapGraph(map.id);
     expect(graph.nodes.map((node) => node.id)).toEqual([root.id]);
     expect(graph.edges).toHaveLength(0);
+  });
+
+  it("không cho xóa chủ đề trung tâm", async () => {
+    const { map, root } = await createMindMap();
+    await expect(deleteMindMapNode(root.id)).rejects.toThrow("Không thể xóa chủ đề trung tâm");
+    const graph = await getMapGraph(map.id);
+    expect(graph.nodes.map((node) => node.id)).toEqual([root.id]);
+  });
+
+  it("tự phục hồi sơ đồ cũ đã mất nút trung tâm", async () => {
+    const { map, root } = await createMindMap();
+    await db.mindMapNodes.update(root.id, { deletedAt: Date.now() });
+    const graph = await getMapGraph(map.id);
+    expect(graph.nodes).toHaveLength(1);
+    expect(graph.nodes[0].parentId).toBeNull();
+  });
+
+  it("đổi tên và xóa toàn bộ sơ đồ kèm node", async () => {
+    const { map, root } = await createMindMap("Cũ");
+    await addMindMapNode(map.id, root.id, "Nhánh", 0, 0);
+    await renameMindMap(map.id, "Tên mới");
+    expect((await listMindMaps())[0].title).toBe("Tên mới");
+    await deleteMindMap(map.id);
+    expect(await listMindMaps()).toHaveLength(0);
+    expect(await db.mindMapNodes.where("mapId").equals(map.id).filter((node)=>node.deletedAt===null).count()).toBe(0);
+    expect((await getMapGraph(map.id)).nodes).toHaveLength(0);
   });
 });

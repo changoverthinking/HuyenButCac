@@ -3,9 +3,11 @@ import type { MindMap, MindMapEdge, MindMapNode } from "../../types/entities";
 import {
   addMindMapNode,
   createMindMap,
+  deleteMindMap,
   deleteMindMapNode,
   getMapGraph,
   listMindMaps,
+  renameMindMap,
   updateMindMapNode,
 } from "../../features/mind-map/mindMapService";
 
@@ -60,6 +62,21 @@ export function MindMapView() {
     await reload();
   };
 
+  const removeActiveMap = async () => {
+    if (!active || !window.confirm("Xóa sơ đồ này và toàn bộ các nhánh? Hành động này không thể hoàn tác.")) return;
+    await deleteMindMap(active);
+    let remaining = await listMindMaps();
+    if (!remaining.length) remaining = [(await createMindMap()).map];
+    setActive(remaining[0].id); setSelected(null); await reload(remaining[0].id);
+  };
+
+  const renameActiveMap = async () => {
+    if (!active) return;
+    const current=maps.find((map)=>map.id===active);
+    const title=window.prompt("Tên sơ đồ:",current?.title??"")?.trim();
+    if(!title)return; await renameMindMap(active,title); await reload(active);
+  };
+
   const finishDrag = () => {
     const current = drag.current;
     if (!current) return;
@@ -82,6 +99,10 @@ export function MindMapView() {
         >
           ＋ Sơ đồ mới
         </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button disabled={!active} className="rounded p-2 text-sm" style={{ background: "var(--color-surface-alt)" }} onClick={renameActiveMap}>Đổi tên</button>
+          <button disabled={!active} className="rounded p-2 text-sm" style={{ color: "var(--color-error)", background: "var(--color-surface-alt)" }} onClick={removeActiveMap}>Xóa sơ đồ</button>
+        </div>
         {maps.map((map) => (
           <button
             className="w-full text-left p-2 rounded"

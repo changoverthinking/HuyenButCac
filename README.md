@@ -2,7 +2,7 @@
 
 Ứng dụng ghi chú, viết dự án, sơ đồ tư duy và bảng trắng phong cách tu tiên — local-first, offline-first, PWA.
 
-> **Trạng thái:** Checkpoint 1 — Nền tảng + Ghi chú cơ bản đã STABLE. Viết dự án / Mind map / Bảng trắng / Mã hóa thật / Đồng bộ / Cộng tác **chưa triển khai**. Xem chi tiết ở `docs/FEATURE_MATRIX.md`.
+> **Trạng thái:** Checkpoint 5 — Ghi chú, Viết dự án, Sơ đồ tư duy và Bảng trắng nền tảng hoạt động, lưu cục bộ bằng IndexedDB. Mã hóa thật / Đồng bộ / Cộng tác chưa triển khai. Xem `docs/FEATURE_MATRIX.md`.
 
 ## Chạy local
 

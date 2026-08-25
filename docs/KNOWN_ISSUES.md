@@ -8,3 +8,5 @@
 - Toggle riêng cho reduce-motion/high-contrast/font-scale chưa có UI (chỉ có state + CSS đã sẵn sàng).
 - Dữ liệu hiện lưu cục bộ trong IndexedDB nhưng chưa mã hóa; cờ “khóa” chưa phải bảo mật bằng PIN/AES.
 - Chưa có sao lưu/khôi phục toàn bộ dữ liệu, đồng bộ đa thiết bị hoặc cộng tác thời gian thực.
+- MP3 và ảnh nền được lưu trong IndexedDB của từng trình duyệt/thiết bị, chưa tự đồng bộ. Xóa dữ liệu website hoặc gỡ PWA kèm dữ liệu có thể làm mất media.
+- Phát nhạc khi khóa màn hình phụ thuộc chính sách của Safari/iOS; Media Session được bật khi thiết bị hỗ trợ nhưng không thể bảo đảm iOS luôn cho phép chạy nền.
