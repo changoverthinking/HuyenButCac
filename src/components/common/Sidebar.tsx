@@ -4,13 +4,14 @@ import { useNotesStore } from "../../stores/notesStore";
 import { useThemeStore, THEME_LIST } from "../../stores/themeStore";
 import { APP_CONFIG } from "../../app/appConfig";
 
-export function Sidebar() {
+export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const folders = useFoldersStore((s) => s.folders);
   const selectedFolderId = useFoldersStore((s) => s.selectedFolderId);
   const selectFolder = useFoldersStore((s) => s.select);
   const createFolder = useFoldersStore((s) => s.create);
-  const loadNotes = useNotesStore((s) => s.loadNotes);
-  const loadTrash = useNotesStore((s) => s.loadTrash);
+  const showActive = useNotesStore((s) => s.showActive);
+  const showTrash = useNotesStore((s) => s.showTrash);
+  const view = useNotesStore((s) => s.view);
   const [newFolderName, setNewFolderName] = useState("");
   const [showThemePicker, setShowThemePicker] = useState(false);
   const themeId = useThemeStore((s) => s.themeId);
@@ -35,18 +36,19 @@ export function Sidebar() {
       <nav className="p-2">
         <button
           className="w-full text-left px-3 py-2 rounded-lg mb-1"
-          style={{ background: selectedFolderId === null ? "var(--color-surface-alt)" : "transparent" }}
+          style={{ background: view === "active" && selectedFolderId === null ? "var(--color-surface-alt)" : "transparent" }}
           onClick={() => {
             selectFolder(null);
-            loadNotes();
+            void showActive();
+            onNavigate?.();
           }}
         >
           Tất cả ghi chú
         </button>
         <button
           className="w-full text-left px-3 py-2 rounded-lg mb-1"
-          style={{ color: "var(--color-text-muted)" }}
-          onClick={() => loadTrash()}
+          style={{ color: "var(--color-text-muted)", background: view === "trash" ? "var(--color-surface-alt)" : "transparent" }}
+          onClick={() => { void showTrash(); onNavigate?.(); }}
         >
           Thùng rác
         </button>
@@ -60,10 +62,11 @@ export function Sidebar() {
           <button
             key={f.id}
             className="w-full text-left px-3 py-2 rounded-lg mb-1"
-            style={{ background: selectedFolderId === f.id ? "var(--color-surface-alt)" : "transparent" }}
+            style={{ background: view === "active" && selectedFolderId === f.id ? "var(--color-surface-alt)" : "transparent" }}
             onClick={() => {
               selectFolder(f.id);
-              loadNotes(f.id);
+              void showActive(f.id);
+              onNavigate?.();
             }}
           >
             📁 {f.name}

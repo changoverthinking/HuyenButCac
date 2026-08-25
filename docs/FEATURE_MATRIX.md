@@ -10,17 +10,17 @@ Chỉ đánh dấu STABLE khi: hoạt động thật, lưu được, reload khô
 | Tailwind v4 (@tailwindcss/vite) + CSS variables | STABLE | 6 theme tokens đã định nghĩa |
 | Zustand store | STABLE | notesStore, foldersStore, uiStore |
 | Dexie (IndexedDB) schema + migration v1 | STABLE | xem `src/database/db.ts` |
-| Router (Notes/Projects/MindMap/Whiteboard/Settings shell) | IMPLEMENTING | chỉ Notes có nội dung thật, còn lại placeholder có đánh dấu rõ |
+| Chuyển chế độ Notes/Projects/MindMap/Whiteboard | STABLE | tab desktop + thanh điều hướng di động |
 | PWA manifest + service worker (vite-plugin-pwa) | STABLE | test offline reload OK trên build local |
 | i18n khung (vi mặc định) | IMPLEMENTING | chưa có tiếng Anh/Nhật |
 
 ## 1. Ghi chú cơ bản (Giai đoạn 3 — đang làm ở checkpoint này)
 | Hạng mục | Trạng thái | Ghi chú |
 |---|---|---|
-| Tạo/sửa/xóa ghi chú, autosave debounce | STABLE | debounce 400ms, test thủ công + Vitest |
+| Tạo/sửa/xóa ghi chú, autosave debounce | STABLE | gộp patch tiêu đề+nội dung, debounce 400ms |
 | Cây thư mục nhiều cấp, kéo thả | IMPLEMENTING | tạo/xóa/di chuyển folder hoạt động; kéo thả UI TODO |
 | Ghim / yêu thích / thẻ (tag) | STABLE | |
-| Thùng rác + khôi phục (soft delete) | STABLE | |
+| Thùng rác + khôi phục (soft delete) | STABLE | có xóa vĩnh viễn và xác nhận |
 | Tìm kiếm full-text (tiêu đề + nội dung, có/không dấu) | STABLE | dùng bỏ dấu tiếng Việt thủ công, index Dexie |
 | Rich-text editor (H1-H6, bold/italic/list/checklist/quote/code/table cơ bản) | IMPLEMENTING | dùng contentEditable tự viết tối giản, chưa có TipTap/công thức/menu `/` |
 | Bảng trong ghi chú | TODO | |
@@ -49,7 +49,7 @@ Chỉ đánh dấu STABLE khi: hoạt động thật, lưu được, reload khô
 | Hạng mục | Trạng thái |
 |---|---|
 | Tạo nhiều sơ đồ, lưu/reload IndexedDB | STABLE |
-| Node trung tâm, thêm nhánh, sửa, kéo, xóa đệ quy | STABLE |
+| Node trung tâm, thêm nhánh, sửa, kéo, xóa đệ quy | STABLE | bảo vệ/tự phục hồi nút trung tâm |
 | Connector cong tự cập nhật | STABLE |
 | Layout nâng cao, export ảnh/PDF/OPML, undo/redo | TODO |
 
@@ -58,7 +58,7 @@ Chỉ đánh dấu STABLE khi: hoạt động thật, lưu được, reload khô
 |---|---|
 | Tạo/chọn nhiều bảng, lưu/reload IndexedDB | STABLE |
 | Sticky note, text, rectangle, ellipse | STABLE |
-| Chọn, kéo, sửa chữ, xóa, zoom, grid | STABLE |
+| Chọn, kéo, sửa chữ, xóa, zoom, grid | STABLE | vùng soạn chữ chọn được; tay nắm kéo riêng |
 | Pan, minimap, connector, vẽ tay, group/layer/export | TODO |
 
 ## 5. Bảo mật (Giai đoạn 7)
@@ -77,9 +77,10 @@ Chỉ đánh dấu STABLE khi: hoạt động thật, lưu được, reload khô
 ## 7. Hoàn thiện (Giai đoạn 9)
 | Hạng mục | Trạng thái |
 |---|---|
-| iPhone Safari QA thật | TODO — cần thiết bị/BrowserStack, chưa test được trong môi trường này |
+| Giao diện di động cơ bản | STABLE | bottom nav + menu Notes dạng drawer |
+| iPhone Safari QA thật | TODO — vẫn cần kiểm tra trên thiết bị thật |
 | Accessibility audit | TODO |
 | 6 theme đầy đủ | IMPLEMENTING — tokens đã định nghĩa cho cả 6, UI mới áp dụng đủ cho 2 theme mặc định |
 
 ---
-**Trung thực về giới hạn của checkpoint này:** đây là Giai đoạn 1–3 (Phân tích, Nền tảng, Ghi chú cơ bản). Viết dự án, Mind map, Bảng trắng, Mã hóa thật, Đồng bộ, Cộng tác **chưa được code** — sẽ làm ở các checkpoint tiếp theo, đúng theo mục 17 "hoàn thiện và kiểm thử từng giai đoạn, không làm tất cả sơ sài trong một lượt".
+**Giới hạn hiện tại:** các chức năng nền tảng của Ghi chú, Viết dự án, Mind map và Bảng trắng đã có. Các hạng mục nâng cao ghi TODO trong bảng, đặc biệt mã hóa thật, đồng bộ và cộng tác, chưa được triển khai.

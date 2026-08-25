@@ -24,6 +24,7 @@ export function MindMapView() {
   const [edges, setEdges] = useState<MindMapEdge[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const drag = useRef<DragState | null>(null);
+  const selectedNode = nodes.find((node) => node.id === selected) ?? null;
 
   const reload = async (id = active) => {
     setMaps(await listMindMaps());
@@ -102,9 +103,9 @@ export function MindMapView() {
             ＋ Nhánh
           </button>
           <button
-            disabled={!selected}
+            disabled={!selected || selectedNode?.parentId === null}
             onClick={async () => {
-              if (!selected) return;
+              if (!selected || selectedNode?.parentId === null) return;
               await deleteMindMapNode(selected);
               setSelected(null);
               await reload();
@@ -129,6 +130,7 @@ export function MindMapView() {
           }}
           onPointerUp={finishDrag}
           onPointerCancel={finishDrag}
+          onPointerLeave={finishDrag}
         >
           {edges.map((edge) => {
             const source = nodes.find((node) => node.id === edge.sourceId);

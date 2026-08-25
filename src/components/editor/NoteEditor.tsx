@@ -31,9 +31,21 @@ export function NoteEditor({ note }: { note: Note }) {
   const [title, setTitle] = useState(note.title);
   const [saveState, setSaveState] = useState<"saved" | "saving" | "idle">("saved");
   const saveTimer = useRef<number | null>(null);
+  const pendingPatch = useRef<Partial<Pick<Note, "title" | "contentHtml">>>({});
+  const noteIdRef = useRef(note.id);
+
+  const flushSave = async () => {
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    saveTimer.current = null;
+    const patch = pendingPatch.current;
+    pendingPatch.current = {};
+    if (Object.keys(patch).length === 0) return;
+    await updateNote(noteIdRef.current, patch);
+  };
 
   // Nạp nội dung khi đổi ghi chú được chọn
   useEffect(() => {
+    noteIdRef.current = note.id;
     setTitle(note.title);
     if (editorRef.current) {
       editorRef.current.innerHTML = note.contentHtml;
@@ -41,11 +53,16 @@ export function NoteEditor({ note }: { note: Note }) {
     setSaveState("saved");
   }, [note.id]);
 
+  useEffect(() => () => {
+    void flushSave();
+  }, []);
+
   function scheduleSave(patch: Partial<Pick<Note, "title" | "contentHtml">>) {
     setSaveState("saving");
+    pendingPatch.current = { ...pendingPatch.current, ...patch };
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(async () => {
-      await updateNote(note.id, patch);
+      await flushSave();
       setSaveState("saved");
     }, AUTOSAVE_DEBOUNCE_MS);
   }

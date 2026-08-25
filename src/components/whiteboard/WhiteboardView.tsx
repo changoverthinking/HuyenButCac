@@ -12,7 +12,7 @@ export function WhiteboardView() {
   const [zoom, setZoom] = useState(1);
   const [pan] = useState({ x: 0, y: 0 });
   const [selected, setSelected] = useState<string | null>(null);
-  const drag = useRef<{ id: string; dx: number; dy: number } | null>(null);
+  const drag = useRef<{ id: string; startClientX: number; startClientY: number; startX: number; startY: number } | null>(null);
 
   const reload = async (id = active) => {
     setBoards(await listWhiteboards());
@@ -65,8 +65,8 @@ export function WhiteboardView() {
           if (!current) return;
           setObjects((items) => items.map((item) => item.id === current.id ? {
             ...item,
-            x: (event.clientX - current.dx - pan.x) / zoom,
-            y: (event.clientY - current.dy - pan.y) / zoom,
+            x: current.startX + (event.clientX - current.startClientX) / zoom,
+            y: current.startY + (event.clientY - current.startClientY) / zoom,
           } : item));
         }}
         onPointerUp={() => {
@@ -75,6 +75,7 @@ export function WhiteboardView() {
           if (item) void updateBoardObject(item.id, { x: item.x, y: item.y });
           drag.current = null;
         }}
+        onPointerCancel={() => { drag.current = null; }}
       >
         <div className="absolute origin-top-left" style={{ transform: `translate(${pan.x}px,${pan.y}px) scale(${zoom})` }}>
           {objects.map((item) => (
@@ -82,9 +83,10 @@ export function WhiteboardView() {
               key={item.id}
               onPointerDown={(event) => {
                 setSelected(item.id);
-                drag.current = { id: item.id, dx: event.clientX - (item.x * zoom + pan.x), dy: event.clientY - (item.y * zoom + pan.y) };
+                drag.current = { id: item.id, startClientX: event.clientX, startClientY: event.clientY, startX: item.x, startY: item.y };
+                event.currentTarget.setPointerCapture(event.pointerId);
               }}
-              className="absolute p-3 shadow-md"
+              className="absolute shadow-md"
               style={{
                 left: item.x, top: item.y, width: item.width, height: item.height,
                 background: item.kind === "text" ? "transparent" : item.color,
@@ -94,13 +96,20 @@ export function WhiteboardView() {
                 color: item.kind === "note" ? "#241b10" : "var(--color-text)",
               }}
             >
+              <div
+                aria-label="Kéo đối tượng"
+                className="h-7 px-2 flex items-center cursor-move select-none text-xs opacity-70"
+              >
+                ⋮⋮ Kéo
+              </div>
               <textarea
                 aria-label="Nội dung đối tượng"
                 value={item.text}
-                onPointerDown={(event) => event.stopPropagation()}
+                onPointerDown={(event) => { event.stopPropagation(); setSelected(item.id); }}
                 onChange={(event) => setObjects((items) => items.map((entry) => entry.id === item.id ? { ...entry, text: event.target.value } : entry))}
                 onBlur={(event) => void updateBoardObject(item.id, { text: event.target.value })}
-                className="w-full h-full resize-none bg-transparent outline-none"
+                className="w-full resize-none bg-transparent outline-none px-3 pb-3"
+                style={{ height: Math.max(20, item.height - 28) }}
               />
             </div>
           ))}

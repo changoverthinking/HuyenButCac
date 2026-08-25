@@ -14,8 +14,10 @@ export function NotesModeView() {
   const setSearchQuery = useNotesStore((s) => s.setSearchQuery);
   const searchQuery = useNotesStore((s) => s.searchQuery);
   const selectedFolderId = useFoldersStore((s) => s.selectedFolderId);
+  const view = useNotesStore((s) => s.view);
 
   const [mobileView, setMobileView] = useState<"list" | "editor">("list");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     loadFolders();
@@ -26,7 +28,7 @@ export function NotesModeView() {
     if (selectedNoteId) setMobileView("editor");
   }, [selectedNoteId]);
 
-  const selectedNote = notes.find((n) => n.id === selectedNoteId) ?? null;
+  const selectedNote = view === "active" ? notes.find((n) => n.id === selectedNoteId) ?? null : null;
 
   async function handleCreateNote() {
     await createNote(selectedFolderId);
@@ -39,6 +41,13 @@ export function NotesModeView() {
         <Sidebar />
       </div>
 
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-40 flex">
+          <div className="h-full relative z-10"><Sidebar onNavigate={() => setMobileMenuOpen(false)} /></div>
+          <button aria-label="Đóng menu" className="absolute inset-0 bg-black/40" onClick={() => setMobileMenuOpen(false)} />
+        </div>
+      )}
+
       <div
         className={`w-full md:w-80 shrink-0 border-r h-full flex flex-col ${
           mobileView === "editor" ? "hidden md:flex" : "flex"
@@ -46,6 +55,7 @@ export function NotesModeView() {
         style={{ borderColor: "var(--color-border)" }}
       >
         <div className="p-3 border-b flex gap-2" style={{ borderColor: "var(--color-border)" }}>
+          <button aria-label="Mở menu" className="md:hidden px-2" onClick={() => setMobileMenuOpen(true)}>☰</button>
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -59,10 +69,11 @@ export function NotesModeView() {
           />
           <button
             onClick={handleCreateNote}
+            disabled={view === "trash"}
             className="px-3 py-2 rounded-lg text-sm font-medium"
             style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}
           >
-            + Tạo
+            {view === "trash" ? "Thùng rác" : "+ Tạo"}
           </button>
         </div>
         <div className="flex-1 overflow-y-auto">
@@ -80,7 +91,7 @@ export function NotesModeView() {
             >
               ← Danh sách
             </button>
-            <NoteEditor note={selectedNote} />
+            <NoteEditor key={selectedNote.id} note={selectedNote} />
           </div>
         ) : (
           <div className="h-full flex items-center justify-center" style={{ color: "var(--color-text-muted)" }}>

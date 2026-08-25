@@ -6,3 +6,5 @@
 - Icon SVG gốc chưa lưu vào repo (`src/assets/`) — hiện chỉ có PNG xuất sẵn trong `public/icons/`.
 - Chưa test trên thiết bị iPhone/Safari thật — môi trường phát triển không có thiết bị thật.
 - Toggle riêng cho reduce-motion/high-contrast/font-scale chưa có UI (chỉ có state + CSS đã sẵn sàng).
+- Dữ liệu hiện lưu cục bộ trong IndexedDB nhưng chưa mã hóa; cờ “khóa” chưa phải bảo mật bằng PIN/AES.
+- Chưa có sao lưu/khôi phục toàn bộ dữ liệu, đồng bộ đa thiết bị hoặc cộng tác thời gian thực.
