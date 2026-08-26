@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## Checkpoint 10 — Liên kết Dự án, Sơ đồ và bút vẽ — 2026-08-26
+- Liên kết Sơ đồ với Dự án bằng ID bền vững; tự tạo/đồng bộ cây Dự án → Phần → Chương mà không sinh trùng.
+- Nút `Đọc chi tiết` xác thực đích rồi mở đúng dự án, phần hoặc chương; nội dung đã xóa không làm nhảy sang mục khác.
+- Đồng bộ lại tiêu đề, quan hệ cha–con và đường nối khi dàn ý dự án thay đổi.
+- Chuyển `＋ Nhánh` thành nút `＋` nổi ở góc dưới vùng Sơ đồ.
+- Menu `☰` và nút mở Tiên Âm Các xuất hiện xuyên suốt mọi tab trên điện thoại; trình nhạc được chuyển vào menu phía trên Đổi giao diện.
+- Thêm bút chì cho Sơ đồ và Bảng trắng: nét liền/đứt/chấm, độ dày 1–12, làm mượt, mũi tên cuối/hai đầu.
+- Nét vẽ được lưu cục bộ, có thể chọn, kéo di chuyển, khóa/mở khóa và xóa.
+- Đối tượng Bảng trắng có thể khóa để chặn kéo hoặc xóa nhầm.
+- Dexie v5 thêm kho nét vẽ riêng, giữ nguyên toàn bộ dữ liệu cũ.
+- TypeScript, 44/44 test, lint không có lỗi chặn và production PWA build thành công.
+
 ## Checkpoint 9.1 — Folder, Sơ đồ và Bảng trắng — 2026-08-26
 - Sửa tạo thư mục: thêm nút `＋`, thông báo thành công/lỗi, chuẩn hóa tên và chặn tên rỗng.
 - Sơ đồ hỗ trợ kéo vùng nền để di chuyển góc nhìn, zoom theo vị trí ngón tay/con trỏ, chụm hai ngón và nút `− / % / ＋`.

@@ -22,6 +22,7 @@ export function MusicPlayer() {
 
   const reload=async()=>{const items=await listMusicTracks();setTracks(items);setCurrentId((id)=>{const preferred=id??localStorage.getItem("hbc-music-current");return preferred&&items.some((item)=>item.id===preferred)?preferred:items[0]?.id??null;});};
   useEffect(()=>{void reload();},[]);
+  useEffect(()=>{const toggle=()=>setExpanded(value=>!value);window.addEventListener("hbc-toggle-music",toggle);return()=>window.removeEventListener("hbc-toggle-music",toggle);},[]);
 
   useEffect(()=>{
     const audio=audioRef.current;if(!audio)return;

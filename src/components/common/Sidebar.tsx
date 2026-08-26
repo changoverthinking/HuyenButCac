@@ -4,7 +4,7 @@ import { useNotesStore } from "../../stores/notesStore";
 import { useThemeStore, THEME_LIST } from "../../stores/themeStore";
 import { APP_CONFIG } from "../../app/appConfig";
 
-export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+export function Sidebar({ onNavigate, onOpenNotes }: { onNavigate?: () => void; onOpenNotes?:()=>void }) {
   const folders = useFoldersStore((s) => s.folders);
   const selectedFolderId = useFoldersStore((s) => s.selectedFolderId);
   const selectFolder = useFoldersStore((s) => s.select);
@@ -44,6 +44,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           className="w-full text-left px-3 py-2 rounded-lg mb-1"
           style={{ background: view === "active" && selectedFolderId === null ? "var(--color-surface-alt)" : "transparent" }}
           onClick={() => {
+            onOpenNotes?.();
             selectFolder(null);
             void showActive();
             onNavigate?.();
@@ -54,7 +55,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         <button
           className="w-full text-left px-3 py-2 rounded-lg mb-1"
           style={{ color: "var(--color-text-muted)", background: view === "trash" ? "var(--color-surface-alt)" : "transparent" }}
-          onClick={() => { void showTrash(); onNavigate?.(); }}
+          onClick={() => { onOpenNotes?.(); void showTrash(); onNavigate?.(); }}
         >
           Thùng rác
         </button>
@@ -66,7 +67,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       <div className="px-2 overflow-y-auto flex-1">
         {rootFolders.map((f) => (
           <div key={f.id} className="flex items-center rounded-lg mb-1" style={{ background: view === "active" && selectedFolderId === f.id ? "var(--color-surface-alt)" : "transparent" }}>
-            <button className="flex-1 min-w-0 text-left px-3 py-2 truncate" onClick={() => { selectFolder(f.id); void showActive(f.id); onNavigate?.(); }}>📁 {f.name}</button>
+            <button className="flex-1 min-w-0 text-left px-3 py-2 truncate" onClick={() => { onOpenNotes?.(); selectFolder(f.id); void showActive(f.id); onNavigate?.(); }}>📁 {f.name}</button>
             <button title="Đổi tên thư mục" className="px-1" onClick={async()=>{const name=window.prompt("Tên thư mục:",f.name)?.trim();if(name)await renameFolder(f.id,name);}}>✎</button>
             <button title="Xóa thư mục" className="px-2" style={{color:"var(--color-error)"}} onClick={async()=>{if(!window.confirm(`Xóa thư mục “${f.name}”? Ghi chú bên trong sẽ được chuyển về Tất cả ghi chú.`))return;await removeFolder(f.id);await showActive();}}>×</button>
           </div>
@@ -102,6 +103,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           <input type="file" accept="image/*" className="hidden" onChange={async(e)=>{const file=e.target.files?.[0];if(!file)return;try{await setCustomBackground(file);}catch(error){window.alert((error as Error).message);}e.target.value="";}} />
         </label>
         {backgroundUrl&&<button className="w-full text-left px-3 py-2 rounded-lg text-sm" style={{color:"var(--color-error)"}} onClick={()=>void clearCustomBackground()}>↩ Dùng lại nền mặc định</button>}
+        <button className="w-full text-left px-3 py-2 rounded-lg text-sm" style={{color:"var(--color-text-muted)"}} onClick={()=>{window.dispatchEvent(new CustomEvent("hbc-toggle-music"));onNavigate?.();}}>♫ Tiên Âm Các</button>
         <button
           className="w-full text-left px-3 py-2 rounded-lg text-sm"
           style={{ color: "var(--color-text-muted)" }}

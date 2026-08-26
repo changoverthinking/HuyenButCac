@@ -90,7 +90,7 @@ function ProjectPicker() {
   );
 }
 
-function OutlineTab() {
+function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
   const sections = useProjectsStore((s) => s.sections);
   const chapters = useProjectsStore((s) => s.chapters);
   const createSection = useProjectsStore((s) => s.createSection);
@@ -161,7 +161,7 @@ function OutlineTab() {
       </div>
 
       {sections.map((s) => (
-        <div key={s.id} className="mb-3">
+        <div key={s.id} id={`project-section-${s.id}`} className="mb-3 rounded-lg p-2" style={{outline:focusedSectionId===s.id?"2px solid var(--color-focus)":"none"}}>
           <div className="text-sm font-semibold mb-1" style={{ color: "var(--color-accent)" }}>
             📖 {s.title}
           </div>
@@ -196,7 +196,7 @@ function OutlineTab() {
   );
 }
 
-export function ProjectsView() {
+export function ProjectsView({focusedSectionId=null}:{focusedSectionId?:string|null}) {
   const selectedProjectId = useProjectsStore((s) => s.selectedProjectId);
   const selectProject = useProjectsStore((s) => s.selectProject);
   const selectedChapterId = useProjectsStore((s) => s.selectedChapterId);
@@ -204,6 +204,7 @@ export function ProjectsView() {
   const projects = useProjectsStore((s) => s.projects);
   const selectChapter = useProjectsStore((s) => s.selectChapter);
   const [tab, setTab] = useState<"outline" | "kanban" | "milestones">("outline");
+  useEffect(()=>{if(focusedSectionId){setTab("outline");requestAnimationFrame(()=>document.getElementById(`project-section-${focusedSectionId}`)?.scrollIntoView({block:"center",behavior:"smooth"}));}},[focusedSectionId,selectedProjectId]);
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const selectedChapter = chapters.find((c) => c.id === selectedChapterId);
@@ -263,7 +264,7 @@ export function ProjectsView() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {tab === "outline" && <OutlineTab />}
+        {tab === "outline" && <OutlineTab focusedSectionId={focusedSectionId} />}
         {tab === "kanban" && <KanbanBoard />}
         {tab === "milestones" && <MilestonesTab />}
       </div>

@@ -32,6 +32,8 @@ body {
 .mobile-icon-button { width: 2.65rem; height: 2.65rem; flex: 0 0 auto; border-radius: .6rem; }
 .mindmap-node-grip { cursor: grab; touch-action: none; }
 .mindmap-node-grip:active { cursor: grabbing; }
+.canvas-toolbars button:disabled, .whiteboard-toolbar button:disabled { opacity: .42; cursor: not-allowed; }
+.canvas-add-fab { border: 2px solid color-mix(in srgb, var(--color-accent) 55%, white); }
 .rich-text-toolbar { flex-wrap: wrap; }
 .music-player { position: relative; flex: 0 0 auto; border-top-width: 1px; }
 .music-controls { display: flex; }
@@ -99,7 +101,7 @@ body {
   .rich-text-toolbar > * { flex: 0 0 auto; }
   .mobile-bottom-nav { min-height: 3.75rem; }
   .music-player { position: fixed; right: max(.8rem, env(safe-area-inset-right)); bottom: calc(4.35rem + env(safe-area-inset-bottom)); border: 0; background: transparent !important; }
-  .music-bubble { display: grid; place-items: center; width: 3.5rem; height: 3.5rem; border-radius: 999px; box-shadow: 0 8px 28px rgb(0 0 0 / .38); font-size: 1.45rem; }
+  .music-bubble { display: none; }
   .music-player.is-open { left: max(.5rem, env(safe-area-inset-left)); right: max(.5rem, env(safe-area-inset-right)); }
   .music-player.is-open .music-bubble { display: none; }
   .music-player.is-collapsed .music-controls { display: none; }
@@ -114,7 +116,7 @@ body {
   .mobile-nav-item > span { font-size: 1rem; }
   .music-player { bottom: calc(3.15rem + env(safe-area-inset-bottom)); }
   .music-library { bottom: calc(7.25rem + env(safe-area-inset-bottom)); max-height: 48vh; }
-  .music-bubble { width: 3rem; height: 3rem; }
+  .music-bubble { display: none; }
 }
 
 /* Điện thoại xoay ngang thường rộng hơn 768px nhưng vẫn có chiều cao thấp và cảm ứng. */
@@ -125,7 +127,7 @@ body {
   .mobile-nav-item { flex-direction: row; gap: .3rem; padding: .15rem .65rem; }
   .mobile-nav-item > span { font-size: 1rem; }
   .music-player { position: fixed; right: max(.65rem, env(safe-area-inset-right)); bottom: calc(3rem + env(safe-area-inset-bottom)); border: 0; background: transparent !important; }
-  .music-bubble { display: grid; place-items: center; width: 3rem; height: 3rem; border-radius: 999px; box-shadow: 0 8px 28px rgb(0 0 0 / .38); font-size: 1.25rem; }
+  .music-bubble { display: none; }
   .music-player.is-collapsed .music-controls { display: none; }
   .music-player.is-open { left: max(.5rem, env(safe-area-inset-left)); right: max(.5rem, env(safe-area-inset-right)); }
   .music-player.is-open .music-bubble { display: none; }

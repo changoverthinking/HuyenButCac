@@ -17,7 +17,6 @@ export function NotesModeView() {
   const view = useNotesStore((s) => s.view);
 
   const [mobileView, setMobileView] = useState<"list" | "editor">("list");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     loadFolders();
@@ -41,13 +40,6 @@ export function NotesModeView() {
         <Sidebar />
       </div>
 
-      {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-40 flex">
-          <div className="h-full relative z-10"><Sidebar onNavigate={() => setMobileMenuOpen(false)} /></div>
-          <button aria-label="Đóng menu" className="absolute inset-0 bg-black/40" onClick={() => setMobileMenuOpen(false)} />
-        </div>
-      )}
-
       <div
         className={`w-full md:w-80 shrink-0 border-r h-full flex flex-col ${
           mobileView === "editor" ? "hidden md:flex" : "flex"
@@ -55,7 +47,6 @@ export function NotesModeView() {
         style={{ borderColor: "var(--color-border)" }}
       >
         <div className="p-3 border-b flex gap-2" style={{ borderColor: "var(--color-border)" }}>
-          <button aria-label="Mở menu" className="md:hidden px-2" onClick={() => setMobileMenuOpen(true)}>☰</button>
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

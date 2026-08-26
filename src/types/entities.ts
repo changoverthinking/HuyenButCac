@@ -121,10 +121,12 @@ export interface CustomBackground extends BaseEntity {
   imageBlob: Blob;
 }
 
-export interface MindMap extends BaseEntity { title: string; }
+export interface MindMap extends BaseEntity { title: string; projectId?: string | null; }
 export interface MindMapNode extends BaseEntity {
   mapId: string; parentId: string | null; title: string; x: number; y: number;
   color: string; collapsed: boolean;
+  linkType?: "project" | "section" | "chapter" | null;
+  linkId?: string | null;
 }
 export interface MindMapEdge extends BaseEntity {
   mapId: string; sourceId: string; targetId: string; label: string;
@@ -135,4 +137,16 @@ export interface WhiteboardObject extends BaseEntity {
   boardId: string; kind: WhiteboardObjectKind; x: number; y: number;
   width: number; height: number; text: string; color: string;
   connectedToIds?: string[];
+  locked?: boolean;
+}
+
+export interface CanvasStroke extends BaseEntity {
+  ownerId: string;
+  points: { x: number; y: number }[];
+  color: string;
+  width: number;
+  dash: "solid" | "dashed" | "dotted";
+  arrow: "none" | "end" | "both";
+  smoothed: boolean;
+  locked: boolean;
 }

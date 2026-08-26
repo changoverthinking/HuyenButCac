@@ -1,7 +1,8 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "../database/db";
-import { addMindMapNode, createMindMap, deleteMindMap, deleteMindMapNode, getMapGraph, listMindMaps, renameMindMap, updateMindMapNode } from "../features/mind-map/mindMapService";
+import { addMindMapNode, createMindMap, createOrSyncProjectMap, deleteMindMap, deleteMindMapNode, getMapGraph, listMindMaps, renameMindMap, resolveNodeLink, updateMindMapNode } from "../features/mind-map/mindMapService";
+import { createChapter, createProject, createSection } from "../features/projects/projectsService";
 
 describe("mindMapService", () => {
   beforeEach(async () => { await db.delete(); await db.open(); });
@@ -57,4 +58,6 @@ describe("mindMapService", () => {
     expect(await db.mindMapNodes.where("mapId").equals(map.id).filter((node)=>node.deletedAt===null).count()).toBe(0);
     expect((await getMapGraph(map.id)).nodes).toHaveLength(0);
   });
+
+  it("tạo cây dự án và mở đúng phần/chương bằng ID",async()=>{const project=await createProject({title:"Nhất Niệm Trường Sinh",kind:"generic"});const section=await createSection(project.id,"Phần một");const chapter=await createChapter({projectId:project.id,sectionId:section.id,title:"Chương khai mở"});const map=await createOrSyncProjectMap(project.id);const graph=await getMapGraph(map.id);expect(graph.nodes).toHaveLength(3);const chapterNode=graph.nodes.find(node=>node.linkId===chapter.id)!;expect(chapterNode.parentId).toBe(graph.nodes.find(node=>node.linkId===section.id)?.id);expect(await resolveNodeLink(chapterNode)).toEqual({projectId:project.id,sectionId:section.id,chapterId:chapter.id});await createOrSyncProjectMap(project.id);expect((await getMapGraph(map.id)).nodes).toHaveLength(3);});
 });
