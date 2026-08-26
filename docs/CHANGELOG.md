@@ -108,3 +108,7 @@
 - Tách logic next/previous/shuffle/repeat thành hàm thuần và kiểm thử đủ cuối danh sách, lặp một bài, lặp danh sách, ngẫu nhiên.
 - Xác nhận PWA build có service worker, manifest và icon bắt buộc.
 - Bản GitHub Pages công khai được kiểm tra và vẫn là `0.1.0-checkpoint1`; cần upload bản QA này trước khi nghiệm thu trình duyệt cuối.
+# Checkpoint 9.2 — 2026-08-26
+- Sửa vùng nhập chữ che toàn bộ thao tác kéo của các ô trong Sơ đồ trên điện thoại.
+- Thêm tay cầm `⠿` riêng cho từng ô: giữ và kéo để đặt tự do, chạm phần chữ để sửa tên.
+- Giữ đúng phép quy đổi tọa độ khi kéo ở mọi mức zoom và lưu vị trí sau khi thả.

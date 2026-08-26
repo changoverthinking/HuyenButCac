@@ -30,6 +30,8 @@ body {
 }
 
 .mobile-icon-button { width: 2.65rem; height: 2.65rem; flex: 0 0 auto; border-radius: .6rem; }
+.mindmap-node-grip { cursor: grab; touch-action: none; }
+.mindmap-node-grip:active { cursor: grabbing; }
 .rich-text-toolbar { flex-wrap: wrap; }
 .music-player { position: relative; flex: 0 0 auto; border-top-width: 1px; }
 .music-controls { display: flex; }

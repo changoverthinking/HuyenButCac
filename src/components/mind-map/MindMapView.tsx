@@ -20,6 +20,7 @@ type DragState = {
 };
 type Point={x:number;y:number};
 const nodeWidth=(title:string)=>Math.min(320,Math.max(110,40+Array.from(title).length*9));
+const NODE_HANDLE_WIDTH=38;
 
 export function MindMapView() {
   const [maps, setMaps] = useState<MindMap[]>([]);
@@ -172,6 +173,7 @@ export function MindMapView() {
           <button aria-label="Thu nhỏ" className="rounded px-2 py-2" style={{background:"var(--color-surface)"}} onClick={()=>zoomAt(zoom-.15,{x:200,y:160})}>−</button>
           <button title="Đặt lại góc nhìn" className="rounded px-2 py-2 text-xs" style={{background:"var(--color-surface)"}} onClick={resetView}>{Math.round(zoom*100)}%</button>
           <button aria-label="Phóng to" className="rounded px-2 py-2" style={{background:"var(--color-surface)"}} onClick={()=>zoomAt(zoom+.15,{x:200,y:160})}>＋</button>
+          <span className="hidden sm:inline rounded px-2 py-2 text-xs" style={{background:"var(--color-surface)",color:"var(--color-text-muted)"}}>Kéo dấu ⠿ để đặt vị trí</span>
         </div>
 
         <svg
@@ -232,7 +234,17 @@ export function MindMapView() {
                 fill={selected === node.id ? "var(--color-accent)" : "var(--color-node)"}
                 stroke="var(--color-border)"
               />
-              <foreignObject width={nodeWidth(node.title)} height="44">
+              <rect
+                width={NODE_HANDLE_WIDTH}
+                height="44"
+                rx="12"
+                fill="transparent"
+                className="mindmap-node-grip"
+              />
+              <line x1={NODE_HANDLE_WIDTH} y1="7" x2={NODE_HANDLE_WIDTH} y2="37" stroke="var(--color-border)" opacity=".75" />
+              <text x="19" y="28" textAnchor="middle" fill={selected===node.id?"var(--color-bg)":"var(--color-text-muted)"} fontSize="18" className="pointer-events-none select-none">⠿</text>
+              <title>Giữ dấu ⠿ rồi kéo để di chuyển ô</title>
+              <foreignObject x={NODE_HANDLE_WIDTH} width={nodeWidth(node.title)-NODE_HANDLE_WIDTH} height="44">
                 <input
                   aria-label="Tên nút"
                   value={node.title}
