@@ -134,4 +134,5 @@ export interface Whiteboard extends BaseEntity { title: string; }
 export interface WhiteboardObject extends BaseEntity {
   boardId: string; kind: WhiteboardObjectKind; x: number; y: number;
   width: number; height: number; text: string; color: string;
+  connectedToIds?: string[];
 }

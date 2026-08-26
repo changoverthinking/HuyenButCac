@@ -2,19 +2,19 @@
 
 ## Cách dễ nhất: tải đè toàn bộ mã nguồn
 
-1. Giải nén gói `Huyen_But_Cac_Checkpoint_9_14_Themes.zip` trên máy tính.
+1. Giải nén gói `Huyen_But_Cac_Checkpoint_9_1_Canvas_Fix.zip` trên máy tính.
 2. Mở repo: <https://github.com/changoverthinking/HuyenButCac>
 3. Ở tab **Code**, bấm **Add file** → **Upload files**.
 4. Mở thư mục vừa giải nén, chọn **toàn bộ nội dung bên trong thư mục** (không chọn chính thư mục bọc ngoài), rồi kéo vào vùng upload của GitHub.
 5. Chờ GitHub tải xong. Các tệp trùng tên sẽ được cập nhật đúng đường dẫn.
-6. Ở ô commit, nhập: `Update Checkpoint 9 - 14 adaptive themes`
+6. Ở ô commit, nhập: `Update Checkpoint 9.1 - folder mindmap whiteboard fixes`
 7. Chọn **Commit directly to the main branch**, rồi bấm **Commit changes**.
 8. Mở tab **Actions**. Chọn lần chạy **Deploy Huyền Bút Các** mới nhất và chờ cả `build` lẫn `deploy` chuyển màu xanh.
 9. Mở <https://changoverthinking.github.io/HuyenButCac/> rồi bấm **Cập nhật ngay** nếu ứng dụng hỏi. Nếu vẫn thấy bản cũ, đóng hẳn ứng dụng/tab rồi mở lại; trên Windows có thể bấm `Ctrl+F5`.
 
 ## Kiểm tra sau cập nhật
 
-- Thanh bên phải hiển thị phiên bản `0.7.0-checkpoint9-themes`. Nếu vẫn thấy phiên bản cũ, GitHub Pages vẫn đang dùng bản cũ.
+- Thanh bên phải hiển thị phiên bản `0.7.1-checkpoint9.1-canvas-fix`. Nếu vẫn thấy phiên bản cũ, GitHub Pages vẫn đang dùng bản cũ.
 - Mở **Đổi giao diện**, thử các theme mới và xác nhận trình nhạc đổi đồng bộ màu nền, viền, ngọc và ánh sáng.
 - Trên điện thoại, nút nhạc là bong bóng tròn nổi ở góc dưới bên phải. Chạm để mở; chạm dấu `⌄` để thu nhỏ.
 - Tạo ghi chú, gõ nhanh cả tiêu đề và nội dung, chờ “Đã lưu”, tải lại trang: cả hai vẫn còn.
@@ -29,6 +29,8 @@
 - Trên điện thoại: trong Ghi chú có nút `☰` để mở thư mục, Thùng rác và đổi giao diện.
 - Xoay điện thoại dọc/ngang: thanh điều hướng, bong bóng nhạc, Sơ đồ và Bảng trắng phải tự co lại, không che nội dung.
 - Trong Sơ đồ và Bảng trắng, đặt hai ngón tay lên vùng vẽ rồi chụm/mở để thu nhỏ hoặc phóng to từ 35% đến 250%.
+- Kéo vùng trống để di chuyển toàn bộ góc nhìn; bấm số phần trăm để trở về 100% và góc ban đầu.
+- Trong Bảng trắng: chọn hình nguồn → bấm **Nối** → chạm hình đích. Dùng **Bỏ nối** để xóa các đường liên quan.
 
 ## Lưu ý
 

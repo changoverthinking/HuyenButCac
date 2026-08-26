@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## Checkpoint 9.1 — Folder, Sơ đồ và Bảng trắng — 2026-08-26
+- Sửa tạo thư mục: thêm nút `＋`, thông báo thành công/lỗi, chuẩn hóa tên và chặn tên rỗng.
+- Sơ đồ hỗ trợ kéo vùng nền để di chuyển góc nhìn, zoom theo vị trí ngón tay/con trỏ, chụm hai ngón và nút `− / % / ＋`.
+- Nút phần trăm đặt lại góc nhìn 100%.
+- Khung nút Sơ đồ tự thay đổi chiều rộng theo độ dài chữ từ 110 đến 320 px; đường nối bám đúng mép khung.
+- Bảng trắng hỗ trợ kéo nền, zoom tự do, kéo hình bằng thanh `⠿ Kéo` lớn hơn.
+- Thêm nối hình có mũi tên, lưu quan hệ nối, bỏ nối và tự dọn đường nối khi xóa hình.
+- Bổ sung 3 bài kiểm thử; tổng cộng 41/41 test đạt.
+
 ## Checkpoint 9 — 14 giao diện đồng bộ — 2026-08-25
 - Thiết kế lại hệ màu trình nhạc, loại bỏ màu xanh/nâu cố định.
 - Trình nhạc đổi đồng bộ nền, viền, ngọc, ánh sáng và màu nút theo theme đang chọn.

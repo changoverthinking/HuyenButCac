@@ -3,13 +3,15 @@ import { db } from "../../database/db";
 import type { Folder } from "../../types/entities";
 
 export async function createFolder(name: string, parentId: string | null): Promise<Folder> {
+  const cleanName=name.trim();
+  if(!cleanName)throw new Error("Tên thư mục không được để trống.");
   const now = Date.now();
   const siblingCount = await db.folders
     .filter((f) => f.parentId === parentId && f.deletedAt === null)
     .count();
   const folder: Folder = {
     id: uuid(),
-    name,
+    name:cleanName,
     parentId,
     order: siblingCount,
     createdAt: now,

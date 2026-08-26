@@ -15,6 +15,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const showTrash = useNotesStore((s) => s.showTrash);
   const view = useNotesStore((s) => s.view);
   const [newFolderName, setNewFolderName] = useState("");
+  const [folderMessage, setFolderMessage] = useState("");
   const [showThemePicker, setShowThemePicker] = useState(false);
   const themeId = useThemeStore((s) => s.themeId);
   const setTheme = useThemeStore((s) => s.setTheme);
@@ -75,18 +76,24 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           onSubmit={async (e) => {
             e.preventDefault();
             if (!newFolderName.trim()) return;
-            await createFolder(newFolderName.trim(), null);
-            setNewFolderName("");
+            try {
+              const name=newFolderName.trim();
+              await createFolder(name, null);
+              setNewFolderName("");
+              setFolderMessage(`Đã tạo “${name}”.`);
+            } catch (error) { setFolderMessage((error as Error).message||"Không thể tạo thư mục."); }
           }}
         >
           <input
             value={newFolderName}
             onChange={(e) => setNewFolderName(e.target.value)}
             placeholder="Thư mục mới…"
-            className="flex-1 text-sm bg-transparent border-b outline-none px-1 py-1"
+            className="min-w-0 flex-1 text-sm bg-transparent border rounded outline-none px-2 py-1.5"
             style={{ borderColor: "var(--color-border)", color: "var(--color-text)" }}
           />
+          <button type="submit" disabled={!newFolderName.trim()} aria-label="Tạo thư mục" className="rounded px-2" style={{background:"var(--color-accent)",color:"var(--color-bg)"}}>＋</button>
         </form>
+        {folderMessage&&<p className="px-2 pt-1 text-xs" style={{color:"var(--color-text-muted)"}}>{folderMessage}</p>}
       </div>
 
       <div className="p-2 border-t relative" style={{ borderColor: "var(--color-border)" }}>

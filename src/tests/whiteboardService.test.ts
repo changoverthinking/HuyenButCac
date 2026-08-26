@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "../database/db";
-import { addBoardObject, createWhiteboard, deleteBoardObject, deleteWhiteboard, getBoardObjects, listWhiteboards, renameWhiteboard, updateBoardObject } from "../features/whiteboard/whiteboardService";
+import { addBoardObject, connectBoardObjects, createWhiteboard, deleteBoardObject, deleteWhiteboard, getBoardObjects, listWhiteboards, removeBoardObjectConnections, renameWhiteboard, updateBoardObject } from "../features/whiteboard/whiteboardService";
 
 describe("whiteboardService", () => {
   beforeEach(async () => { await db.delete(); await db.open(); });
@@ -25,6 +25,20 @@ describe("whiteboardService", () => {
     const object = await addBoardObject(board.id, "rectangle");
     await deleteBoardObject(object.id);
     expect(await getBoardObjects(board.id)).toHaveLength(0);
+  });
+
+  it("nối, bỏ nối và lưu quan hệ giữa các đối tượng",async()=>{
+    const board=await createWhiteboard();const source=await addBoardObject(board.id,"note");const target=await addBoardObject(board.id,"ellipse");
+    await connectBoardObjects(source.id,target.id);
+    expect((await getBoardObjects(board.id)).find(item=>item.id===source.id)?.connectedToIds).toContain(target.id);
+    await removeBoardObjectConnections(target.id);
+    expect((await getBoardObjects(board.id)).find(item=>item.id===source.id)?.connectedToIds).not.toContain(target.id);
+  });
+
+  it("xóa hình tự dọn các đường nối liên quan",async()=>{
+    const board=await createWhiteboard();const source=await addBoardObject(board.id,"note");const target=await addBoardObject(board.id,"rectangle");
+    await connectBoardObjects(source.id,target.id);await deleteBoardObject(target.id);
+    expect((await getBoardObjects(board.id)).find(item=>item.id===source.id)?.connectedToIds).toEqual([]);
   });
 
   it("đổi tên và xóa bảng kèm toàn bộ đối tượng", async () => {

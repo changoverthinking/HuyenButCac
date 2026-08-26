@@ -18,6 +18,8 @@ type DragState = {
   startNodeX: number;
   startNodeY: number;
 };
+type Point={x:number;y:number};
+const nodeWidth=(title:string)=>Math.min(320,Math.max(110,40+Array.from(title).length*9));
 
 export function MindMapView() {
   const [maps, setMaps] = useState<MindMap[]>([]);
@@ -26,18 +28,28 @@ export function MindMapView() {
   const [edges, setEdges] = useState<MindMapEdge[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [pan,setPan]=useState<Point>({x:0,y:0});
   const drag = useRef<DragState | null>(null);
+  const canvasPan=useRef<{pointerId:number;start:Point;pan:Point}|null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
-  const pinch = useRef<{ distance: number; zoom: number } | null>(null);
+  const pinch = useRef<{distance:number;zoom:number;pan:Point;center:Point}|null>(null);
   const selectedNode = nodes.find((node) => node.id === selected) ?? null;
   const clampZoom = (value: number) => Math.min(2.5, Math.max(0.35, value));
-  const updatePinch = () => {
+  const updatePinch = (element:SVGSVGElement) => {
     const points = [...pointers.current.values()];
     if (points.length < 2) { pinch.current = null; return; }
+    const rect=element.getBoundingClientRect();
+    const center={x:(points[0].x+points[1].x)/2-rect.left,y:(points[0].y+points[1].y)/2-rect.top};
     const distance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
-    if (!pinch.current) { pinch.current = { distance, zoom }; return; }
-    setZoom(clampZoom(pinch.current.zoom * distance / Math.max(1, pinch.current.distance)));
+    if (!pinch.current) { pinch.current = { distance, zoom,pan:{...pan},center }; return; }
+    const nextZoom=clampZoom(pinch.current.zoom*distance/Math.max(1,pinch.current.distance));
+    const worldX=(pinch.current.center.x-pinch.current.pan.x)/pinch.current.zoom;
+    const worldY=(pinch.current.center.y-pinch.current.pan.y)/pinch.current.zoom;
+    setZoom(nextZoom);setPan({x:center.x-worldX*nextZoom,y:center.y-worldY*nextZoom});
   };
+
+  const zoomAt=(next:number,center:Point)=>{const value=clampZoom(next);setPan(current=>({x:center.x-(center.x-current.x)*value/zoom,y:center.y-(center.y-current.y)*value/zoom}));setZoom(value);};
+  const resetView=()=>{setZoom(1);setPan({x:0,y:0});};
 
   const reload = async (id = active) => {
     setMaps(await listMindMaps());
@@ -157,17 +169,19 @@ export function MindMapView() {
           >
             Xóa
           </button>
-          <span className="rounded px-2 py-2 text-xs" style={{background:"var(--color-surface)"}}>{Math.round(zoom*100)}%</span>
+          <button aria-label="Thu nhỏ" className="rounded px-2 py-2" style={{background:"var(--color-surface)"}} onClick={()=>zoomAt(zoom-.15,{x:200,y:160})}>−</button>
+          <button title="Đặt lại góc nhìn" className="rounded px-2 py-2 text-xs" style={{background:"var(--color-surface)"}} onClick={resetView}>{Math.round(zoom*100)}%</button>
+          <button aria-label="Phóng to" className="rounded px-2 py-2" style={{background:"var(--color-surface)"}} onClick={()=>zoomAt(zoom+.15,{x:200,y:160})}>＋</button>
         </div>
 
         <svg
           className="w-full h-full touch-none"
-          style={{transform:`scale(${zoom})`,transformOrigin:"0 0",width:`${100/zoom}%`,height:`${100/zoom}%`}}
-          onWheel={(event)=>{event.preventDefault();setZoom((value)=>clampZoom(value*(event.deltaY>0?.9:1.1)));}}
-          onPointerDownCapture={(event)=>{pointers.current.set(event.pointerId,{x:event.clientX,y:event.clientY});if(pointers.current.size>=2){drag.current=null;updatePinch();event.currentTarget.setPointerCapture(event.pointerId);}}}
+          onWheel={(event)=>{event.preventDefault();const rect=event.currentTarget.getBoundingClientRect();zoomAt(zoom*(event.deltaY>0?.9:1.1),{x:event.clientX-rect.left,y:event.clientY-rect.top});}}
+          onPointerDownCapture={(event)=>{pointers.current.set(event.pointerId,{x:event.clientX,y:event.clientY});event.currentTarget.setPointerCapture(event.pointerId);if(pointers.current.size>=2){drag.current=null;canvasPan.current=null;updatePinch(event.currentTarget);}else if(event.target===event.currentTarget){canvasPan.current={pointerId:event.pointerId,start:{x:event.clientX,y:event.clientY},pan:{...pan}};}}}
           onPointerMove={(event) => {
-            if(pointers.current.has(event.pointerId)){pointers.current.set(event.pointerId,{x:event.clientX,y:event.clientY});if(pointers.current.size>=2){updatePinch();return;}}
+            if(pointers.current.has(event.pointerId)){pointers.current.set(event.pointerId,{x:event.clientX,y:event.clientY});if(pointers.current.size>=2){updatePinch(event.currentTarget);return;}}
             const current = drag.current;
+            if(!current&&canvasPan.current?.pointerId===event.pointerId){const start=canvasPan.current;setPan({x:start.pan.x+event.clientX-start.start.x,y:start.pan.y+event.clientY-start.start.y});return;}
             if (!current) return;
             const x = current.startNodeX + (event.clientX - current.startClientX) / zoom;
             const y = current.startNodeY + (event.clientY - current.startClientY) / zoom;
@@ -175,10 +189,10 @@ export function MindMapView() {
               node.id === current.id ? { ...node, x, y } : node
             )));
           }}
-          onPointerUp={(event)=>{pointers.current.delete(event.pointerId);updatePinch();finishDrag();}}
-          onPointerCancel={(event)=>{pointers.current.delete(event.pointerId);updatePinch();finishDrag();}}
-          onPointerLeave={finishDrag}
+          onPointerUp={(event)=>{pointers.current.delete(event.pointerId);if(pointers.current.size<2)pinch.current=null;if(canvasPan.current?.pointerId===event.pointerId)canvasPan.current=null;finishDrag();}}
+          onPointerCancel={(event)=>{pointers.current.delete(event.pointerId);pinch.current=null;canvasPan.current=null;finishDrag();}}
         >
+          <g transform={`translate(${pan.x} ${pan.y}) scale(${zoom})`}>
           {edges.map((edge) => {
             const source = nodes.find((node) => node.id === edge.sourceId);
             const target = nodes.find((node) => node.id === edge.targetId);
@@ -186,7 +200,7 @@ export function MindMapView() {
             return (
               <path
                 key={edge.id}
-                d={`M${source.x + 65},${source.y + 22} C${source.x + 120},${source.y + 22} ${target.x - 55},${target.y + 22} ${target.x},${target.y + 22}`}
+                d={`M${source.x + nodeWidth(source.title)},${source.y + 22} C${source.x + nodeWidth(source.title)+55},${source.y + 22} ${target.x - 55},${target.y + 22} ${target.x},${target.y + 22}`}
                 fill="none"
                 stroke="var(--color-connector)"
                 strokeWidth="2"
@@ -212,13 +226,13 @@ export function MindMapView() {
               }}
             >
               <rect
-                width="130"
+                width={nodeWidth(node.title)}
                 height="44"
                 rx="12"
                 fill={selected === node.id ? "var(--color-accent)" : "var(--color-node)"}
                 stroke="var(--color-border)"
               />
-              <foreignObject width="130" height="44">
+              <foreignObject width={nodeWidth(node.title)} height="44">
                 <input
                   aria-label="Tên nút"
                   value={node.title}
@@ -235,6 +249,7 @@ export function MindMapView() {
               </foreignObject>
             </g>
           ))}
+          </g>
         </svg>
       </main>
     </div>
