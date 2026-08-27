@@ -124,3 +124,13 @@
 - Sửa vùng nhập chữ che toàn bộ thao tác kéo của các ô trong Sơ đồ trên điện thoại.
 - Thêm tay cầm `⠿` riêng cho từng ô: giữ và kéo để đặt tự do, chạm phần chữ để sửa tên.
 - Giữ đúng phép quy đổi tọa độ khi kéo ở mọi mức zoom và lưu vị trí sau khi thả.
+# Checkpoint 11 — 0.9.0
+
+- Đăng ký, đăng nhập, đăng xuất và xác minh email qua Supabase Auth.
+- Khôi phục và đổi mật khẩu qua liên kết email.
+- Đồng bộ ghi chú, thư mục, dự án, chương, sơ đồ, bảng trắng và nét vẽ giữa nhiều thiết bị.
+- Hợp nhất dữ liệu cục bộ với dữ liệu tài khoản theo `updatedAt`; giữ soft-delete.
+- Tự đồng bộ khi đăng nhập, trở lại ứng dụng, có mạng lại và theo chu kỳ 45 giây.
+- Giữ chế độ offline-first khi chưa cấu hình máy chủ hoặc mất mạng.
+- RLS bắt buộc: mỗi người chỉ đọc/ghi bản ghi thuộc chính tài khoản.
+- MP3 và ảnh nền tùy chọn tiếp tục lưu cục bộ trên từng thiết bị.

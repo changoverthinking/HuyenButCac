@@ -8,6 +8,7 @@ import { WhiteboardView } from "./components/whiteboard/WhiteboardView";
 import { MusicPlayer } from "./components/music/MusicPlayer";
 import { Sidebar } from "./components/common/Sidebar";
 import { useProjectsStore } from "./stores/projectsStore";
+import { AccountPanel } from "./components/auth/AccountPanel";
 
 type Mode = "notes" | "projects" | "mindmap" | "whiteboard";
 
@@ -23,6 +24,7 @@ export default function App() {
   const [mode, setMode] = useState<Mode>("notes");
   const [mobileMenuOpen,setMobileMenuOpen]=useState(false);
   const [focusedSectionId,setFocusedSectionId]=useState<string|null>(null);
+  const [accountOpen,setAccountOpen]=useState(false);
   const loadProjects=useProjectsStore(s=>s.loadProjects);
   const selectProject=useProjectsStore(s=>s.selectProject);
   const selectChapter=useProjectsStore(s=>s.selectChapter);
@@ -38,7 +40,7 @@ export default function App() {
       <div className="md:hidden flex items-center gap-2 px-2 py-1.5 border-b shrink-0" style={{borderColor:"var(--color-border)",background:"var(--color-surface)"}}>
         <button aria-label="Mở menu" className="mobile-icon-button" onClick={()=>setMobileMenuOpen(true)}>☰</button>
         <div className="flex-1 text-center font-semibold">{MODE_TABS.find(item=>item.id===mode)?.label}</div>
-        <button aria-label="Mở trình phát nhạc" className="mobile-icon-button" onClick={()=>window.dispatchEvent(new CustomEvent("hbc-toggle-music"))}>♫</button>
+        <button aria-label="Mở tài khoản" className="mobile-icon-button" onClick={()=>setAccountOpen(true)}>♙</button>
       </div>
       {mobileMenuOpen&&<div className="md:hidden fixed inset-0 z-50 flex"><div className="relative z-10 h-full"><Sidebar onNavigate={()=>setMobileMenuOpen(false)} onOpenNotes={()=>setMode("notes")}/></div><button aria-label="Đóng menu" className="absolute inset-0 bg-black/50" onClick={()=>setMobileMenuOpen(false)}/></div>}
 
@@ -62,6 +64,7 @@ export default function App() {
             {!t.ready && <span className="text-[10px] opacity-60">(sắp có)</span>}
           </button>
         ))}
+        <button className="ml-auto px-3 py-1.5 rounded-lg text-sm" style={{background:"var(--color-surface-alt)"}} onClick={()=>setAccountOpen(true)}>♙ Tài khoản</button>
       </div>
 
       <div className="flex-1 overflow-hidden">
@@ -72,6 +75,7 @@ export default function App() {
       </div>
 
       <MusicPlayer />
+      <AccountPanel open={accountOpen} onClose={()=>setAccountOpen(false)} />
 
       {/* Bottom nav mobile (mục 7) */}
       <nav

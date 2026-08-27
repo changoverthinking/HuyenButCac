@@ -2,7 +2,7 @@
 
 Ứng dụng ghi chú, viết dự án, sơ đồ tư duy và bảng trắng phong cách tu tiên — local-first, offline-first, PWA.
 
-> **Trạng thái:** Checkpoint 5 — Ghi chú, Viết dự án, Sơ đồ tư duy và Bảng trắng nền tảng hoạt động, lưu cục bộ bằng IndexedDB. Mã hóa thật / Đồng bộ / Cộng tác chưa triển khai. Xem `docs/FEATURE_MATRIX.md`.
+> **Trạng thái:** Checkpoint 11 — hoạt động local-first bằng IndexedDB; có tài khoản email và đồng bộ đa thiết bị qua Supabase khi được cấu hình. Xem `HUONG_DAN_SUPABASE.md`.
 
 ## Chạy local
 

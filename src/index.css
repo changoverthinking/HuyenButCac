@@ -5,6 +5,11 @@
   box-sizing: border-box;
 }
 
+.account-panel input { width:100%; border:1px solid var(--color-border); background:var(--color-background); color:var(--color-text); border-radius:.75rem; padding:.7rem .85rem; outline:none; }
+.account-panel input:focus { border-color:var(--color-accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--color-accent) 18%,transparent); }
+.account-primary { border-radius:.75rem; padding:.7rem 1rem; font-weight:700; background:var(--color-accent); color:var(--color-background); }
+.account-primary:disabled { opacity:.55; }
+
 html, body, #root {
   height: 100%;
   min-height: 100%;

@@ -2,19 +2,20 @@
 
 ## Cách dễ nhất: tải đè toàn bộ mã nguồn
 
-1. Giải nén gói `Huyen_But_Cac_Checkpoint_10_Project_Canvas_Link.zip` trên máy tính.
+1. Giải nén gói `Huyen_But_Cac_Checkpoint_11_Account_Sync.zip` trên máy tính.
 2. Mở repo: <https://github.com/changoverthinking/HuyenButCac>
 3. Ở tab **Code**, bấm **Add file** → **Upload files**.
 4. Mở thư mục vừa giải nén, chọn **toàn bộ nội dung bên trong thư mục** (không chọn chính thư mục bọc ngoài), rồi kéo vào vùng upload của GitHub.
 5. Chờ GitHub tải xong. Các tệp trùng tên sẽ được cập nhật đúng đường dẫn.
-6. Ở ô commit, nhập: `Update Checkpoint 10 - project mindmap drawing link`
+6. Ở ô commit, nhập: `Update Checkpoint 11 - account and cloud sync`
 7. Chọn **Commit directly to the main branch**, rồi bấm **Commit changes**.
 8. Mở tab **Actions**. Chọn lần chạy **Deploy Huyền Bút Các** mới nhất và chờ cả `build` lẫn `deploy` chuyển màu xanh.
 9. Mở <https://changoverthinking.github.io/HuyenButCac/> rồi bấm **Cập nhật ngay** nếu ứng dụng hỏi. Nếu vẫn thấy bản cũ, đóng hẳn ứng dụng/tab rồi mở lại; trên Windows có thể bấm `Ctrl+F5`.
 
 ## Kiểm tra sau cập nhật
 
-- Thanh bên phải hiển thị phiên bản `0.8.0-checkpoint10-project-canvas-link`. Nếu vẫn thấy phiên bản cũ, GitHub Pages vẫn đang dùng bản cũ.
+- Thanh bên phải hiển thị phiên bản `0.9.0-checkpoint11-account-sync`. Nếu vẫn thấy phiên bản cũ, GitHub Pages vẫn đang dùng bản cũ.
+- Bấm **Tài khoản**, đăng ký và xác minh email. Tạo ghi chú trên thiết bị thứ nhất, bấm **Đồng bộ ngay**, rồi đăng nhập cùng tài khoản trên thiết bị thứ hai.
 - Mở **Đổi giao diện**, thử các theme mới và xác nhận trình nhạc đổi đồng bộ màu nền, viền, ngọc và ánh sáng.
 - Trên điện thoại, nút nhạc là bong bóng tròn nổi ở góc dưới bên phải. Chạm để mở; chạm dấu `⌄` để thu nhỏ.
 - Tạo ghi chú, gõ nhanh cả tiêu đề và nội dung, chờ “Đã lưu”, tải lại trang: cả hai vẫn còn.
@@ -43,4 +44,4 @@
 - Không tải thư mục `node_modules` hoặc `dist` lên GitHub; gói này đã loại chúng ra.
 - Không cần sửa lại GitHub Pages. Workflow `.github/workflows/deploy.yml` sẽ tự build và deploy sau mỗi commit vào `main`.
 - Tệp `deploy.yml` nằm ở thư mục gốc repo (nếu còn) không được GitHub Actions sử dụng; có thể xóa sau khi bản mới chạy xanh. Workflow đúng nằm trong `.github/workflows/deploy.yml`.
-- Việc cập nhật mã nguồn không xóa ghi chú đang lưu trong trình duyệt trên cùng thiết bị và cùng địa chỉ GitHub Pages. Tuy vậy, bản hiện tại chưa có tính năng sao lưu toàn bộ dữ liệu và chưa mã hóa bằng PIN/AES.
+- Việc cập nhật mã nguồn không xóa ghi chú đang lưu trong trình duyệt. Khi đăng nhập lần đầu, dữ liệu cục bộ và dữ liệu tài khoản được hợp nhất theo thời điểm sửa gần nhất. MP3 và ảnh nền riêng vẫn nằm trên từng thiết bị.
