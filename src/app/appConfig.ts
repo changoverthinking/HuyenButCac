@@ -5,7 +5,7 @@ export const APP_CONFIG = {
   appNameEn: "Mystic Notes",
   appId: "com.huyenbut.notes",
   repository: "HuyenButCac",
-  version: "0.11.2-checkpoint13.2-supabase-music-fix",
+  version: "0.11.3-checkpoint13.3-account-ui-fix",
 };
 
 export const NAME_CANDIDATES: { name: string; meaning: string }[] = [

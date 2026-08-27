@@ -84,7 +84,10 @@ export function AccountPanel({ open, onClose }: { open: boolean; onClose: () => 
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (!supabase) return;
+    if (!supabase) {
+      setMessage("Chưa thể kết nối Supabase. Hãy thêm đủ hai GitHub Actions Variable rồi chạy lại Deploy.");
+      return;
+    }
     setBusy(true); setMessage("");
     try {
       if (mode === "register") {
@@ -130,14 +133,14 @@ export function AccountPanel({ open, onClose }: { open: boolean; onClose: () => 
 
   if (!open) return null;
   return <div className="fixed inset-0 z-[80] grid place-items-center bg-black/60 p-4" onMouseDown={onClose}>
-    <section className="account-panel immortal-panel w-full max-w-md rounded-2xl border p-5 shadow-2xl" onMouseDown={e=>e.stopPropagation()}>
+    <section className="account-panel immortal-panel max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border p-5 shadow-2xl" onMouseDown={e=>e.stopPropagation()}>
       <div className="account-heading flex items-center justify-between mb-4"><div className="flex items-center gap-3"><span className="brand-sigil small">鑰</span><div><h2 className="text-xl font-bold">Tàng Thư Mật Cảnh</h2><p className="text-xs opacity-65">Tài khoản · Kho bảo mật · Đồng bộ</p></div></div><button className="mystic-close" onClick={onClose} aria-label="Đóng">✕</button></div>
-      {!cloudConfigured ? <div className="rounded-xl p-3" style={{background:"var(--color-surface-alt)"}}>
+      {!cloudConfigured && <div className="mb-4 rounded-xl border p-3" style={{background:"var(--color-surface-alt)",borderColor:"var(--color-warning)"}}>
         <p>Máy chủ Supabase chưa được đưa vào bản triển khai. Dữ liệu hiện vẫn lưu trên thiết bị này.</p>
         <p className="mt-2 text-sm">Thiếu GitHub Actions Variable: <b>{missingCloudSettings.join(" và ")}</b>.</p>
         <p className="mt-2 text-sm">Hãy lưu đúng hai biến theo <b>HUONG_DAN_SUPABASE.md</b>, rồi chạy lại workflow Deploy.</p>
-      </div>
-      : recovering ? <form className="space-y-3" onSubmit={updatePassword}>
+      </div>}
+      {recovering ? <form className="space-y-3" onSubmit={updatePassword}>
           <p>Nhập mật khẩu mới cho tài khoản.</p>
           <input required minLength={8} type="password" autoComplete="new-password" placeholder="Mật khẩu mới (ít nhất 8 ký tự)" value={password} onChange={e=>setPassword(e.target.value)} />
           <button disabled={busy} className="account-primary w-full" type="submit">{busy?"Đang lưu…":"Đổi mật khẩu"}</button>
@@ -166,7 +169,7 @@ export function AccountPanel({ open, onClose }: { open: boolean; onClose: () => 
         <form className="space-y-3" onSubmit={submit}>
           <input required type="email" autoComplete="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
           {mode!=="forgot" && <input required minLength={8} type="password" autoComplete={mode==="register"?"new-password":"current-password"} placeholder="Mật khẩu (ít nhất 8 ký tự)" value={password} onChange={e=>setPassword(e.target.value)} />}
-          <button disabled={busy} className="account-primary w-full" type="submit">{busy?"Đang xử lý…":mode==="login"?"Đăng nhập":mode==="register"?"Tạo tài khoản":"Gửi email khôi phục"}</button>
+          <button disabled={busy} className="account-primary w-full" type="submit">{busy?"Đang xử lý…":!cloudConfigured?"Kiểm tra cấu hình Supabase":mode==="login"?"Đăng nhập":mode==="register"?"Tạo tài khoản":"Gửi email khôi phục"}</button>
         </form>
         <button className="mt-3 text-sm underline" onClick={()=>setMode(mode==="forgot"?"login":"forgot")}>{mode==="forgot"?"Quay lại đăng nhập":"Quên mật khẩu?"}</button>
       </>}

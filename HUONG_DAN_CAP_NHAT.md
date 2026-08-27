@@ -2,19 +2,19 @@
 
 ## Cách dễ nhất: tải đè toàn bộ mã nguồn
 
-1. Giải nén gói `Huyen_But_Cac_Checkpoint_13_2_Supabase_Music_Fix.zip` trên máy tính.
+1. Giải nén gói `Huyen_But_Cac_Checkpoint_13_3_Account_UI_Fix.zip` trên máy tính.
 2. Mở repo: <https://github.com/changoverthinking/HuyenButCac>
 3. Ở tab **Code**, bấm **Add file** → **Upload files**.
 4. Mở thư mục vừa giải nén, chọn **toàn bộ nội dung bên trong thư mục** (không chọn chính thư mục bọc ngoài), rồi kéo vào vùng upload của GitHub.
 5. Chờ GitHub tải xong. Các tệp trùng tên sẽ được cập nhật đúng đường dẫn.
-6. Ở ô commit, nhập: `Update Checkpoint 13.2 - Supabase diagnostic and remove music bubble`
+6. Ở ô commit, nhập: `Update Checkpoint 13.3 - always show account forms`
 7. Chọn **Commit directly to the main branch**, rồi bấm **Commit changes**.
 8. Mở tab **Actions**. Chọn lần chạy **Deploy Huyền Bút Các** mới nhất và chờ cả `build` lẫn `deploy` chuyển màu xanh.
 9. Mở <https://changoverthinking.github.io/HuyenButCac/> rồi bấm **Cập nhật ngay** nếu ứng dụng hỏi. Nếu vẫn thấy bản cũ, đóng hẳn ứng dụng/tab rồi mở lại; trên Windows có thể bấm `Ctrl+F5`.
 
 ## Kiểm tra sau cập nhật
 
-- Thanh bên phải hiển thị phiên bản `0.11.2-checkpoint13.2-supabase-music-fix`. Nếu vẫn thấy phiên bản cũ, GitHub Pages vẫn đang dùng bản cũ.
+- Thanh bên phải hiển thị phiên bản `0.11.3-checkpoint13.3-account-ui-fix`. Nếu vẫn thấy phiên bản cũ, GitHub Pages vẫn đang dùng bản cũ.
 - Bấm **Tài khoản**, đăng ký và xác minh email. Tạo ghi chú trên thiết bị thứ nhất, bấm **Đồng bộ ngay**, rồi đăng nhập cùng tài khoản trên thiết bị thứ hai.
 - Mở **Đổi giao diện**, thử các theme mới và xác nhận trình nhạc đổi đồng bộ màu nền, viền, ngọc và ánh sáng.
 - Trên điện thoại không còn bong bóng nhạc che vùng làm việc. Mở trình nhạc bằng `☰` → **Tiên Âm Các**; chạm dấu `⌄` để đóng.
