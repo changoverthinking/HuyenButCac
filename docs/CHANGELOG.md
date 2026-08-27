@@ -1,5 +1,36 @@
 # CHANGELOG
 
+## Checkpoint 14.1 — Đăng nhập đa thiết bị và trải nghiệm mật khẩu — 2026-08-27
+- Chuẩn hóa email bằng cách xóa khoảng trắng thừa và chuyển chữ thường trước khi gọi Supabase.
+- Việt hóa `Invalid login credentials` và nhắc kiểm tra đúng email đã đăng ký.
+- Thêm nút ẩn/hiện mật khẩu có nhãn trợ năng.
+- Thêm tùy chọn ghi nhớ email và duy trì phiên đăng nhập trên thiết bị.
+- Tích hợp đúng `name`/`autocomplete` để Chrome, Safari và iCloud Keychain có thể đề nghị lưu mật khẩu an toàn.
+- Không lưu mật khẩu dạng chữ thường trong localStorage, IndexedDB hoặc mã nguồn.
+
+## Checkpoint 14 — Thư Viện Truyện và đồng bộ hoàn chỉnh — 2026-08-27
+- Hợp nhất an toàn gói Story Codex vào nền Checkpoint 13.3 có tài khoản, Kho bảo mật và Supabase.
+- Thêm Thư Viện Truyện gồm Nhân vật, Thế giới, Từ điển thuật ngữ và Dòng thời gian theo từng dự án.
+- Thêm tóm tắt chương, loại dự án Tiểu thuyết/Truyện dài, mục tiêu số từ, hạn milestone và xuất gói ngữ cảnh AI.
+- Bổ sung bốn bảng Story Codex vào danh sách mã hóa–đồng bộ Supabase giữa PC và điện thoại.
+- Xóa dự án sẽ xóa mềm toàn bộ Story Codex liên quan; xóa chương tự gỡ liên kết khỏi dòng thời gian.
+- Tối ưu form, thẻ dữ liệu và thanh tab Dự án cho màn hình điện thoại hẹp.
+- Việt hóa lỗi đăng nhập, thêm nút gửi lại email xác minh và thông báo mất kết nối dễ hiểu.
+- Dexie v6 migration cộng thêm, giữ nguyên dữ liệu hiện có.
+- TypeScript, Vitest, lint và production PWA được kiểm tra lại sau khi hợp nhất.
+
+## Checkpoint 11 — Thư Viện Truyện (Story Codex) chống quên mạch — 2026-08-27
+- Thêm bảng dữ liệu mới: Nhân vật, Địa danh/Cảnh giới/Thế lực, Từ điển thuật ngữ, Dòng thời gian — tất cả gắn theo `projectId`.
+- Tab "Thư Viện Truyện" trong màn Dự án với 4 mục con: Nhân vật, Thế giới, Từ điển, Dòng thời gian.
+- Trường "Tóm tắt chương" (nhật ký chương) trên mỗi chương, hiển thị/gõ trực tiếp trong Dàn ý.
+- Nút "Xuất gói ngữ cảnh AI": xuất Thư Viện Truyện + toàn bộ tóm tắt chương ra Markdown (không kèm toàn văn) để dán vào một trợ lý AI, giữ mạch truyện nhất quán qua nhiều phiên viết mà không tốn ngữ cảnh.
+- Thêm loại dự án "Tiểu thuyết / Truyện dài" (`novel`).
+- Thêm mục tiêu số từ (`wordCountGoal`) có UI đặt/sửa và thanh tiến độ trong màn Dự án (trường dữ liệu đã có từ trước nhưng chưa có giao diện).
+- Sửa lỗi: Milestone không có cách đặt hạn chót trong giao diện (`dueDate` luôn `null`) — đã thêm ô chọn ngày.
+- Đồng bộ hóa hình ảnh (thẻ `.codex-card`, `.codex-subtabs`, thanh tiến độ ngọc) với phong cách cổ trang đã có ở `.immortal-panel`/`mode-tab`, áp dụng cho Dàn ý và Thư Viện Truyện.
+- Dexie v6: thêm 4 bảng mới + trường `synopsis` trên `projectChapters` qua `upgrade()`, không sửa version 1–5.
+- TypeScript, 61/61 test (thêm 8 test mới cho `storyBibleService` và gói ngữ cảnh AI), lint `src/` sạch, production PWA build đạt.
+
 ## Checkpoint 10 — Liên kết Dự án, Sơ đồ và bút vẽ — 2026-08-26
 - Liên kết Sơ đồ với Dự án bằng ID bền vững; tự tạo/đồng bộ cây Dự án → Phần → Chương mà không sinh trùng.
 - Nút `Đọc chi tiết` xác thực đích rồi mở đúng dự án, phần hoặc chương; nội dung đã xóa không làm nhảy sang mục khác.

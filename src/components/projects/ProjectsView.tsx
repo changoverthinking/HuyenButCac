@@ -4,8 +4,10 @@ import { exportProjectMarkdown } from "../../features/projects/projectsService";
 import type { ProjectKind } from "../../types/entities";
 import { FocusWriter } from "./FocusWriter";
 import { KanbanBoard } from "./KanbanBoard";
+import { StoryBibleTab } from "./StoryBibleTab";
 
 const KIND_LABEL: Record<ProjectKind, string> = {
+  novel: "Tiểu thuyết / Truyện dài",
   software: "Phần mềm",
   game: "Game",
   construction: "Công trình",
@@ -20,7 +22,7 @@ function ProjectPicker() {
   const deleteProject = useProjectsStore((s) => s.deleteProject);
   const updateProject = useProjectsStore((s) => s.updateProject);
   const [title, setTitle] = useState("");
-  const [kind, setKind] = useState<ProjectKind>("software");
+  const [kind, setKind] = useState<ProjectKind>("novel");
 
   useEffect(() => {
     loadProjects();
@@ -33,7 +35,7 @@ function ProjectPicker() {
       </h2>
 
       <form
-        className="flex gap-2 mb-6"
+        className="project-create-form flex flex-wrap gap-2 mb-6"
         onSubmit={async (e) => {
           e.preventDefault();
           if (!title.trim()) return;
@@ -45,7 +47,7 @@ function ProjectPicker() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Tên dự án mới…"
-          className="flex-1 px-3 py-2 rounded-lg border text-sm outline-none"
+          className="min-w-[12rem] flex-1 px-3 py-2 rounded-lg border text-sm outline-none"
           style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)" }}
         />
         <select
@@ -90,6 +92,34 @@ function ProjectPicker() {
   );
 }
 
+function ChapterSynopsis({ chapterId, synopsis }: { chapterId: string; synopsis: string }) {
+  const updateChapter = useProjectsStore((s) => s.updateChapter);
+  const [draft, setDraft] = useState(synopsis);
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="px-2 pb-1.5 -mt-1">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="text-[11px]"
+        style={{ color: synopsis ? "var(--color-accent)" : "var(--color-text-muted)" }}
+      >
+        {open ? "▾" : "▸"} {synopsis ? "Tóm tắt chương" : "+ Thêm tóm tắt chương (chống quên mạch)"}
+      </button>
+      {open && (
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => { if (draft !== synopsis) void updateChapter(chapterId, { synopsis: draft }); }}
+          placeholder="Chuyện gì xảy ra trong chương này, ai thay đổi trạng thái gì…"
+          rows={2}
+          className="w-full mt-1 text-xs px-2 py-1.5 rounded border outline-none"
+          style={{ borderColor: "var(--color-border)", background: "var(--color-surface-alt)", color: "var(--color-text)" }}
+        />
+      )}
+    </div>
+  );
+}
+
 function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
   const sections = useProjectsStore((s) => s.sections);
   const chapters = useProjectsStore((s) => s.chapters);
@@ -127,14 +157,16 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
 
       <ul className="mb-4">
         {rootChapters.map((c) => (
-          <li key={c.id} className="flex items-center justify-between px-2 py-1.5 rounded hover:opacity-90"
-            style={{ background: "var(--color-surface)" }}>
-            <button className="text-left flex-1 text-sm" style={{ color: "var(--color-text)" }} onClick={() => selectChapter(c.id)}>
-              {c.title} <span style={{ color: "var(--color-text-muted)" }}>· {c.wordCount} từ</span>
-            </button>
-            <button onClick={() => { if(window.confirm(`Xóa chương “${c.title}”?`)) void deleteChapter(c.id); }} className="text-xs" style={{ color: "var(--color-error)" }}>
-              Xóa
-            </button>
+          <li key={c.id} className="codex-card mb-1.5">
+            <div className="flex items-center justify-between px-2 py-1.5">
+              <button className="text-left flex-1 text-sm" style={{ color: "var(--color-text)" }} onClick={() => selectChapter(c.id)}>
+                {c.title} <span style={{ color: "var(--color-text-muted)" }}>· {c.wordCount} từ</span>
+              </button>
+              <button onClick={() => { if(window.confirm(`Xóa chương “${c.title}”?`)) void deleteChapter(c.id); }} className="text-xs" style={{ color: "var(--color-error)" }}>
+                Xóa
+              </button>
+            </div>
+            <ChapterSynopsis chapterId={c.id} synopsis={c.synopsis} />
           </li>
         ))}
       </ul>
@@ -169,14 +201,16 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
             {chapters
               .filter((c) => c.sectionId === s.id)
               .map((c) => (
-                <li key={c.id} className="flex items-center justify-between px-2 py-1.5 rounded"
-                  style={{ background: "var(--color-surface)" }}>
-                  <button className="text-left flex-1 text-sm" style={{ color: "var(--color-text)" }} onClick={() => selectChapter(c.id)}>
-                    {c.title} <span style={{ color: "var(--color-text-muted)" }}>· {c.wordCount} từ</span>
-                  </button>
-                  <button onClick={() => { if(window.confirm(`Xóa chương “${c.title}”?`)) void deleteChapter(c.id); }} className="text-xs" style={{ color: "var(--color-error)" }}>
-                    Xóa
-                  </button>
+                <li key={c.id} className="codex-card mb-1.5">
+                  <div className="flex items-center justify-between px-2 py-1.5">
+                    <button className="text-left flex-1 text-sm" style={{ color: "var(--color-text)" }} onClick={() => selectChapter(c.id)}>
+                      {c.title} <span style={{ color: "var(--color-text-muted)" }}>· {c.wordCount} từ</span>
+                    </button>
+                    <button onClick={() => { if(window.confirm(`Xóa chương “${c.title}”?`)) void deleteChapter(c.id); }} className="text-xs" style={{ color: "var(--color-error)" }}>
+                      Xóa
+                    </button>
+                  </div>
+                  <ChapterSynopsis chapterId={c.id} synopsis={c.synopsis} />
                 </li>
               ))}
           </ul>
@@ -196,6 +230,50 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
   );
 }
 
+function WordGoalBar({ projectId, wordCountGoal }: { projectId: string; wordCountGoal: number | null }) {
+  const chapters = useProjectsStore((s) => s.chapters);
+  const updateProject = useProjectsStore((s) => s.updateProject);
+  const [editing, setEditing] = useState(false);
+  const total = chapters.reduce((sum, c) => sum + c.wordCount, 0);
+  const pct = wordCountGoal ? Math.min(100, Math.round((total / wordCountGoal) * 100)) : 0;
+
+  return (
+    <div className="px-4 py-2 border-b flex items-center gap-3" style={{ borderColor: "var(--color-border)" }}>
+      <span className="text-xs whitespace-nowrap" style={{ color: "var(--color-text-muted)" }}>
+        {total.toLocaleString("vi-VN")} từ{wordCountGoal ? ` / ${wordCountGoal.toLocaleString("vi-VN")}` : ""}
+      </span>
+      {wordCountGoal ? (
+        <div className="progress-jade-track flex-1">
+          <div className="progress-jade-fill" style={{ width: `${pct}%` }} />
+        </div>
+      ) : (
+        <div className="flex-1" />
+      )}
+      {editing ? (
+        <input
+          type="number"
+          min={0}
+          autoFocus
+          defaultValue={wordCountGoal ?? ""}
+          placeholder="Mục tiêu số từ…"
+          className="w-32 text-xs px-2 py-1 rounded border"
+          style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)" }}
+          onBlur={async (e) => {
+            const v = e.target.value.trim();
+            await updateProject(projectId, { wordCountGoal: v ? Number(v) : null });
+            setEditing(false);
+          }}
+          onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+        />
+      ) : (
+        <button className="text-xs whitespace-nowrap" style={{ color: "var(--color-accent)" }} onClick={() => setEditing(true)}>
+          {wordCountGoal ? "Sửa mục tiêu" : "+ Đặt mục tiêu số từ"}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function ProjectsView({focusedSectionId=null}:{focusedSectionId?:string|null}) {
   const selectedProjectId = useProjectsStore((s) => s.selectedProjectId);
   const selectProject = useProjectsStore((s) => s.selectProject);
@@ -203,7 +281,7 @@ export function ProjectsView({focusedSectionId=null}:{focusedSectionId?:string|n
   const chapters = useProjectsStore((s) => s.chapters);
   const projects = useProjectsStore((s) => s.projects);
   const selectChapter = useProjectsStore((s) => s.selectChapter);
-  const [tab, setTab] = useState<"outline" | "kanban" | "milestones">("outline");
+  const [tab, setTab] = useState<"outline" | "bible" | "kanban" | "milestones">("outline");
   useEffect(()=>{if(focusedSectionId){setTab("outline");requestAnimationFrame(()=>document.getElementById(`project-section-${focusedSectionId}`)?.scrollIntoView({block:"center",behavior:"smooth"}));}},[focusedSectionId,selectedProjectId]);
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
@@ -217,11 +295,11 @@ export function ProjectsView({focusedSectionId=null}:{focusedSectionId?:string|n
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "var(--color-border)" }}>
+      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b" style={{ borderColor: "var(--color-border)" }}>
         <button onClick={() => selectProject(null)} className="text-sm" style={{ color: "var(--color-text-muted)" }}>
           ← Danh sách dự án
         </button>
-        <h2 className="font-semibold" style={{ color: "var(--color-text)" }}>
+        <h2 className="min-w-0 flex-1 truncate text-center font-semibold" style={{ color: "var(--color-text)" }}>
           {selectedProject?.title}
         </h2>
         <button
@@ -242,16 +320,19 @@ export function ProjectsView({focusedSectionId=null}:{focusedSectionId?:string|n
         </button>
       </div>
 
-      <div className="flex gap-1 px-4 pt-2 border-b" style={{ borderColor: "var(--color-border)" }}>
+      {selectedProject && <WordGoalBar projectId={selectedProject.id} wordCountGoal={selectedProject.wordCountGoal} />}
+
+      <div className="project-mode-tabs flex gap-1 overflow-x-auto px-4 pt-2 border-b" style={{ borderColor: "var(--color-border)" }}>
         {[
           { id: "outline", label: "Dàn ý" },
+          { id: "bible", label: "Thư Viện Truyện" },
           { id: "kanban", label: "Kanban" },
           { id: "milestones", label: "Milestone" },
         ].map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id as typeof tab)}
-            className="px-3 py-2 text-sm rounded-t-lg"
+            className="shrink-0 px-3 py-2 text-sm rounded-t-lg"
             style={{
               background: tab === t.id ? "var(--color-surface)" : "transparent",
               color: tab === t.id ? "var(--color-accent)" : "var(--color-text-muted)",
@@ -265,6 +346,7 @@ export function ProjectsView({focusedSectionId=null}:{focusedSectionId?:string|n
 
       <div className="flex-1 overflow-y-auto">
         {tab === "outline" && <OutlineTab focusedSectionId={focusedSectionId} />}
+        {tab === "bible" && selectedProject && <StoryBibleTab projectId={selectedProject.id} projectTitle={selectedProject.title} />}
         {tab === "kanban" && <KanbanBoard />}
         {tab === "milestones" && <MilestonesTab />}
       </div>
@@ -277,16 +359,18 @@ function MilestonesTab() {
   const createMilestone = useProjectsStore((s) => s.createMilestone);
   const toggleMilestone = useProjectsStore((s) => s.toggleMilestone);
   const [title, setTitle] = useState("");
+  const [dueDate, setDueDate] = useState("");
 
   return (
     <div className="p-4">
       <form
-        className="flex gap-2 mb-3"
+        className="project-milestone-form flex flex-wrap gap-2 mb-3"
         onSubmit={async (e) => {
           e.preventDefault();
           if (!title.trim()) return;
-          await createMilestone(title.trim(), null);
+          await createMilestone(title.trim(), dueDate ? new Date(dueDate).getTime() : null);
           setTitle("");
+          setDueDate("");
         }}
       >
         <input
@@ -296,15 +380,23 @@ function MilestonesTab() {
           className="flex-1 px-2 py-1.5 rounded border text-sm"
           style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)" }}
         />
+        <input
+          type="date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+          className="px-2 py-1.5 rounded border text-sm"
+          style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)" }}
+        />
         <button type="submit" className="px-3 py-1.5 rounded text-sm" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}>
           + Thêm
         </button>
       </form>
       <ul>
         {milestones.map((m) => (
-          <li key={m.id} className="flex items-center gap-2 px-2 py-1.5 rounded mb-1" style={{ background: "var(--color-surface)" }}>
+          <li key={m.id} className="codex-card flex items-center gap-2 px-3 py-2 mb-2">
             <input type="checkbox" checked={m.done} onChange={(e) => toggleMilestone(m.id, e.target.checked)} />
             <span
+              className="flex-1"
               style={{
                 color: m.done ? "var(--color-text-muted)" : "var(--color-text)",
                 textDecoration: m.done ? "line-through" : "none",
@@ -312,6 +404,11 @@ function MilestonesTab() {
             >
               {m.title}
             </span>
+            {m.dueDate && (
+              <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                {new Date(m.dueDate).toLocaleDateString("vi-VN")}
+              </span>
+            )}
           </li>
         ))}
       </ul>

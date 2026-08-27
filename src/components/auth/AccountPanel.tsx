@@ -1,19 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { cloudConfigured, missingCloudSettings, supabase } from "../../features/auth/supabase";
+import { authErrorMessage, normalizeAuthEmail } from "../../features/auth/authMessages";
 import { getLastSync, syncNow, type SyncStatus } from "../../features/sync/syncService";
 import { getVaultState, isVaultUnlocked, lockVault, setupVault, unlockVault } from "../../features/crypto/vaultService";
 
 export function AccountPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [session, setSession] = useState<Session | null>(null);
   const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
-  const [email, setEmail] = useState("");
+  const rememberedEmail = localStorage.getItem("hbc-remembered-email") ?? "";
+  const [email, setEmail] = useState(rememberedEmail);
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberLogin, setRememberLogin] = useState(Boolean(rememberedEmail));
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<SyncStatus>(navigator.onLine ? "idle" : "offline");
   const [lastSync, setLastSync] = useState(0);
   const [recovering, setRecovering] = useState(false);
+  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
   const [vaultState, setVaultState] = useState<"loading" | "setup" | "locked" | "unlocked">("loading");
   const [vaultPassphrase, setVaultPassphrase] = useState("");
   const [vaultConfirm, setVaultConfirm] = useState("");
@@ -88,22 +93,52 @@ export function AccountPanel({ open, onClose }: { open: boolean; onClose: () => 
       setMessage("Chưa thể kết nối Supabase. Hãy thêm đủ hai GitHub Actions Variable rồi chạy lại Deploy.");
       return;
     }
+    const normalizedEmail = normalizeAuthEmail(email);
+    setEmail(normalizedEmail);
     setBusy(true); setMessage("");
     try {
       if (mode === "register") {
-        const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
+        const { error } = await supabase.auth.signUp({ email: normalizedEmail, password, options: { emailRedirectTo: location.origin + location.pathname } });
         if (error) throw error;
+        if (rememberLogin) localStorage.setItem("hbc-remembered-email", normalizedEmail);
+        setNeedsEmailConfirmation(true);
         setMessage("Đã tạo tài khoản. Hãy mở email xác minh rồi đăng nhập.");
       } else if (mode === "forgot") {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+        const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo: location.origin + location.pathname });
         if (error) throw error;
         setMessage("Đã gửi liên kết đặt lại mật khẩu vào email.");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
         if (error) throw error;
+        if (rememberLogin) localStorage.setItem("hbc-remembered-email", normalizedEmail);
+        else localStorage.removeItem("hbc-remembered-email");
+        setNeedsEmailConfirmation(false);
       }
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Không thể thực hiện"); }
+    } catch (error) {
+      const rawMessage = error instanceof Error ? error.message : "Không thể thực hiện";
+      setNeedsEmailConfirmation(rawMessage.toLowerCase().includes("email not confirmed"));
+      setMessage(authErrorMessage(rawMessage));
+    }
     finally { setBusy(false); }
+  }
+
+  async function resendConfirmation() {
+    if (!supabase) { setMessage("Chưa thể kết nối Supabase."); return; }
+    const normalizedEmail = normalizeAuthEmail(email);
+    if (!normalizedEmail) { setMessage("Hãy nhập email cần xác minh."); return; }
+    setBusy(true); setMessage("");
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: normalizedEmail,
+        options: { emailRedirectTo: location.origin + location.pathname },
+      });
+      if (error) throw error;
+      setNeedsEmailConfirmation(true);
+      setMessage("Đã gửi lại email xác minh. Hãy kiểm tra Hộp thư đến và Thư rác.");
+    } catch (error) {
+      setMessage(authErrorMessage(error instanceof Error ? error.message : "Không thể gửi lại email xác minh"));
+    } finally { setBusy(false); }
   }
 
   async function updatePassword(event: React.FormEvent) {
@@ -165,12 +200,20 @@ export function AccountPanel({ open, onClose }: { open: boolean; onClose: () => 
           <button disabled={busy} className="w-full rounded-xl border px-4 py-2" style={{borderColor:"var(--color-border)"}} onClick={()=>void signOutSafely()}>{busy?"Đang đồng bộ…":"Đăng xuất an toàn"}</button>
         </div>
       : <>
-        <div className="flex gap-2 mb-4">{(["login","register"] as const).map(item=><button key={item} className="flex-1 rounded-xl px-3 py-2" style={{background:mode===item?"var(--color-surface-alt)":"transparent"}} onClick={()=>setMode(item)}>{item==="login"?"Đăng nhập":"Đăng ký"}</button>)}</div>
+        <div className="flex gap-2 mb-4">{(["login","register"] as const).map(item=><button key={item} className="flex-1 rounded-xl px-3 py-2" style={{background:mode===item?"var(--color-surface-alt)":"transparent"}} onClick={()=>{setMode(item);setMessage("");}}>{item==="login"?"Đăng nhập":"Đăng ký"}</button>)}</div>
         <form className="space-y-3" onSubmit={submit}>
-          <input required type="email" autoComplete="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
-          {mode!=="forgot" && <input required minLength={8} type="password" autoComplete={mode==="register"?"new-password":"current-password"} placeholder="Mật khẩu (ít nhất 8 ký tự)" value={password} onChange={e=>setPassword(e.target.value)} />}
+          <input required name="email" type="email" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
+          {mode!=="forgot" && <div className="relative">
+            <input required name="password" minLength={8} className="account-password-input" type={showPassword?"text":"password"} autoComplete={mode==="register"?"new-password":"current-password"} placeholder="Mật khẩu (ít nhất 8 ký tự)" value={password} onChange={e=>setPassword(e.target.value)} />
+            <button type="button" className="absolute inset-y-0 right-0 grid w-12 place-items-center text-lg opacity-70" aria-label={showPassword?"Ẩn mật khẩu":"Hiện mật khẩu"} title={showPassword?"Ẩn mật khẩu":"Hiện mật khẩu"} onClick={()=>setShowPassword(value=>!value)}>{showPassword?"◉":"◎"}</button>
+          </div>}
+          {mode!=="forgot" && <div>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={rememberLogin} onChange={e=>setRememberLogin(e.target.checked)} /> Ghi nhớ đăng nhập trên thiết bị này</label>
+            <p className="mt-1 text-xs opacity-60">Ứng dụng chỉ ghi nhớ email và phiên đăng nhập; mật khẩu được Chrome/Safari Password Manager bảo vệ.</p>
+          </div>}
           <button disabled={busy} className="account-primary w-full" type="submit">{busy?"Đang xử lý…":!cloudConfigured?"Kiểm tra cấu hình Supabase":mode==="login"?"Đăng nhập":mode==="register"?"Tạo tài khoản":"Gửi email khôi phục"}</button>
         </form>
+        {needsEmailConfirmation && <button disabled={busy} className="mt-3 w-full rounded-xl border px-4 py-2 text-sm" style={{borderColor:"var(--color-accent)",color:"var(--color-accent)"}} onClick={()=>void resendConfirmation()}>{busy?"Đang gửi…":"Gửi lại email xác minh"}</button>}
         <button className="mt-3 text-sm underline" onClick={()=>setMode(mode==="forgot"?"login":"forgot")}>{mode==="forgot"?"Quay lại đăng nhập":"Quên mật khẩu?"}</button>
       </>}
       {message && <p className="mt-4 rounded-lg p-2 text-sm" style={{background:"var(--color-surface-alt)"}}>{message}</p>}

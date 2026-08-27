@@ -1,6 +1,10 @@
 import { create } from "zustand";
-import type { Project, ProjectChapter, ProjectSection, ProjectTask, ProjectMilestone, ProjectKind } from "../types/entities";
+import type {
+  Project, ProjectChapter, ProjectSection, ProjectTask, ProjectMilestone, ProjectKind,
+  StoryCharacter, StoryLocation, StoryLocationKind, StoryLoreEntry, StoryTimelineEvent,
+} from "../types/entities";
 import * as svc from "../features/projects/projectsService";
+import * as bible from "../features/projects/storyBibleService";
 
 interface ProjectsState {
   projects: Project[];
@@ -10,6 +14,10 @@ interface ProjectsState {
   tasks: ProjectTask[];
   milestones: ProjectMilestone[];
   selectedChapterId: string | null;
+  characters: StoryCharacter[];
+  locations: StoryLocation[];
+  loreEntries: StoryLoreEntry[];
+  timelineEvents: StoryTimelineEvent[];
 
   loadProjects: () => Promise<void>;
   selectProject: (id: string | null) => Promise<void>;
@@ -28,6 +36,22 @@ interface ProjectsState {
 
   createMilestone: (title: string, dueDate: number | null) => Promise<void>;
   toggleMilestone: (id: string, done: boolean) => Promise<void>;
+
+  createCharacter: (name: string) => Promise<void>;
+  updateCharacter: (id: string, patch: Parameters<typeof bible.updateCharacter>[1]) => Promise<void>;
+  deleteCharacter: (id: string) => Promise<void>;
+
+  createLocation: (name: string, kind: StoryLocationKind) => Promise<void>;
+  updateLocation: (id: string, patch: Parameters<typeof bible.updateLocation>[1]) => Promise<void>;
+  deleteLocation: (id: string) => Promise<void>;
+
+  createLoreEntry: (term: string) => Promise<void>;
+  updateLoreEntry: (id: string, patch: Parameters<typeof bible.updateLoreEntry>[1]) => Promise<void>;
+  deleteLoreEntry: (id: string) => Promise<void>;
+
+  createTimelineEvent: (title: string) => Promise<void>;
+  updateTimelineEvent: (id: string, patch: Parameters<typeof bible.updateTimelineEvent>[1]) => Promise<void>;
+  deleteTimelineEvent: (id: string) => Promise<void>;
 }
 
 export const useProjectsStore = create<ProjectsState>((set, get) => ({
@@ -38,22 +62,30 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
   tasks: [],
   milestones: [],
   selectedChapterId: null,
+  characters: [],
+  locations: [],
+  loreEntries: [],
+  timelineEvents: [],
 
   loadProjects: async () => set({ projects: await svc.listProjects() }),
 
   selectProject: async (id) => {
     set({ selectedProjectId: id, selectedChapterId: null });
     if (!id) {
-      set({ sections: [], chapters: [], tasks: [], milestones: [] });
+      set({ sections: [], chapters: [], tasks: [], milestones: [], characters: [], locations: [], loreEntries: [], timelineEvents: [] });
       return;
     }
-    const [sections, chapters, tasks, milestones] = await Promise.all([
+    const [sections, chapters, tasks, milestones, characters, locations, loreEntries, timelineEvents] = await Promise.all([
       svc.listSections(id),
       svc.listChapters(id),
       svc.listTasks(id),
       svc.listMilestones(id),
+      bible.listCharacters(id),
+      bible.listLocations(id),
+      bible.listLoreEntries(id),
+      bible.listTimelineEvents(id),
     ]);
-    set({ sections, chapters, tasks, milestones });
+    set({ sections, chapters, tasks, milestones, characters, locations, loreEntries, timelineEvents });
   },
 
   createProject: async (title, kind) => {
@@ -127,5 +159,73 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
     await svc.toggleMilestone(id, done);
     const pid = get().selectedProjectId;
     if (pid) set({ milestones: await svc.listMilestones(pid) });
+  },
+
+  createCharacter: async (name) => {
+    const pid = get().selectedProjectId;
+    if (!pid) return;
+    await bible.createCharacter(pid, name);
+    set({ characters: await bible.listCharacters(pid) });
+  },
+  updateCharacter: async (id, patch) => {
+    await bible.updateCharacter(id, patch);
+    const pid = get().selectedProjectId;
+    if (pid) set({ characters: await bible.listCharacters(pid) });
+  },
+  deleteCharacter: async (id) => {
+    await bible.deleteCharacter(id);
+    const pid = get().selectedProjectId;
+    if (pid) set({ characters: await bible.listCharacters(pid) });
+  },
+
+  createLocation: async (name, kind) => {
+    const pid = get().selectedProjectId;
+    if (!pid) return;
+    await bible.createLocation(pid, name, kind);
+    set({ locations: await bible.listLocations(pid) });
+  },
+  updateLocation: async (id, patch) => {
+    await bible.updateLocation(id, patch);
+    const pid = get().selectedProjectId;
+    if (pid) set({ locations: await bible.listLocations(pid) });
+  },
+  deleteLocation: async (id) => {
+    await bible.deleteLocation(id);
+    const pid = get().selectedProjectId;
+    if (pid) set({ locations: await bible.listLocations(pid) });
+  },
+
+  createLoreEntry: async (term) => {
+    const pid = get().selectedProjectId;
+    if (!pid) return;
+    await bible.createLoreEntry(pid, term);
+    set({ loreEntries: await bible.listLoreEntries(pid) });
+  },
+  updateLoreEntry: async (id, patch) => {
+    await bible.updateLoreEntry(id, patch);
+    const pid = get().selectedProjectId;
+    if (pid) set({ loreEntries: await bible.listLoreEntries(pid) });
+  },
+  deleteLoreEntry: async (id) => {
+    await bible.deleteLoreEntry(id);
+    const pid = get().selectedProjectId;
+    if (pid) set({ loreEntries: await bible.listLoreEntries(pid) });
+  },
+
+  createTimelineEvent: async (title) => {
+    const pid = get().selectedProjectId;
+    if (!pid) return;
+    await bible.createTimelineEvent(pid, title);
+    set({ timelineEvents: await bible.listTimelineEvents(pid) });
+  },
+  updateTimelineEvent: async (id, patch) => {
+    await bible.updateTimelineEvent(id, patch);
+    const pid = get().selectedProjectId;
+    if (pid) set({ timelineEvents: await bible.listTimelineEvents(pid) });
+  },
+  deleteTimelineEvent: async (id) => {
+    await bible.deleteTimelineEvent(id);
+    const pid = get().selectedProjectId;
+    if (pid) set({ timelineEvents: await bible.listTimelineEvents(pid) });
   },
 }));

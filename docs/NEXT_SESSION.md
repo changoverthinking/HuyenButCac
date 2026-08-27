@@ -1,25 +1,31 @@
 # NEXT SESSION — Huyền Bút Các
 
-## Checkpoint 4: Sơ đồ tư duy và bảng trắng đã qua kiểm thử
+## Checkpoint 14: Thư Viện Truyện trên nền đồng bộ mã hóa
 
 ### Đã làm
-- Migration Dexie v3, giữ nguyên schema v1/v2.
-- Mind map lưu thật: tạo nhiều sơ đồ, node trung tâm, thêm nhánh, sửa tên, kéo node, connector cong, xóa node và toàn bộ nhánh con.
-- Whiteboard lưu thật: tạo nhiều bảng, sticky note, text, rectangle, ellipse, sửa nội dung, chọn/kéo/xóa, grid và zoom 35–250%.
-- Bỏ toàn bộ placeholder “sắp có” của hai chế độ này.
+- Dexie v6: `storyCharacters`, `storyLocations`, `storyLoreEntries`, `storyTimelineEvents` + `synopsis` trên `projectChapters`.
+- `storyBibleService.ts`: CRUD đầy đủ cho 4 loại dữ liệu + `exportStoryBibleMarkdown`.
+- `projectsService.ts`: `exportContextPackMarkdown` (Thư Viện Truyện + tóm tắt chương, không kèm toàn văn).
+- `StoryBibleTab.tsx`: UI 4 mục con (Nhân vật / Thế giới / Từ điển / Dòng thời gian) + nút xuất gói ngữ cảnh AI.
+- `ProjectsView.tsx`: thêm tab "Thư Viện Truyện", ô tóm tắt chương trong Dàn ý, thanh mục tiêu số từ, sửa lỗi milestone không đặt được hạn chót.
+- Thêm loại dự án `novel`.
+- CSS: `.codex-card`, `.codex-subtabs`, `.scroll-divider`, `.progress-jade-*` — đồng bộ phong cách với `.immortal-panel` đã có.
+- Bốn bảng Thư Viện Truyện đã tham gia mã hóa–đồng bộ Supabase; xóa dự án/chương xử lý dữ liệu liên quan an toàn.
+- Việt hóa lỗi xác thực và thêm gửi lại email xác minh.
+- Form và thanh tab Dự án đã tối ưu thêm cho màn hình điện thoại hẹp.
 
 ### Kiểm thử
-- Vitest: 4 file, 19/19 test đạt.
+- Vitest: 13 file, 67/67 test đạt.
 - TypeScript strict: đạt.
+- `npm run lint`: không có lỗi chặn; còn 5 cảnh báo `set-state-in-effect` cần tối ưu dần.
 - Vite production build + PWA service worker: đạt.
 
-### Phần còn thiếu ưu tiên cao
-1. Chạy `npm ci && npm test && npm run build`; sửa mọi lỗi nếu có.
-2. Unit test CRUD và reload cho mind map/whiteboard.
-3. Mind map: undo/redo, collapse, auto-layout, edge tùy chỉnh, export/import.
-4. Whiteboard: pan, resize/rotate, connector, vẽ tay, group/layer, minimap, export.
-5. Ghi chú: editor hoàn chỉnh, sanitize, bảng/ảnh/template.
-6. AES-GCM + PBKDF2, khóa ghi chú và backup mã hóa; sau đó mới sync/cộng tác.
+### Phần còn thiếu ưu tiên cao (chưa làm trong phiên này)
+1. `FocusWriter`: chưa hiển thị tóm tắt chương hoặc tiến độ mục tiêu số từ ngay trong màn hình tập trung viết.
+2. Story Bible: chưa có tìm kiếm/lọc khi số lượng lớn; chưa có kéo-thả sắp xếp lại thứ tự.
+3. Chưa liên kết ngược từ chương → các nhân vật/thuật ngữ xuất hiện trong chương đó (auto-tag).
+4. `exportContextPackMarkdown` cần tiếp tục thử nghiệm với truyện dài thực tế để tối ưu định dạng.
+5. Còn 5 cảnh báo lint `set-state-in-effect` ở các component cũ; chưa gây lỗi chạy hoặc build.
 
 ### Quyết định không được đổi
 - Local-first; GitHub Pages không chứa dữ liệu người dùng.
@@ -31,6 +37,7 @@
 ```bash
 npm ci
 npm test
+npx oxlint src
 npm run build
 npm run dev
 ```

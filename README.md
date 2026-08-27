@@ -2,7 +2,7 @@
 
 Ứng dụng ghi chú, viết dự án, sơ đồ tư duy và bảng trắng phong cách tu tiên — local-first, offline-first, PWA.
 
-> **Trạng thái:** Checkpoint 11 — hoạt động local-first bằng IndexedDB; có tài khoản email và đồng bộ đa thiết bị qua Supabase khi được cấu hình. Xem `HUONG_DAN_SUPABASE.md`.
+> **Trạng thái:** Checkpoint 14.1 — local-first, có Thư Viện Truyện, đăng nhập đa thiết bị và đồng bộ được mã hóa qua Supabase. Xem `HUONG_DAN_SUPABASE.md`.
 
 ## Chạy local
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shouldPullRemote, shouldResetForAccount } from "../features/sync/syncService";
+import { shouldPullRemote, shouldResetForAccount, SYNC_TABLES } from "../features/sync/syncService";
 
 describe("sync conflict resolution", () => {
   it("pulls a missing local record", () => expect(shouldPullRemote(undefined)).toBe(true));
@@ -12,4 +12,12 @@ describe("account isolation", () => {
   it("keeps anonymous data for the first account", () => expect(shouldResetForAccount(null, "A")).toBe(false));
   it("keeps cache for the same account", () => expect(shouldResetForAccount("A", "A")).toBe(false));
   it("clears synchronized cache before another account", () => expect(shouldResetForAccount("A", "B")).toBe(true));
+});
+
+describe("story codex sync coverage", () => {
+  it("đồng bộ đủ bốn bảng Thư Viện Truyện", () => {
+    expect(SYNC_TABLES).toEqual(expect.arrayContaining([
+      "storyCharacters", "storyLocations", "storyLoreEntries", "storyTimelineEvents",
+    ]));
+  });
 });

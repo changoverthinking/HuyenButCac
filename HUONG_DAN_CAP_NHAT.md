@@ -2,20 +2,26 @@
 
 ## Cách dễ nhất: tải đè toàn bộ mã nguồn
 
-1. Giải nén gói `Huyen_But_Cac_Checkpoint_13_3_Account_UI_Fix.zip` trên máy tính.
+1. Giải nén gói `Huyen_But_Cac_Checkpoint_14_1_Login_UX.zip` trên máy tính.
 2. Mở repo: <https://github.com/changoverthinking/HuyenButCac>
 3. Ở tab **Code**, bấm **Add file** → **Upload files**.
 4. Mở thư mục vừa giải nén, chọn **toàn bộ nội dung bên trong thư mục** (không chọn chính thư mục bọc ngoài), rồi kéo vào vùng upload của GitHub.
 5. Chờ GitHub tải xong. Các tệp trùng tên sẽ được cập nhật đúng đường dẫn.
-6. Ở ô commit, nhập: `Update Checkpoint 13.3 - always show account forms`
+6. Ở ô commit, nhập: `Update Checkpoint 14.1 - login UX and password manager`
 7. Chọn **Commit directly to the main branch**, rồi bấm **Commit changes**.
 8. Mở tab **Actions**. Chọn lần chạy **Deploy Huyền Bút Các** mới nhất và chờ cả `build` lẫn `deploy` chuyển màu xanh.
 9. Mở <https://changoverthinking.github.io/HuyenButCac/> rồi bấm **Cập nhật ngay** nếu ứng dụng hỏi. Nếu vẫn thấy bản cũ, đóng hẳn ứng dụng/tab rồi mở lại; trên Windows có thể bấm `Ctrl+F5`.
 
 ## Kiểm tra sau cập nhật
 
-- Thanh bên phải hiển thị phiên bản `0.11.3-checkpoint13.3-account-ui-fix`. Nếu vẫn thấy phiên bản cũ, GitHub Pages vẫn đang dùng bản cũ.
+- Thanh bên phải hiển thị phiên bản `0.12.1-checkpoint14.1-login-ux`. Nếu vẫn thấy phiên bản cũ, GitHub Pages vẫn đang dùng bản cũ.
 - Bấm **Tài khoản**, đăng ký và xác minh email. Tạo ghi chú trên thiết bị thứ nhất, bấm **Đồng bộ ngay**, rồi đăng nhập cùng tài khoản trên thiết bị thứ hai.
+- Nếu đăng nhập báo email chưa xác minh, bấm **Gửi lại email xác minh**, kiểm tra Hộp thư đến/Thư rác rồi mở liên kết xác nhận.
+- Khi đăng nhập trên thiết bị khác, phải nhập chính xác cùng email đã đăng ký; dùng nút `◎/◉` để hiện/ẩn mật khẩu.
+- Bật **Ghi nhớ đăng nhập trên thiết bị này** để giữ email và phiên đăng nhập. Khi Chrome/Safari hỏi lưu mật khẩu, chọn **Lưu** để Password Manager bảo vệ mật khẩu.
+- Trong **Dự án**, tạo dự án loại **Tiểu thuyết / Truyện dài** rồi mở **Thư Viện Truyện**; thử thêm Nhân vật, Thế giới, Thuật ngữ và Dòng thời gian.
+- Tạo tóm tắt chương, đặt mục tiêu số từ, hạn Milestone và thử **Xuất gói ngữ cảnh AI**.
+- Sau khi đồng bộ, mở cùng dự án trên thiết bị thứ hai và xác nhận cả bốn mục Thư Viện Truyện xuất hiện đầy đủ.
 - Mở **Đổi giao diện**, thử các theme mới và xác nhận trình nhạc đổi đồng bộ màu nền, viền, ngọc và ánh sáng.
 - Trên điện thoại không còn bong bóng nhạc che vùng làm việc. Mở trình nhạc bằng `☰` → **Tiên Âm Các**; chạm dấu `⌄` để đóng.
 - Tạo ghi chú, gõ nhanh cả tiêu đề và nội dung, chờ “Đã lưu”, tải lại trang: cả hai vẫn còn.
@@ -24,14 +30,14 @@
 - Trong Sơ đồ: chọn dự án ở ô **Liên kết dự án…** rồi bấm **Tạo/đồng bộ cây**. App tự tạo cây Dự án → Phần → Chương. Chọn một ô và bấm **Đọc chi tiết** để mở đúng nội dung trong Dự án.
 - Sau khi thêm/đổi tên/chuyển phần của chương, quay lại Sơ đồ và bấm **Tạo/đồng bộ cây** một lần để cập nhật cây mà không tạo bản trùng.
 - Nút `＋` nổi ở góc dưới bên phải vùng Sơ đồ dùng để thêm nhánh thủ công vào ô đang chọn.
-- Nút `☰` và nút `♫` nằm trên thanh đầu điện thoại ở mọi tab. Trong menu `☰`, mục **Tiên Âm Các** nằm ngay phía trên **Đổi giao diện**.
+- Nút `☰` nằm trên thanh đầu điện thoại ở mọi tab. Trong menu `☰`, mục **Tiên Âm Các** nằm ngay phía trên **Đổi giao diện**.
 - Trong Sơ đồ hoặc Bảng trắng: bấm **Bút chì**, chọn kiểu nét, mũi tên, độ dày và **Làm mượt**, sau đó kéo ngón tay trên vùng trống để vẽ. Tắt Bút chì, chạm nét để chọn và kéo di chuyển.
 - Chọn nét/hình rồi bấm **Khóa** để tránh di chuyển hoặc xóa nhầm; muốn sửa lại phải bấm **Mở khóa**.
 - Trong Sơ đồ và Bảng trắng: có nút đổi tên và xóa toàn bộ mục đang mở.
 - Trong Bảng trắng: kéo bằng vùng `⋮⋮ Kéo`; bấm vùng chữ vẫn chọn được đối tượng.
 - Trong Ghi chú và Viết chương: thử đậm/nghiêng, font, cỡ chữ, màu chữ, căn lề và undo/redo.
 - Icon mới xuất hiện sau khi trình duyệt/PWA nhận bản cập nhật; nếu icon cũ còn được hệ điều hành cache, gỡ biểu tượng khỏi màn hình chính rồi cài lại.
-- Bấm `♫`, thêm vài tệp MP3, thử phát/tạm dừng, tua, trước/sau, ngẫu nhiên và lặp; đóng/mở lại app để kiểm tra bài vẫn còn.
+- Mở `☰` → **Tiên Âm Các**, thêm vài tệp MP3, thử phát/tạm dừng, tua, trước/sau, ngẫu nhiên và lặp; đóng/mở lại app để kiểm tra bài vẫn còn.
 - Trong menu Ghi chú, chọn **Chọn ảnh nền**, đóng/mở lại app để kiểm tra ảnh vẫn được giữ; thử **Dùng lại nền mặc định**.
 - Trên điện thoại: trong Ghi chú có nút `☰` để mở thư mục, Thùng rác và đổi giao diện.
 - Xoay điện thoại dọc/ngang: thanh điều hướng, Sơ đồ và Bảng trắng phải tự co lại, không che nội dung.

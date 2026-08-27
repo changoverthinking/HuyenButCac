@@ -5,7 +5,7 @@ export interface BaseEntity {
   updatedAt: number;
   schemaVersion: number;
   deletedAt: number | null; // soft-delete; null = còn sống
-  syncState: "local" | "pending" | "synced"; // hiện tại luôn "local" (chưa có sync thật)
+  syncState: "local" | "pending" | "synced";
 }
 
 export interface Folder extends BaseEntity {
@@ -49,7 +49,7 @@ export type ThemeId =
 
 // ---- Giai đoạn 4: Viết dự án (mục 9 master prompt) ----
 
-export type ProjectKind = "software" | "game" | "construction" | "generic";
+export type ProjectKind = "software" | "game" | "construction" | "novel" | "generic";
 export type ProjectStatus = "planning" | "active" | "paused" | "done" | "archived";
 
 export interface Project extends BaseEntity {
@@ -79,6 +79,7 @@ export interface ProjectChapter extends BaseEntity {
   contentText: string;
   order: number;
   wordCount: number;
+  synopsis: string; // "Nhật ký chương" — tóm tắt ngắn để AI/người viết không quên mạch truyện
 }
 
 export type ProjectTaskStatus = "todo" | "doing" | "review" | "done" | "blocked";
@@ -96,6 +97,46 @@ export interface ProjectMilestone extends BaseEntity {
   title: string;
   dueDate: number | null;
   done: boolean;
+}
+
+// ---- Thư Viện Truyện (Story Codex): dữ liệu chống quên mạch khi viết truyện dài ----
+
+export interface StoryCharacter extends BaseEntity {
+  projectId: string;
+  name: string;
+  aliasNames: string; // biệt hiệu, đạo hiệu, tên khác — phân cách bởi dấu phẩy
+  role: string; // vai trò: chính diện / phản diện / phụ...
+  realm: string; // cảnh giới tu vi hiện tại
+  appearance: string; // ngoại hình
+  personality: string; // tính cách
+  relationships: string; // mối quan hệ với các nhân vật khác
+  notes: string; // ghi chú tự do
+  order: number;
+}
+
+export type StoryLocationKind = "location" | "realm" | "faction";
+
+export interface StoryLocation extends BaseEntity {
+  projectId: string;
+  name: string;
+  kind: StoryLocationKind; // địa danh / cảnh giới tu luyện / môn phái-thế lực
+  description: string;
+  order: number;
+}
+
+export interface StoryLoreEntry extends BaseEntity {
+  projectId: string;
+  term: string; // thuật ngữ (ví dụ: "Kim Đan", "Tinh Bàn")
+  definition: string;
+  order: number;
+}
+
+export interface StoryTimelineEvent extends BaseEntity {
+  projectId: string;
+  title: string;
+  summary: string;
+  chapterId: string | null; // liên kết chương nếu có
+  order: number; // thứ tự trong dòng thời gian truyện (không nhất thiết theo thời gian thực)
 }
 
 export interface ThemePreference extends BaseEntity {

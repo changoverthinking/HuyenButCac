@@ -8,6 +8,7 @@ import type {
   ProjectTask,
   ProjectKind,
 } from "../../types/entities";
+import { exportStoryBibleMarkdown } from "./storyBibleService";
 
 function now() {
   return Date.now();
@@ -48,16 +49,27 @@ export async function updateProject(
 
 export async function softDeleteProject(id: string): Promise<void> {
   const deletedAt=now();
-  await db.transaction("rw",db.projects,db.projectSections,db.projectChapters,db.projectTasks,db.projectMilestones,async()=>{
+  await db.transaction("rw",[
+    db.projects, db.projectSections, db.projectChapters, db.projectTasks, db.projectMilestones,
+    db.storyCharacters, db.storyLocations, db.storyLoreEntries, db.storyTimelineEvents,
+  ],async()=>{
     await db.projects.update(id, { deletedAt, updatedAt: deletedAt });
     const sections=await db.projectSections.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
     const chapters=await db.projectChapters.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
     const tasks=await db.projectTasks.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
     const milestones=await db.projectMilestones.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
+    const characters=await db.storyCharacters.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
+    const locations=await db.storyLocations.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
+    const loreEntries=await db.storyLoreEntries.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
+    const timelineEvents=await db.storyTimelineEvents.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
     if(sections.length)await db.projectSections.bulkPut(sections.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
     if(chapters.length)await db.projectChapters.bulkPut(chapters.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
     if(tasks.length)await db.projectTasks.bulkPut(tasks.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
     if(milestones.length)await db.projectMilestones.bulkPut(milestones.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
+    if(characters.length)await db.storyCharacters.bulkPut(characters.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
+    if(locations.length)await db.storyLocations.bulkPut(locations.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
+    if(loreEntries.length)await db.storyLoreEntries.bulkPut(loreEntries.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
+    if(timelineEvents.length)await db.storyTimelineEvents.bulkPut(timelineEvents.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
   });
 }
 
@@ -117,6 +129,7 @@ export async function createChapter(params: {
     contentText: "",
     order,
     wordCount: 0,
+    synopsis: "",
     ...base(),
   };
   await db.projectChapters.add(chapter);
@@ -125,7 +138,7 @@ export async function createChapter(params: {
 
 export async function updateChapter(
   id: string,
-  patch: Partial<Pick<ProjectChapter, "title" | "contentHtml">>
+  patch: Partial<Pick<ProjectChapter, "title" | "contentHtml" | "synopsis">>
 ): Promise<void> {
   const update: Partial<ProjectChapter> = { ...patch, updatedAt: now() };
   if (patch.contentHtml !== undefined) {
@@ -137,7 +150,14 @@ export async function updateChapter(
 }
 
 export async function softDeleteChapter(id: string): Promise<void> {
-  await db.projectChapters.update(id, { deletedAt: now(), updatedAt: now() });
+  const deletedAt = now();
+  await db.transaction("rw", db.projectChapters, db.storyTimelineEvents, async () => {
+    await db.projectChapters.update(id, { deletedAt, updatedAt: deletedAt });
+    const linkedEvents = await db.storyTimelineEvents.where("chapterId").equals(id).filter((item) => item.deletedAt === null).toArray();
+    if (linkedEvents.length) {
+      await db.storyTimelineEvents.bulkPut(linkedEvents.map((item) => ({ ...item, chapterId: null, updatedAt: deletedAt })));
+    }
+  });
 }
 
 export async function listChapters(projectId: string): Promise<ProjectChapter[]> {
@@ -207,15 +227,49 @@ export async function exportProjectMarkdown(projectId: string): Promise<string> 
   let md = `# ${project.title}\n\n${project.description}\n\n`;
   const chaptersWithoutSection = chapters.filter((c) => c.sectionId === null);
 
+  const chapterBlock = (ch: ProjectChapter, headingLevel: "##" | "###") => {
+    let block = `${headingLevel} ${ch.title}\n\n`;
+    if (ch.synopsis) block += `> Tóm tắt: ${ch.synopsis}\n\n`;
+    block += `${ch.contentText}\n\n`;
+    return block;
+  };
+
   for (const ch of chaptersWithoutSection) {
-    md += `## ${ch.title}\n\n${ch.contentText}\n\n`;
+    md += chapterBlock(ch, "##");
   }
   for (const section of sections) {
     md += `## ${section.title}\n\n`;
     const secChapters = chapters.filter((c) => c.sectionId === section.id);
     for (const ch of secChapters) {
-      md += `### ${ch.title}\n\n${ch.contentText}\n\n`;
+      md += chapterBlock(ch, "###");
     }
   }
+  return md;
+}
+
+/**
+ * Xuất "gói ngữ cảnh" gồm Thư Viện Truyện + tóm tắt mọi chương (không kèm toàn văn).
+ * Dùng để dán vào đầu một cuộc trò chuyện AI, giúp AI không quên nhân vật/mốc truyện
+ * mà không tốn ngữ cảnh cho toàn bộ nội dung đã viết.
+ */
+export async function exportContextPackMarkdown(projectId: string): Promise<string> {
+  const project = await db.projects.get(projectId);
+  if (!project) throw new Error("Không tìm thấy dự án.");
+  const storyBibleMd = await exportStoryBibleMarkdown(projectId);
+  const chapters = await listChapters(projectId);
+
+  let md = `# Gói ngữ cảnh — ${project.title}\n\n`;
+  if (project.description) md += `${project.description}\n\n`;
+  md += storyBibleMd;
+
+  const withSynopsis = chapters.filter((c) => c.synopsis.trim().length > 0);
+  if (withSynopsis.length) {
+    md += `## Tóm tắt các chương đã viết\n\n`;
+    for (const ch of withSynopsis) {
+      md += `- **${ch.title}**: ${ch.synopsis}\n`;
+    }
+    md += `\n`;
+  }
+
   return md;
 }

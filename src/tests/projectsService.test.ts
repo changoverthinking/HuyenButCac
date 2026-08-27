@@ -12,9 +12,11 @@ import {
   updateTaskStatus,
   listTasks,
   exportProjectMarkdown,
+  exportContextPackMarkdown,
   listProjects,
   softDeleteProject,
 } from "../features/projects/projectsService";
+import { createCharacter, createLocation, createLoreEntry, createTimelineEvent, updateTimelineEvent } from "../features/projects/storyBibleService";
 
 beforeEach(async () => {
   await db.projects.clear();
@@ -22,6 +24,10 @@ beforeEach(async () => {
   await db.projectChapters.clear();
   await db.projectTasks.clear();
   await db.projectMilestones.clear();
+  await db.storyCharacters.clear();
+  await db.storyLocations.clear();
+  await db.storyLoreEntries.clear();
+  await db.storyTimelineEvents.clear();
 });
 
 describe("projectsService — dự án và chương", () => {
@@ -82,6 +88,52 @@ describe("projectsService — dự án và chương", () => {
     await softDeleteProject(project.id);
     expect(await listProjects()).toHaveLength(0);
     expect(await listChapters(project.id)).toHaveLength(0);
+  });
+
+  it("xóa dự án đồng thời xóa mềm toàn bộ Thư Viện Truyện", async () => {
+    const project = await createProject({ title: "Dự án xóa", kind: "novel" });
+    await createCharacter(project.id, "Nhân vật");
+    await createLocation(project.id, "Tông môn", "faction");
+    await createLoreEntry(project.id, "Linh khí");
+    await createTimelineEvent(project.id, "Khai truyện");
+    await softDeleteProject(project.id);
+    expect((await db.storyCharacters.toArray()).every((item) => item.deletedAt !== null)).toBe(true);
+    expect((await db.storyLocations.toArray()).every((item) => item.deletedAt !== null)).toBe(true);
+    expect((await db.storyLoreEntries.toArray()).every((item) => item.deletedAt !== null)).toBe(true);
+    expect((await db.storyTimelineEvents.toArray()).every((item) => item.deletedAt !== null)).toBe(true);
+  });
+
+  it("xóa chương sẽ gỡ liên kết khỏi dòng thời gian", async () => {
+    const project = await createProject({ title: "Dự án", kind: "novel" });
+    const chapter = await createChapter({ projectId: project.id, sectionId: null, title: "Chương 1" });
+    const event = await createTimelineEvent(project.id, "Sự kiện");
+    await updateTimelineEvent(event.id, { chapterId: chapter.id });
+    await softDeleteChapter(chapter.id);
+    expect((await db.storyTimelineEvents.get(event.id))?.chapterId).toBeNull();
+  });
+
+  it("cập nhật tóm tắt chương (synopsis) không ảnh hưởng wordCount", async () => {
+    const project = await createProject({ title: "Dự án", kind: "novel" });
+    const chapter = await createChapter({ projectId: project.id, sectionId: null, title: "Chương 1" });
+    await updateChapter(chapter.id, { synopsis: "Chủ nhân vật rời làng." });
+    const [updated] = await listChapters(project.id);
+    expect(updated.synopsis).toBe("Chủ nhân vật rời làng.");
+    expect(updated.wordCount).toBe(0);
+  });
+
+  it("xuất gói ngữ cảnh AI gồm Thư Viện Truyện và tóm tắt chương, không kèm toàn văn", async () => {
+    const project = await createProject({ title: "Tiên Lộ", kind: "novel" });
+    await createCharacter(project.id, "Vân Thanh");
+    const chapter = await createChapter({ projectId: project.id, sectionId: null, title: "Chương 1" });
+    await updateChapter(chapter.id, {
+      contentHtml: "<p>Nội dung đầy đủ không nên xuất hiện trong gói ngữ cảnh rút gọn.</p>",
+      synopsis: "Tóm tắt chương 1.",
+    });
+
+    const pack = await exportContextPackMarkdown(project.id);
+    expect(pack).toContain("Vân Thanh");
+    expect(pack).toContain("Tóm tắt chương 1.");
+    expect(pack).not.toContain("Nội dung đầy đủ");
   });
 });
 

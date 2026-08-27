@@ -5,10 +5,11 @@ import { decryptRecord, encryptRecord, isEncryptedEnvelope, isVaultUnlocked } fr
 
 export type SyncStatus = "offline" | "idle" | "syncing" | "synced" | "error";
 
-const SYNC_TABLES = [
+export const SYNC_TABLES = [
   "notes", "folders", "tags", "themePreferences", "projects", "projectSections",
   "projectChapters", "projectTasks", "projectMilestones", "mindMaps", "mindMapNodes",
   "mindMapEdges", "whiteboards", "whiteboardObjects", "mindMapStrokes", "whiteboardStrokes",
+  "storyCharacters", "storyLocations", "storyLoreEntries", "storyTimelineEvents",
 ] as const;
 
 type CloudRecord = {
