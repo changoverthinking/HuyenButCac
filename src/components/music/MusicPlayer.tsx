@@ -94,7 +94,6 @@ export function MusicPlayer() {
           </div>
         </div>
       )}
-      <button className={`music-bubble jade-orb md:hidden ${playing?"is-playing":""}`} aria-label="Mở trình phát nhạc" onClick={()=>setExpanded(true)}>{playing?"♫":"♪"}</button>
       <div className="music-controls immortal-panel h-16 md:h-14 px-2 md:px-4 items-center gap-2">
         <button aria-label="Mở thư viện nhạc" className="music-square-button w-9 h-9 rounded" onClick={()=>setExpanded((value)=>!value)}>♫</button>
         <div className="hidden sm:block min-w-0 w-36"><div className="truncate text-sm">{current?.name??"Chưa có nhạc"}</div><div className="text-[11px]" style={{color:"var(--color-text-muted)"}}>{formatTime(currentTime)} / {formatTime(duration)}</div></div>
