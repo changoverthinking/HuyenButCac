@@ -27,13 +27,11 @@ export function Sidebar({ onNavigate, onOpenNotes }: { onNavigate?: () => void; 
 
   return (
     <aside
-      className="w-64 shrink-0 border-r flex flex-col h-full"
+      className="mystic-sidebar w-64 shrink-0 border-r flex flex-col h-full"
       style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
     >
       <div className="p-4 border-b" style={{ borderColor: "var(--color-border)" }}>
-        <h1 className="text-lg font-bold" style={{ color: "var(--color-accent)" }}>
-          {APP_CONFIG.appNameVi}
-        </h1>
+        <div className="flex items-center gap-3"><span className="brand-sigil small">玄</span><h1 className="text-lg font-bold" style={{ color: "var(--color-accent)" }}>{APP_CONFIG.appNameVi}</h1></div>
         <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
           {APP_CONFIG.version}
         </p>

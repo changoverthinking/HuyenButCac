@@ -9,15 +9,35 @@ create table if not exists public.sync_records (
 );
 
 alter table public.sync_records enable row level security;
+revoke all on table public.sync_records from anon;
+grant select, insert, update, delete on table public.sync_records to authenticated;
 
+drop policy if exists "users read own records" on public.sync_records;
+drop policy if exists "users insert own records" on public.sync_records;
+drop policy if exists "users update own records" on public.sync_records;
+drop policy if exists "users delete own records" on public.sync_records;
 create policy "users read own records" on public.sync_records
-for select using (auth.uid() = user_id);
+for select to authenticated using ((select auth.uid()) = user_id);
 create policy "users insert own records" on public.sync_records
-for insert with check (auth.uid() = user_id);
+for insert to authenticated with check ((select auth.uid()) = user_id);
 create policy "users update own records" on public.sync_records
-for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 create policy "users delete own records" on public.sync_records
-for delete using (auth.uid() = user_id);
+for delete to authenticated using ((select auth.uid()) = user_id);
 
 create index if not exists sync_records_user_updated_idx
 on public.sync_records(user_id, server_updated_at desc);
+
+create table if not exists public.vault_profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  salt text not null,
+  verifier jsonb not null,
+  created_at timestamptz not null default now()
+);
+alter table public.vault_profiles enable row level security;
+revoke all on table public.vault_profiles from anon;
+grant select, insert on table public.vault_profiles to authenticated;
+drop policy if exists "users read own vault profile" on public.vault_profiles;
+drop policy if exists "users create own vault profile" on public.vault_profiles;
+create policy "users read own vault profile" on public.vault_profiles for select to authenticated using ((select auth.uid()) = user_id);
+create policy "users create own vault profile" on public.vault_profiles for insert to authenticated with check ((select auth.uid()) = user_id);

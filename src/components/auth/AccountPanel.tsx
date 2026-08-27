@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { cloudConfigured, supabase } from "../../features/auth/supabase";
 import { getLastSync, syncNow, type SyncStatus } from "../../features/sync/syncService";
+import { getVaultState, isVaultUnlocked, lockVault, setupVault, unlockVault } from "../../features/crypto/vaultService";
 
 export function AccountPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -13,9 +14,15 @@ export function AccountPanel({ open, onClose }: { open: boolean; onClose: () => 
   const [status, setStatus] = useState<SyncStatus>(navigator.onLine ? "idle" : "offline");
   const [lastSync, setLastSync] = useState(0);
   const [recovering, setRecovering] = useState(false);
+  const [vaultState, setVaultState] = useState<"loading" | "setup" | "locked" | "unlocked">("loading");
+  const [vaultPassphrase, setVaultPassphrase] = useState("");
+  const [vaultConfirm, setVaultConfirm] = useState("");
+  const sessionRef = useRef(session);
+  useEffect(() => { sessionRef.current = session; }, [session]);
 
   async function runSync(activeSession = session) {
     if (!activeSession) return;
+    if (!isVaultUnlocked(activeSession.user.id)) { setStatus("idle"); return; }
     setStatus("syncing");
     try {
       await syncNow(activeSession.user);
@@ -31,8 +38,14 @@ export function AccountPanel({ open, onClose }: { open: boolean; onClose: () => 
     if (!supabase) return;
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
     const { data } = supabase.auth.onAuthStateChange((event, next) => {
+      const previousUserId = sessionRef.current?.user.id;
       setSession(next);
       if (event === "PASSWORD_RECOVERY") { setRecovering(true); setPassword(""); }
+      if (event === "SIGNED_OUT") {
+        lockVault(previousUserId);
+        setVaultState("loading"); setStatus("idle"); setLastSync(0);
+        setVaultPassphrase(""); setVaultConfirm("");
+      }
     });
     const online = () => setStatus("idle");
     const offline = () => setStatus("offline");
@@ -43,13 +56,31 @@ export function AccountPanel({ open, onClose }: { open: boolean; onClose: () => 
 
   useEffect(() => {
     if (!session) return;
+    let cancelled=false;
     setLastSync(getLastSync(session.user.id));
-    void runSync(session);
-    const timer = window.setInterval(() => { if (navigator.onLine) void runSync(session); }, 45_000);
-    const visible = () => { if (document.visibilityState === "visible" && navigator.onLine) void runSync(session); };
+    void getVaultState(session.user.id).then(state=>{if(!cancelled){setVaultState(state);if(state==="unlocked")void runSync(session);}}).catch(error=>setMessage(error instanceof Error?error.message:"Không thể kiểm tra Kho"));
+    const timer = window.setInterval(() => { if (navigator.onLine && isVaultUnlocked(session.user.id)) void runSync(session); }, 45_000);
+    const visible = () => { if (document.visibilityState === "visible" && navigator.onLine && isVaultUnlocked(session.user.id)) void runSync(session); };
+    const online = () => { if (isVaultUnlocked(session.user.id)) void runSync(session); };
     document.addEventListener("visibilitychange", visible);
-    return () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", visible); };
-  }, [session?.user.id]);
+    window.addEventListener("online", online);
+    return () => { cancelled=true; window.clearInterval(timer); document.removeEventListener("visibilitychange", visible); window.removeEventListener("online", online); };
+  }, [session]);
+
+  async function submitVault(event: React.FormEvent) {
+    event.preventDefault();
+    if (!session) return;
+    if (vaultPassphrase.length < 12) { setMessage("Mật khẩu Kho cần ít nhất 12 ký tự."); return; }
+    if (vaultState === "setup" && vaultPassphrase !== vaultConfirm) { setMessage("Hai mật khẩu Kho chưa giống nhau."); return; }
+    setBusy(true); setMessage("");
+    try {
+      if (vaultState === "setup") await setupVault(session.user, vaultPassphrase);
+      else await unlockVault(session.user, vaultPassphrase);
+      setVaultState("unlocked"); setVaultPassphrase(""); setVaultConfirm("");
+      await runSync(session);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Không thể mở Kho bảo mật"); }
+    finally { setBusy(false); }
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -82,21 +113,49 @@ export function AccountPanel({ open, onClose }: { open: boolean; onClose: () => 
     else { setRecovering(false); setMessage("Đã đổi mật khẩu thành công."); }
   }
 
+  async function signOutSafely() {
+    if (!supabase || !session) return;
+    setBusy(true); setMessage("");
+    try {
+      if (!navigator.onLine) throw new Error("Đang ngoại tuyến. Hãy kết nối mạng để đồng bộ lần cuối trước khi đăng xuất.");
+      await syncNow(session.user);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      lockVault(session.user.id); setVaultState("loading");
+      setStatus("idle");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Không thể đăng xuất an toàn");
+    } finally { setBusy(false); }
+  }
+
   if (!open) return null;
   return <div className="fixed inset-0 z-[80] grid place-items-center bg-black/60 p-4" onMouseDown={onClose}>
-    <section className="account-panel w-full max-w-md rounded-2xl border p-5 shadow-2xl" style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }} onMouseDown={e=>e.stopPropagation()}>
-      <div className="flex items-center justify-between mb-4"><h2 className="text-xl font-bold">Tài khoản & Đồng bộ</h2><button onClick={onClose} aria-label="Đóng">✕</button></div>
+    <section className="account-panel immortal-panel w-full max-w-md rounded-2xl border p-5 shadow-2xl" onMouseDown={e=>e.stopPropagation()}>
+      <div className="account-heading flex items-center justify-between mb-4"><div className="flex items-center gap-3"><span className="brand-sigil small">鑰</span><div><h2 className="text-xl font-bold">Tàng Thư Mật Cảnh</h2><p className="text-xs opacity-65">Tài khoản · Kho bảo mật · Đồng bộ</p></div></div><button className="mystic-close" onClick={onClose} aria-label="Đóng">✕</button></div>
       {!cloudConfigured ? <div className="rounded-xl p-3" style={{background:"var(--color-surface-alt)"}}>Chưa cấu hình máy chủ đồng bộ. Ứng dụng vẫn lưu an toàn trên thiết bị này. Xem tệp <b>HUONG_DAN_SUPABASE.md</b> để bật tài khoản.</div>
       : recovering ? <form className="space-y-3" onSubmit={updatePassword}>
           <p>Nhập mật khẩu mới cho tài khoản.</p>
           <input required minLength={8} type="password" autoComplete="new-password" placeholder="Mật khẩu mới (ít nhất 8 ký tự)" value={password} onChange={e=>setPassword(e.target.value)} />
           <button disabled={busy} className="account-primary w-full" type="submit">{busy?"Đang lưu…":"Đổi mật khẩu"}</button>
         </form>
+      : session && vaultState !== "unlocked" ? <div className="space-y-4">
+          <div className="rounded-xl p-3" style={{background:"var(--color-surface-alt)"}}>
+            <div className="font-semibold">🔐 {vaultState === "setup" ? "Tạo Kho bảo mật" : vaultState === "locked" ? "Mở Kho bảo mật" : "Đang kiểm tra Kho…"}</div>
+            <p className="mt-1 text-sm opacity-75">{vaultState === "setup" ? "Tạo mật khẩu riêng để mã hóa dữ liệu trước khi đồng bộ." : "Nhập mật khẩu Kho đã tạo trên thiết bị đầu tiên."}</p>
+          </div>
+          {vaultState !== "loading" && <form className="space-y-3" onSubmit={submitVault}>
+            <input required minLength={12} type="password" autoComplete="off" placeholder="Mật khẩu Kho (ít nhất 12 ký tự)" value={vaultPassphrase} onChange={e=>setVaultPassphrase(e.target.value)} />
+            {vaultState === "setup" && <input required minLength={12} type="password" autoComplete="off" placeholder="Nhập lại mật khẩu Kho" value={vaultConfirm} onChange={e=>setVaultConfirm(e.target.value)} />}
+            <button disabled={busy} className="account-primary w-full" type="submit">{busy?"Đang xử lý mã hóa…":vaultState==="setup"?"Tạo Kho và mã hóa dữ liệu":"Mở Kho và đồng bộ"}</button>
+          </form>}
+          <p className="text-xs opacity-65">Mật khẩu Kho chỉ tồn tại trong bộ nhớ phiên này. Nếu quên, dữ liệu đám mây không thể giải mã hoặc khôi phục.</p>
+        </div>
       : session ? <div className="space-y-4">
           <div className="rounded-xl p-3" style={{background:"var(--color-surface-alt)"}}><div className="text-sm opacity-70">Đã đăng nhập</div><div className="font-semibold break-all">{session.user.email}</div></div>
           <div className="text-sm">Trạng thái: <b>{status === "syncing" ? "Đang đồng bộ…" : status === "synced" ? "Đã đồng bộ" : status === "offline" ? "Ngoại tuyến – sẽ đồng bộ khi có mạng" : status === "error" ? "Có lỗi" : "Sẵn sàng"}</b>{lastSync>0 && <div className="opacity-70 mt-1">Lần cuối: {new Date(lastSync).toLocaleString("vi-VN")}</div>}</div>
           <button className="account-primary w-full" disabled={status==="syncing"} onClick={()=>void runSync()}>↻ Đồng bộ ngay</button>
-          <button className="w-full rounded-xl border px-4 py-2" style={{borderColor:"var(--color-border)"}} onClick={()=>void supabase!.auth.signOut()}>Đăng xuất</button>
+          <button className="w-full rounded-xl border px-4 py-2" style={{borderColor:"var(--color-border)"}} onClick={()=>{lockVault(session.user.id);setVaultState("locked");setStatus("idle");}}>🔒 Khóa Kho ngay</button>
+          <button disabled={busy} className="w-full rounded-xl border px-4 py-2" style={{borderColor:"var(--color-border)"}} onClick={()=>void signOutSafely()}>{busy?"Đang đồng bộ…":"Đăng xuất an toàn"}</button>
         </div>
       : <>
         <div className="flex gap-2 mb-4">{(["login","register"] as const).map(item=><button key={item} className="flex-1 rounded-xl px-3 py-2" style={{background:mode===item?"var(--color-surface-alt)":"transparent"}} onClick={()=>setMode(item)}>{item==="login"?"Đăng nhập":"Đăng ký"}</button>)}</div>

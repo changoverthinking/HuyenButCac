@@ -12,6 +12,12 @@ import type {
   MindMap, MindMapNode, MindMapEdge, Whiteboard, WhiteboardObject, MusicTrack, CustomBackground, CanvasStroke,
 } from "../types/entities";
 
+let internalSyncWrite = false;
+export async function asInternalSyncWrite<T>(operation: () => Promise<T>): Promise<T> {
+  internalSyncWrite = true;
+  try { return await operation(); } finally { internalSyncWrite = false; }
+}
+
 export class HuyenButDB extends Dexie {
   notes!: Table<Note, string>;
   folders!: Table<Folder, string>;
@@ -86,6 +92,15 @@ export class HuyenButDB extends Dexie {
       whiteboards: "id, deletedAt, updatedAt", whiteboardObjects: "id, boardId, kind, deletedAt",
       musicTracks: "id, deletedAt, createdAt", customBackgrounds: "id, deletedAt, updatedAt",
       mindMapStrokes: "id, ownerId, deletedAt, updatedAt", whiteboardStrokes: "id, ownerId, deletedAt, updatedAt",
+    });
+
+    // Mọi thay đổi do người dùng đều thành pending. Ghi từ máy chủ dùng asInternalSyncWrite().
+    this.on("ready", () => {
+      for (const table of this.tables) {
+        if (table.name === "musicTracks" || table.name === "customBackgrounds") continue;
+        table.hook("creating", (_key, value) => { if (!internalSyncWrite) value.syncState = "pending"; });
+        table.hook("updating", () => internalSyncWrite ? undefined : { syncState: "pending" });
+      }
     });
   }
 }

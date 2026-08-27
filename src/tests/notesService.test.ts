@@ -51,7 +51,8 @@ describe("notesService — CRUD cơ bản", () => {
     await softDeleteNote(note.id);
     await hardDeleteNote(note.id);
     const fromDb = await db.notes.get(note.id);
-    expect(fromDb).toBeUndefined();
+    expect(fromDb?.archived).toBe(true); // tombstone đồng bộ, không hiện cho người dùng
+    expect((await listTrashedNotes()).find((item) => item.id === note.id)).toBeUndefined();
   });
 });
 

@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { shouldPullRemote } from "../features/sync/syncService";
+import { shouldPullRemote, shouldResetForAccount } from "../features/sync/syncService";
 
 describe("sync conflict resolution", () => {
-  it("pulls a missing local record", () => expect(shouldPullRemote(undefined, 10)).toBe(true));
-  it("keeps a newer local record", () => expect(shouldPullRemote(20, 10)).toBe(false));
-  it("pulls a newer remote record", () => expect(shouldPullRemote(10, 20)).toBe(true));
-  it("keeps local when timestamps are equal", () => expect(shouldPullRemote(20, 20)).toBe(false));
+  it("pulls a missing local record", () => expect(shouldPullRemote(undefined)).toBe(true));
+  it("keeps an unsynced local record", () => expect(shouldPullRemote("pending")).toBe(false));
+  it("keeps a newly-created local record", () => expect(shouldPullRemote("local")).toBe(false));
+  it("refreshes an already-synced record", () => expect(shouldPullRemote("synced")).toBe(true));
+});
+
+describe("account isolation", () => {
+  it("keeps anonymous data for the first account", () => expect(shouldResetForAccount(null, "A")).toBe(false));
+  it("keeps cache for the same account", () => expect(shouldResetForAccount("A", "A")).toBe(false));
+  it("clears synchronized cache before another account", () => expect(shouldResetForAccount("A", "B")).toBe(true));
 });

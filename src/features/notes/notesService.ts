@@ -64,7 +64,9 @@ export async function restoreNote(id: string): Promise<void> {
 }
 
 export async function hardDeleteNote(id: string): Promise<void> {
-  await db.notes.delete(id);
+  // Giữ tombstone để thao tác xóa truyền sang mọi thiết bị, tránh mục sống lại.
+  const now = Date.now();
+  await db.notes.update(id, { deletedAt: now, updatedAt: now, archived: true });
 }
 
 export async function listActiveNotes(folderId?: string | null): Promise<Note[]> {
@@ -76,7 +78,7 @@ export async function listActiveNotes(folderId?: string | null): Promise<Note[]>
 }
 
 export async function listTrashedNotes(): Promise<Note[]> {
-  const notes = await db.notes.filter((n) => n.deletedAt !== null).toArray();
+  const notes = await db.notes.filter((n) => n.deletedAt !== null && !n.archived).toArray();
   return notes.sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0));
 }
 

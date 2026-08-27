@@ -13,10 +13,10 @@ import { AccountPanel } from "./components/auth/AccountPanel";
 type Mode = "notes" | "projects" | "mindmap" | "whiteboard";
 
 const MODE_TABS: { id: Mode; label: string; icon: string; ready: boolean }[] = [
-  { id: "notes", label: "Ghi chú", icon: "📝", ready: true },
-  { id: "projects", label: "Dự án", icon: "📚", ready: true },
-  { id: "mindmap", label: "Sơ đồ", icon: "🕸️", ready: true },
-  { id: "whiteboard", label: "Bảng trắng", icon: "🖼️", ready: true },
+  { id: "notes", label: "Ghi chú", icon: "✦", ready: true },
+  { id: "projects", label: "Dự án", icon: "冊", ready: true },
+  { id: "mindmap", label: "Sơ đồ", icon: "⌘", ready: true },
+  { id: "whiteboard", label: "Bảng trắng", icon: "◇", ready: true },
 ];
 
 export default function App() {
@@ -25,53 +25,54 @@ export default function App() {
   const [mobileMenuOpen,setMobileMenuOpen]=useState(false);
   const [focusedSectionId,setFocusedSectionId]=useState<string|null>(null);
   const [accountOpen,setAccountOpen]=useState(false);
+  const [syncRevision,setSyncRevision]=useState(0);
   const loadProjects=useProjectsStore(s=>s.loadProjects);
   const selectProject=useProjectsStore(s=>s.selectProject);
   const selectChapter=useProjectsStore(s=>s.selectChapter);
 
   useEffect(() => {
     loadTheme();
-  }, []);
+    const refresh=()=>setSyncRevision(value=>value+1);
+    window.addEventListener("hbc-sync-complete",refresh);
+    return ()=>window.removeEventListener("hbc-sync-complete",refresh);
+  }, [loadTheme]);
 
   return (
     <div className="app-shell flex flex-col w-screen overflow-hidden">
       <UpdatePrompt />
 
-      <div className="md:hidden flex items-center gap-2 px-2 py-1.5 border-b shrink-0" style={{borderColor:"var(--color-border)",background:"var(--color-surface)"}}>
-        <button aria-label="Mở menu" className="mobile-icon-button" onClick={()=>setMobileMenuOpen(true)}>☰</button>
-        <div className="flex-1 text-center font-semibold">{MODE_TABS.find(item=>item.id===mode)?.label}</div>
-        <button aria-label="Mở tài khoản" className="mobile-icon-button" onClick={()=>setAccountOpen(true)}>♙</button>
+      <div className="mobile-topbar md:hidden flex items-center gap-2 px-2 py-1.5 border-b shrink-0">
+        <button aria-label="Mở menu" className="mobile-icon-button mystic-icon" onClick={()=>setMobileMenuOpen(true)}>☰</button>
+        <div className="flex-1 text-center min-w-0"><div className="mobile-brand">Huyền Bút Các</div><div className="mobile-mode">{MODE_TABS.find(item=>item.id===mode)?.label}</div></div>
+        <button aria-label="Mở tài khoản" className="mobile-icon-button mystic-icon" onClick={()=>setAccountOpen(true)}>♙</button>
       </div>
       {mobileMenuOpen&&<div className="md:hidden fixed inset-0 z-50 flex"><div className="relative z-10 h-full"><Sidebar onNavigate={()=>setMobileMenuOpen(false)} onOpenNotes={()=>setMode("notes")}/></div><button aria-label="Đóng menu" className="absolute inset-0 bg-black/50" onClick={()=>setMobileMenuOpen(false)}/></div>}
 
       {/* Tab desktop */}
       <div
         className="desktop-mode-tabs hidden md:flex items-center gap-1 px-4 py-2 border-b"
-        style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
       >
+        <div className="desktop-brand mr-5"><span className="brand-sigil">玄</span><span><b>Huyền Bút Các</b><small>Vân Thư Đài</small></span></div>
         {MODE_TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setMode(t.id)}
-            className="px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5"
-            style={{
-              background: mode === t.id ? "var(--color-surface-alt)" : "transparent",
-              color: mode === t.id ? "var(--color-accent)" : "var(--color-text-muted)",
-            }}
+            className={`mode-tab px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 ${mode===t.id?"is-active":""}`}
+            aria-current={mode===t.id?"page":undefined}
           >
             <span>{t.icon}</span>
             {t.label}
             {!t.ready && <span className="text-[10px] opacity-60">(sắp có)</span>}
           </button>
         ))}
-        <button className="ml-auto px-3 py-1.5 rounded-lg text-sm" style={{background:"var(--color-surface-alt)"}} onClick={()=>setAccountOpen(true)}>♙ Tài khoản</button>
+        <button className="account-pill ml-auto px-3 py-1.5 rounded-lg text-sm" onClick={()=>setAccountOpen(true)}><span className="status-jade"/> Tài khoản</button>
       </div>
 
-      <div className="flex-1 overflow-hidden">
-        {mode === "notes" && <NotesModeView />}
-        {mode === "projects" && <ProjectsView focusedSectionId={focusedSectionId} />}
-        {mode === "mindmap" && <MindMapView onOpenProject={async target=>{setFocusedSectionId(target.sectionId);await loadProjects();await selectProject(target.projectId);selectChapter(target.chapterId);setMode("projects");}} />}
-        {mode === "whiteboard" && <WhiteboardView />}
+      <div className="app-content flex-1 overflow-hidden">
+        {mode === "notes" && <NotesModeView key={`notes-${syncRevision}`} />}
+        {mode === "projects" && <ProjectsView key={`projects-${syncRevision}`} focusedSectionId={focusedSectionId} />}
+        {mode === "mindmap" && <MindMapView key={`mindmap-${syncRevision}`} onOpenProject={async target=>{setFocusedSectionId(target.sectionId);await loadProjects();await selectProject(target.projectId);selectChapter(target.chapterId);setMode("projects");}} />}
+        {mode === "whiteboard" && <WhiteboardView key={`whiteboard-${syncRevision}`} />}
       </div>
 
       <MusicPlayer />
@@ -80,14 +81,14 @@ export default function App() {
       {/* Bottom nav mobile (mục 7) */}
       <nav
         className="mobile-bottom-nav md:hidden flex justify-around border-t py-1 shrink-0"
-        style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", paddingBottom: "max(.25rem, env(safe-area-inset-bottom))" }}
+        style={{ paddingBottom: "max(.25rem, env(safe-area-inset-bottom))" }}
       >
         {MODE_TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setMode(t.id)}
-            className="mobile-nav-item flex flex-col items-center px-3 py-1.5 text-xs"
-            style={{ color: mode === t.id ? "var(--color-accent)" : "var(--color-text-muted)" }}
+            className={`mobile-nav-item flex flex-col items-center px-3 py-1.5 text-xs ${mode===t.id?"is-active":""}`}
+            aria-current={mode===t.id?"page":undefined}
           >
             <span className="text-lg">{t.icon}</span>
             {t.label}

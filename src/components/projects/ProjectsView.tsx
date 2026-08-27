@@ -24,7 +24,7 @@ function ProjectPicker() {
 
   useEffect(() => {
     loadProjects();
-  }, []);
+  }, [loadProjects]);
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
@@ -212,7 +212,7 @@ export function ProjectsView({focusedSectionId=null}:{focusedSectionId?:string|n
   if (!selectedProjectId) return <ProjectPicker />;
 
   if (selectedChapter) {
-    return <FocusWriter chapter={selectedChapter} onExit={() => selectChapter(null)} />;
+    return <FocusWriter key={selectedChapter.id} chapter={selectedChapter} onExit={() => selectChapter(null)} />;
   }
 
   return (

@@ -28,9 +28,14 @@ export function MusicPlayer() {
     const audio=audioRef.current;if(!audio)return;
     if(!current){audio.removeAttribute("src");audio.load();return;}
     const url=URL.createObjectURL(current.audioBlob);audio.src=url;audio.load();setCurrentTime(0);setDuration(0);
-    if(playing) void audio.play().catch(()=>setPlaying(false));
     return()=>URL.revokeObjectURL(url);
-  },[currentId]);
+  },[currentId,current?.audioBlob,current]);
+
+  useEffect(()=>{
+    const audio=audioRef.current;if(!audio||!current)return;
+    if(playing) void audio.play().catch(()=>setPlaying(false));
+    else audio.pause();
+  },[playing,currentId,current]);
 
   useEffect(()=>{if(audioRef.current)audioRef.current.volume=volume;},[volume]);
   useEffect(()=>{if(currentId)localStorage.setItem("hbc-music-current",currentId);},[currentId]);

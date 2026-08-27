@@ -134,3 +134,38 @@
 - Giữ chế độ offline-first khi chưa cấu hình máy chủ hoặc mất mạng.
 - RLS bắt buộc: mỗi người chỉ đọc/ghi bản ghi thuộc chính tài khoản.
 - MP3 và ảnh nền tùy chọn tiếp tục lưu cục bộ trên từng thiết bị.
+# Checkpoint 11.1 — 0.9.1
+
+- Tách cache đồng bộ theo chủ tài khoản, ngăn dữ liệu tài khoản A đi sang tài khoản B.
+- Đăng xuất an toàn: đồng bộ lần cuối trước khi kết thúc phiên; chặn đăng xuất ngoại tuyến.
+- Xóa vĩnh viễn dùng tombstone ẩn để lệnh xóa truyền sang mọi thiết bị và không sống lại.
+- Tự làm mới màn hình khi nhận dữ liệu mới từ thiết bị khác.
+- Đánh dấu `pending/synced` tự động ở tầng cơ sở dữ liệu; không dùng đồng hồ thiết bị để quyết định ghi đè.
+- Đồng bộ ngay khi mạng được khôi phục.
+# Checkpoint 12 — 0.10.0
+
+- Mã hóa đầu cuối nội dung đồng bộ bằng AES-256-GCM ngay trên thiết bị.
+- Dẫn xuất khóa bằng PBKDF2-SHA-256 với 600.000 vòng và salt riêng cho tài khoản.
+- IV ngẫu nhiên 96-bit cho từng bản ghi; AAD ràng buộc user, loại dữ liệu và ID để chống tráo ciphertext.
+- Mật khẩu Kho không gửi lên Supabase, không lưu trong GitHub và chỉ giữ trong bộ nhớ phiên.
+- Tự chuyển payload Checkpoint 11 dạng thường sang dạng mã hóa sau khi mở Kho.
+- RLS chỉ cấp quyền cho `authenticated`; thu hồi quyền bảng khỏi `anon`.
+- Migration riêng cho project Supabase hiện có.
+# Checkpoint 13 — 0.11.0
+
+- Thiết kế lại shell theo phong cách tiên hiệp: pháp ấn ngọc, viền kim loại, sơn thủy nhiều lớp và mặt kính theo theme.
+- Thanh điều hướng desktop có nhận diện Huyền Bút Các, trạng thái đang chọn và nút tài khoản thống nhất.
+- Header mobile hai tầng gọn; bottom navigation dạng pháp bàn với chỉ báo phát sáng.
+- Sidebar, trình soạn thảo, form và Kho bảo mật dùng chung hệ bề mặt, viền, focus và vùng chạm.
+- Sửa bong bóng Tiên Âm Các không xuất hiện khi thu nhỏ.
+- Sửa header/menu trên điện thoại cảm ứng xoay ngang rộng hơn 768px.
+- Chuẩn hóa z-index, safe-area, vùng cuộn toolbar và kích thước dọc/ngang.
+- Giữ nguyên 14 theme; toàn bộ lớp trang trí tự đổi màu theo theme hiện tại.
+# Checkpoint 13.1 — 0.11.1
+
+- Khóa khóa giải mã khỏi bộ nhớ ngay cả khi phiên bị đăng xuất/hết hạn từ bên ngoài.
+- Chế độ viết tập trung nằm đúng lớp nổi và có safe-area, không bị trình nhạc che.
+- Sửa autosave Ghi chú/Chương dùng closure cũ; trạng thái lưu thất bại không còn báo nhầm “Đã lưu”.
+- Ngăn editor bị reset con trỏ sau mỗi lần Zustand nạp lại dữ liệu.
+- Tách nạp Blob âm thanh khỏi phát/tạm dừng, tránh lệch bài và trạng thái nút khi đổi nhanh.
+- Chuẩn hóa dependency của các effect nạp theme, ghi chú, thư mục và dự án.
