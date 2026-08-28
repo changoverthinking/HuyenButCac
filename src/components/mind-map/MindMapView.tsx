@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { CanvasStroke, MindMap, MindMapEdge, MindMapNode, Project } from "../../types/entities";
 import {
   addMindMapEdge,
@@ -266,6 +266,41 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
     drag.current = null;
   };
 
+  // Thay thế bằng bàn phím cho thao tác kéo node (WCAG 2.2 AA – Dragging Movements).
+  // Khi một node đang được chọn và nhận focus bàn phím, phím mũi tên di chuyển node
+  // theo bước nhỏ (giữ Shift để di chuyển nhanh hơn).
+  const nudgeSelectedNode = (dx: number, dy: number) => {
+    if (!selected) return;
+    setNodes((items) => {
+      const next = items.map((item) => (item.id === selected ? { ...item, x: item.x + dx, y: item.y + dy } : item));
+      const node = next.find((item) => item.id === selected);
+      if (node) void updateMindMapNode(node.id, { x: node.x, y: node.y });
+      return next;
+    });
+  };
+
+  const handleNodeKeyDown = (event: KeyboardEvent<SVGGElement>, nodeId: string) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setSelected(nodeId);
+      setSelectedEdge(null);
+      setSelectedStroke(null);
+      return;
+    }
+    if (selected !== nodeId) return;
+    const step = event.shiftKey ? 20 : 4;
+    const delta: Record<string, [number, number]> = {
+      ArrowUp: [0, -step],
+      ArrowDown: [0, step],
+      ArrowLeft: [-step, 0],
+      ArrowRight: [step, 0],
+    };
+    const move = delta[event.key];
+    if (!move) return;
+    event.preventDefault();
+    nudgeSelectedNode(move[0], move[1]);
+  };
+
   const worldPoint = (event: { clientX: number; clientY: number }, element: SVGSVGElement) => {
     const rect = element.getBoundingClientRect();
     return { x: (event.clientX - rect.left - pan.x) / zoom, y: (event.clientY - rect.top - pan.y) / zoom };
@@ -385,7 +420,17 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
               return <g key={edge.id} onPointerDown={(event) => { if (drawMode || connectMode) return; event.preventDefault(); event.stopPropagation(); setSelectedEdge(edge.id); setSelected(null); setSelectedStroke(null); }} style={{ cursor: "pointer" }}><path d={path} fill="none" stroke="transparent" strokeWidth="12" style={{ pointerEvents: "stroke" }} /><path d={path} fill="none" stroke={selectedEdge === edge.id ? "var(--color-accent)" : "var(--color-connector)"} strokeWidth={selectedEdge === edge.id ? "3.5" : "2"} strokeDasharray={free ? "8 6" : undefined} style={{ pointerEvents: "none" }} /><title>{free ? "Liên kết tự do — chạm để chọn" : "Nhánh cây — chạm để chọn"}</title></g>;
             })}
             {nodes.map((node) => (
-              <g key={node.id} transform={`translate(${node.x} ${node.y})`} onPointerDown={(event) => { if (drawMode) return; if (connectMode) { event.preventDefault(); event.stopPropagation(); void connectNodes(node.id); return; } if (pointers.current.size > 1) return; event.preventDefault(); event.stopPropagation(); setSelected(node.id); setSelectedEdge(null); setSelectedStroke(null); drag.current = { id: node.id, startClientX: event.clientX, startClientY: event.clientY, startNodeX: node.x, startNodeY: node.y }; event.currentTarget.setPointerCapture(event.pointerId); }}>
+              <g
+                key={node.id}
+                className="mindmap-node"
+                transform={`translate(${node.x} ${node.y})`}
+                tabIndex={0}
+                role="button"
+                aria-label={`Ô "${node.title || "chưa đặt tên"}". Chọn rồi dùng phím mũi tên để di chuyển, giữ Shift để di chuyển nhanh hơn.`}
+                onFocus={() => { setSelected(node.id); setSelectedEdge(null); setSelectedStroke(null); }}
+                onKeyDown={(event) => handleNodeKeyDown(event, node.id)}
+                onPointerDown={(event) => { if (drawMode) return; if (connectMode) { event.preventDefault(); event.stopPropagation(); void connectNodes(node.id); return; } if (pointers.current.size > 1) return; event.preventDefault(); event.stopPropagation(); setSelected(node.id); setSelectedEdge(null); setSelectedStroke(null); drag.current = { id: node.id, startClientX: event.clientX, startClientY: event.clientY, startNodeX: node.x, startNodeY: node.y }; event.currentTarget.setPointerCapture(event.pointerId); }}
+              >
                 <rect width={nodeWidth(node.title)} height="44" rx="12" fill={selected === node.id || connectSourceId === node.id ? "var(--color-accent)" : "var(--color-node)"} stroke={connectSourceId === node.id ? "var(--color-text)" : "var(--color-border)"} strokeWidth={connectSourceId === node.id ? "3" : "1"} />
                 <rect width={NODE_HANDLE_WIDTH} height="44" rx="12" fill="transparent" className="mindmap-node-grip" />
                 <line x1={NODE_HANDLE_WIDTH} y1="7" x2={NODE_HANDLE_WIDTH} y2="37" stroke="var(--color-border)" opacity=".75" />

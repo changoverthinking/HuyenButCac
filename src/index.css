@@ -112,6 +112,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, [contenteditabl
 .mobile-icon-button { width: 2.65rem; height: 2.65rem; flex: 0 0 auto; border-radius: .6rem; }
 .mindmap-node-grip { cursor: grab; touch-action: none; }
 .mindmap-node-grip:active { cursor: grabbing; }
+.mindmap-node { outline: none; }
+.mindmap-node:focus-visible rect:first-of-type {
+  stroke: var(--color-focus);
+  stroke-width: 3;
+}
 .canvas-toolbars button:disabled, .whiteboard-toolbar button:disabled { opacity: .42; cursor: not-allowed; }
 .canvas-toolbars,.whiteboard-toolbar { max-width:100%; min-width:0; }
 .canvas-toolbars > div,.whiteboard-toolbar > div { overflow-x:auto; overscroll-behavior-inline:contain; scrollbar-width:thin; }
