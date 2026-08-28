@@ -114,12 +114,12 @@ export interface StoryCharacter extends BaseEntity {
   order: number;
 }
 
-export type StoryLocationKind = "location" | "realm" | "faction";
+export type StoryLocationKind = "era" | "location" | "realm" | "faction";
 
 export interface StoryLocation extends BaseEntity {
   projectId: string;
   name: string;
-  kind: StoryLocationKind; // địa danh / cảnh giới tu luyện / môn phái-thế lực
+  kind: StoryLocationKind; // bối cảnh / địa danh / cảnh giới tu luyện / môn phái-thế lực
   description: string;
   order: number;
 }
@@ -169,8 +169,11 @@ export interface MindMapNode extends BaseEntity {
   linkType?: "project" | "section" | "chapter" | null;
   linkId?: string | null;
 }
+export type MindMapEdgeType = "tree" | "free";
 export interface MindMapEdge extends BaseEntity {
   mapId: string; sourceId: string; targetId: string; label: string;
+  /** Cạnh cũ không có trường này và được hiểu là cạnh cây để tương thích dữ liệu. */
+  edgeType?: MindMapEdgeType;
 }
 export type WhiteboardObjectKind = "note" | "rectangle" | "ellipse" | "text";
 export interface Whiteboard extends BaseEntity { title: string; }

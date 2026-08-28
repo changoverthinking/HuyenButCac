@@ -55,7 +55,17 @@ export async function listCharacters(projectId: string): Promise<StoryCharacter[
   return rows.sort((a, b) => a.order - b.order);
 }
 
-// ---------- Địa danh / Cảnh giới / Thế lực ----------
+// ---------- Bối cảnh / Địa danh / Cảnh giới / Thế lực ----------
+
+export const STORY_LOCATION_KIND_LABEL: Record<StoryLocationKind, string> = {
+  era: "Bối cảnh",
+  location: "Địa danh",
+  realm: "Cảnh giới",
+  faction: "Thế lực",
+};
+
+/** Thứ tự để AI đọc thế giới theo hướng: thời đại → nơi chốn → tu vi → thế lực. */
+export const STORY_LOCATION_KIND_ORDER: StoryLocationKind[] = ["era", "location", "realm", "faction"];
 
 export async function createLocation(projectId: string, name: string, kind: StoryLocationKind): Promise<StoryLocation> {
   const order = await db.storyLocations.filter((l) => l.projectId === projectId && l.deletedAt === null).count();
@@ -153,13 +163,17 @@ export async function exportStoryBibleMarkdown(projectId: string): Promise<strin
     }
   }
 
-  const kindLabel: Record<StoryLocationKind, string> = { location: "Địa danh", realm: "Cảnh giới", faction: "Thế lực" };
   if (locations.length) {
-    md += `## Thế giới (địa danh / cảnh giới / thế lực)\n\n`;
-    for (const l of locations) {
-      md += `- **${l.name}** (${kindLabel[l.kind]})${l.description ? `: ${l.description}` : ""}\n`;
+    md += `## Thế giới\n\n`;
+    for (const kind of STORY_LOCATION_KIND_ORDER) {
+      const entries = locations.filter((location) => location.kind === kind);
+      if (!entries.length) continue;
+      md += `### ${STORY_LOCATION_KIND_LABEL[kind]}\n\n`;
+      for (const l of entries) {
+        md += `- **${l.name}**${l.description ? `: ${l.description}` : ""}\n`;
+      }
+      md += `\n`;
     }
-    md += `\n`;
   }
 
   if (lore.length) {

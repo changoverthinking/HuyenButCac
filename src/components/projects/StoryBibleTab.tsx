@@ -1,13 +1,10 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useProjectsStore } from "../../stores/projectsStore";
 import { exportContextPackMarkdown } from "../../features/projects/projectsService";
+import { STORY_LOCATION_KIND_LABEL } from "../../features/projects/storyBibleService";
 import type { StoryLocationKind } from "../../types/entities";
 
-const LOCATION_KIND_LABEL: Record<StoryLocationKind, string> = {
-  location: "Địa danh",
-  realm: "Cảnh giới",
-  faction: "Thế lực",
-};
+const LOCATION_KIND_LABEL: Record<StoryLocationKind, string> = STORY_LOCATION_KIND_LABEL;
 
 function FieldInput({
   value,
@@ -23,6 +20,7 @@ function FieldInput({
   multiline?: boolean;
 }) {
   const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
   const commonProps = {
     value: draft,
     placeholder,
@@ -124,7 +122,19 @@ function WorldPanel() {
   const updateLocation = useProjectsStore((s) => s.updateLocation);
   const deleteLocation = useProjectsStore((s) => s.deleteLocation);
   const [name, setName] = useState("");
-  const [kind, setKind] = useState<StoryLocationKind>("location");
+  const [kind, setKind] = useState<StoryLocationKind>("era");
+  const [filter, setFilter] = useState<StoryLocationKind | "all">("all");
+  const [query, setQuery] = useState("");
+  const filteredLocations = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    return locations.filter((location) => {
+      const matchesKind = filter === "all" || location.kind === filter;
+      const matchesQuery = !normalizedQuery
+        || location.name.toLocaleLowerCase().includes(normalizedQuery)
+        || location.description.toLocaleLowerCase().includes(normalizedQuery);
+      return matchesKind && matchesQuery;
+    });
+  }, [filter, locations, query]);
 
   return (
     <div>
@@ -140,7 +150,7 @@ function WorldPanel() {
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Tên địa danh / cảnh giới / thế lực…"
+          placeholder="Tên bối cảnh / địa danh / cảnh giới / thế lực…"
           className="min-w-[12rem] flex-1 px-3 py-2 rounded-lg border text-sm outline-none"
           style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)" }}
         />
@@ -161,20 +171,58 @@ function WorldPanel() {
 
       {locations.length === 0 && (
         <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-          Chưa có địa danh, cảnh giới hay thế lực nào. Đây là nơi ghi lại thế giới quan để giữ nhất quán xuyên suốt truyện.
+          Chưa có bối cảnh, địa danh, cảnh giới hay thế lực nào. Hãy tách riêng các kỷ nguyên khỏi địa danh để thế giới nhiều thời đại không bị lẫn.
         </p>
       )}
 
+      {locations.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <select
+            aria-label="Lọc loại mục thế giới"
+            value={filter}
+            onChange={(event) => setFilter(event.target.value as StoryLocationKind | "all")}
+            className="px-2 py-2 rounded-lg border text-sm"
+            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)" }}
+          >
+            <option value="all">Tất cả loại ({locations.length})</option>
+            {Object.entries(LOCATION_KIND_LABEL).map(([key, label]) => (
+              <option key={key} value={key}>{label} ({locations.filter((location) => location.kind === key).length})</option>
+            ))}
+          </select>
+          {locations.length > 6 && (
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Tìm trong thế giới…"
+              aria-label="Tìm trong các mục thế giới"
+              className="min-w-[12rem] flex-1 px-3 py-2 rounded-lg border text-sm outline-none"
+              style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)" }}
+            />
+          )}
+          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+            Hiển thị {filteredLocations.length}/{locations.length}
+          </span>
+        </div>
+      )}
+
       <div className="grid gap-3 md:grid-cols-2">
-        {locations.map((l) => (
+        {filteredLocations.map((l) => (
           <div key={l.id} className="codex-card p-3">
             <div className="flex items-start justify-between gap-2 mb-2">
               <div className="flex-1 min-w-0">
                 <FieldInput value={l.name} placeholder="Tên" onCommit={(v) => updateLocation(l.id, { name: v })} className="font-semibold" />
               </div>
-              <span className="text-[10px] px-2 py-1 rounded shrink-0" style={{ background: "var(--color-surface-alt)", color: "var(--color-accent)" }}>
-                {LOCATION_KIND_LABEL[l.kind]}
-              </span>
+              <select
+                aria-label={`Loại của ${l.name}`}
+                value={l.kind}
+                onChange={(event) => updateLocation(l.id, { kind: event.target.value as StoryLocationKind })}
+                className="text-[10px] px-2 py-1 rounded shrink-0 border"
+                style={{ borderColor: "var(--color-border)", background: "var(--color-surface-alt)", color: "var(--color-accent)" }}
+              >
+                {Object.entries(LOCATION_KIND_LABEL).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
               <button
                 className="text-xs shrink-0"
                 style={{ color: "var(--color-error)" }}
@@ -187,6 +235,9 @@ function WorldPanel() {
           </div>
         ))}
       </div>
+      {locations.length > 0 && filteredLocations.length === 0 && (
+        <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>Không có mục nào khớp bộ lọc hiện tại.</p>
+      )}
     </div>
   );
 }

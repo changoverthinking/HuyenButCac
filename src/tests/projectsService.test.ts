@@ -135,6 +135,21 @@ describe("projectsService — dự án và chương", () => {
     expect(pack).toContain("Tóm tắt chương 1.");
     expect(pack).not.toContain("Nội dung đầy đủ");
   });
+
+  it("xuất Bối cảnh trước Địa danh, Cảnh giới và Thế lực", async () => {
+    const project = await createProject({ title: "Nam Cảnh Cổ Lục", kind: "novel" });
+    await createLocation(project.id, "Tông môn Huyền Khuyết", "faction");
+    await createLocation(project.id, "Hỗn Mang Sơ Khai", "era");
+    await createLocation(project.id, "Nam Cảnh Cổ Lục", "location");
+    await createLocation(project.id, "Trúc Cơ kỳ", "realm");
+
+    const pack = await exportContextPackMarkdown(project.id);
+    expect(pack.indexOf("### Bối cảnh")).toBeGreaterThanOrEqual(0);
+    expect(pack.indexOf("### Bối cảnh")).toBeLessThan(pack.indexOf("### Địa danh"));
+    expect(pack.indexOf("### Địa danh")).toBeLessThan(pack.indexOf("### Cảnh giới"));
+    expect(pack.indexOf("### Cảnh giới")).toBeLessThan(pack.indexOf("### Thế lực"));
+    expect(pack).toContain("Hỗn Mang Sơ Khai");
+  });
 });
 
 describe("projectsService — Kanban task", () => {

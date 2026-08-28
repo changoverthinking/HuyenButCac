@@ -71,7 +71,8 @@ export default function App() {
       <div className="app-content flex-1 overflow-hidden">
         {mode === "notes" && <NotesModeView key={`notes-${syncRevision}`} />}
         {mode === "projects" && <ProjectsView key={`projects-${syncRevision}`} focusedSectionId={focusedSectionId} />}
-        {mode === "mindmap" && <MindMapView key={`mindmap-${syncRevision}`} onOpenProject={async target=>{setFocusedSectionId(target.sectionId);await loadProjects();await selectProject(target.projectId);selectChapter(target.chapterId);setMode("projects");}} />}
+        {/* MindMapView tự reload theo hbc-sync-complete để giữ đúng sơ đồ đang mở. */}
+        {mode === "mindmap" && <MindMapView onOpenProject={async target=>{setFocusedSectionId(target.sectionId);await loadProjects();await selectProject(target.projectId);selectChapter(target.chapterId);setMode("projects");}} />}
         {mode === "whiteboard" && <WhiteboardView key={`whiteboard-${syncRevision}`} />}
       </div>
 
