@@ -24,7 +24,8 @@ export function WhiteboardView() {
   const [strokeDashStyle,setStrokeDashStyle]=useState<CanvasStroke["dash"]>("solid");
   const [strokeArrow,setStrokeArrow]=useState<CanvasStroke["arrow"]>("none");
   const [smooth,setSmooth]=useState(true);
-  const drag = useRef<{ id: string; startClientX: number; startClientY: number; startX: number; startY: number } | null>(null);
+  const reloadToken = useRef(0);
+  const drag = useRef<{ id: string; pointerId: number; startClientX: number; startClientY: number; startX: number; startY: number } | null>(null);
   const canvasPan=useRef<{pointerId:number;start:Point;pan:Point}|null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{distance:number;zoom:number;pan:Point;center:Point}|null>(null);
@@ -53,19 +54,28 @@ export function WhiteboardView() {
   };
 
   const reload = async (id = active) => {
-    setBoards(await listWhiteboards());
-    if (id) {setObjects(await getBoardObjects(id));setStrokes(await listStrokes("whiteboard",id));}
+    const token = ++reloadToken.current;
+    let items = await listWhiteboards();
+    if (!items.length) items = [await createWhiteboard()];
+    const nextId = id && items.some((item) => item.id === id) ? id : items[0]?.id ?? null;
+    if (token !== reloadToken.current) return;
+    setBoards(items);
+    if (!nextId) {
+      setActive(null);
+      setObjects([]);
+      setStrokes([]);
+      return;
+    }
+    setActive(nextId);
+    const [nextObjects, nextStrokes] = await Promise.all([getBoardObjects(nextId), listStrokes("whiteboard", nextId)]);
+    if (token !== reloadToken.current) return;
+    setObjects(nextObjects);
+    setStrokes(nextStrokes);
+    setSelected((current) => current && nextObjects.some((item) => item.id === current) ? current : null);
+    setSelectedStroke((current) => current && nextStrokes.some((item) => item.id === current) ? current : null);
   };
 
-  useEffect(() => {
-    void listWhiteboards().then(async (items) => {
-      const next = items.length ? items : [await createWhiteboard()];
-      setBoards(next);
-      setActive(next[0].id);
-      setObjects(await getBoardObjects(next[0].id));
-      setStrokes(await listStrokes("whiteboard",next[0].id));
-    });
-  }, []);
+  useEffect(() => { void reload(); }, []);
 
   const add = async (kind: WhiteboardObjectKind) => {
     if (!active) return;
@@ -137,7 +147,7 @@ export function WhiteboardView() {
           if(strokeDrag.current?.pointerId===event.pointerId){const current=strokeDrag.current;const point=worldPoint(event,event.currentTarget);const dx=point.x-current.start.x,dy=point.y-current.start.y;setStrokes(items=>items.map(item=>item.id===current.id?{...item,points:current.points.map(entry=>({x:entry.x+dx,y:entry.y+dy}))}:item));return;}
           const current = drag.current;
           if(!current&&canvasPan.current?.pointerId===event.pointerId){const start=canvasPan.current;setPan({x:start.pan.x+event.clientX-start.start.x,y:start.pan.y+event.clientY-start.start.y});return;}
-          if (!current) return;
+          if (!current || current.pointerId !== event.pointerId) return;
           setObjects((items) => items.map((item) => item.id === current.id ? {
             ...item,
             x: current.startX + (event.clientX - current.startClientX) / zoom,
@@ -147,11 +157,14 @@ export function WhiteboardView() {
         onPointerUp={(event) => {
           pointers.current.delete(event.pointerId);if(pointers.current.size<2)pinch.current=null;if(canvasPan.current?.pointerId===event.pointerId)canvasPan.current=null;
           if(drawing.current?.pointerId===event.pointerId)void finishDrawing();
-          if(strokeDrag.current?.pointerId===event.pointerId){const item=strokes.find(entry=>entry.id===strokeDrag.current?.id);if(item)void updateStroke("whiteboard",item.id,{points:item.points});strokeDrag.current=null;}
+          if(strokeDrag.current?.pointerId===event.pointerId){const current=strokeDrag.current;const point=worldPoint(event,event.currentTarget);const dx=point.x-current.start.x,dy=point.y-current.start.y;const points=current.points.map(entry=>({x:entry.x+dx,y:entry.y+dy}));void updateStroke("whiteboard",current.id,{points});setStrokes(items=>items.map(item=>item.id===current.id?{...item,points}:item));strokeDrag.current=null;}
           const current = drag.current;
-          const item = objects.find((entry) => entry.id === current?.id);
-          if (item) void updateBoardObject(item.id, { x: item.x, y: item.y });
-          drag.current = null;
+          if (current?.pointerId === event.pointerId) {
+            const x = current.startX + (event.clientX - current.startClientX) / zoom;
+            const y = current.startY + (event.clientY - current.startClientY) / zoom;
+            void updateBoardObject(current.id, { x, y });
+            drag.current = null;
+          }
         }}
         onPointerCancel={(event) => { pointers.current.delete(event.pointerId);pinch.current=null;drawing.current=null;strokeDrag.current=null;setStrokes(items=>items.filter(item=>item.id!=="__preview"));canvasPan.current=null;drag.current = null; }}
       >
@@ -165,11 +178,13 @@ export function WhiteboardView() {
             <div
               key={item.id}
               onPointerDown={(event) => {
-                if (pointers.current.size > 0) return;
+                // Pointer của chính đối tượng đã được ghi vào canvas trước khi
+                // event bubble tới đây; chỉ chặn khi thực sự có thao tác đa chạm.
+                if (pointers.current.size > 1) return;
                 if(linkSource){event.preventDefault();event.stopPropagation();void selectObject(item.id);return;}
                 if(item.locked){event.preventDefault();event.stopPropagation();setSelected(item.id);return;}
                 setSelected(item.id);
-                drag.current = { id: item.id, startClientX: event.clientX, startClientY: event.clientY, startX: item.x, startY: item.y };
+                drag.current = { id: item.id, pointerId: event.pointerId, startClientX: event.clientX, startClientY: event.clientY, startX: item.x, startY: item.y };
                 event.currentTarget.setPointerCapture(event.pointerId);
               }}
               className="absolute shadow-md pointer-events-auto"

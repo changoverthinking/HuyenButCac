@@ -2,6 +2,8 @@ import { create } from "zustand";
 import type { Note } from "../types/entities";
 import * as notesService from "../features/notes/notesService";
 
+let notesLoadVersion = 0;
+
 interface NotesState {
   notes: Note[];
   trashedNotes: Note[];
@@ -36,14 +38,18 @@ export const useNotesStore = create<NotesState>((set, get) => ({
   view: "active",
 
   loadNotes: async (folderId) => {
+    const version = ++notesLoadVersion;
     set({ loading: true });
     const notes = await notesService.listActiveNotes(folderId);
+    if (version !== notesLoadVersion) return;
     set({ notes, loading: false, activeFolderId: folderId });
   },
 
   loadTrash: async () => {
+    const version = ++notesLoadVersion;
     const trashedNotes = await notesService.listTrashedNotes();
-    set({ trashedNotes });
+    if (version !== notesLoadVersion) return;
+    set({ trashedNotes, loading: false });
   },
 
   selectNote: (id) => set({ selectedNoteId: id }),
@@ -93,6 +99,7 @@ export const useNotesStore = create<NotesState>((set, get) => ({
   },
 
   showTrash: async () => {
+    notesLoadVersion += 1;
     set({ view: "trash", selectedNoteId: null, searchQuery: "", searchResults: [] });
     await get().loadTrash();
   },

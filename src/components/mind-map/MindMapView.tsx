@@ -21,6 +21,7 @@ import { Icon } from "../common/Icons";
 
 type DragState = {
   id: string;
+  pointerId: number;
   startClientX: number;
   startClientY: number;
   startNodeX: number;
@@ -259,11 +260,23 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
     }
   };
 
-  const finishDrag = () => {
+  const finishDrag = (event?: { clientX: number; clientY: number; pointerId: number }) => {
     const current = drag.current;
     if (!current) return;
+    if (event && current.pointerId !== event.pointerId) return;
     const node = nodes.find((item) => item.id === current.id);
-    if (node) void updateMindMapNode(node.id, { x: node.x, y: node.y });
+    if (node) {
+      const x = event ? current.startNodeX + (event.clientX - current.startClientX) / zoom : node.x;
+      const y = event ? current.startNodeY + (event.clientY - current.startClientY) / zoom : node.y;
+      void updateMindMapNode(node.id, { x, y });
+    }
+    drag.current = null;
+  };
+
+  const cancelDrag = () => {
+    const current = drag.current;
+    if (!current) return;
+    setNodes((items) => items.map((node) => node.id === current.id ? { ...node, x: current.startNodeX, y: current.startNodeY } : node));
     drag.current = null;
   };
 
@@ -272,12 +285,12 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
   // theo bước nhỏ (giữ Shift để di chuyển nhanh hơn).
   const nudgeSelectedNode = (dx: number, dy: number) => {
     if (!selected) return;
-    setNodes((items) => {
-      const next = items.map((item) => (item.id === selected ? { ...item, x: item.x + dx, y: item.y + dy } : item));
-      const node = next.find((item) => item.id === selected);
-      if (node) void updateMindMapNode(node.id, { x: node.x, y: node.y });
-      return next;
-    });
+    const node = nodes.find((item) => item.id === selected);
+    if (!node) return;
+    const x = node.x + dx;
+    const y = node.y + dy;
+    setNodes((items) => items.map((item) => item.id === selected ? { ...item, x, y } : item));
+    void updateMindMapNode(node.id, { x, y });
   };
 
   const handleNodeKeyDown = (event: KeyboardEvent<SVGGElement>, nodeId: string) => {
@@ -394,7 +407,7 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
             if (strokeDrag.current?.pointerId === event.pointerId) { const current = strokeDrag.current; const point = worldPoint(event, event.currentTarget); const dx = point.x - current.start.x; const dy = point.y - current.start.y; setStrokes((items) => items.map((item) => item.id === current.id ? { ...item, points: current.points.map((entry) => ({ x: entry.x + dx, y: entry.y + dy })) } : item)); return; }
             const current = drag.current;
             if (!current && canvasPan.current?.pointerId === event.pointerId) { const start = canvasPan.current; setPan({ x: start.pan.x + event.clientX - start.start.x, y: start.pan.y + event.clientY - start.start.y }); return; }
-            if (!current) return;
+            if (!current || current.pointerId !== event.pointerId) return;
             const x = current.startNodeX + (event.clientX - current.startClientX) / zoom;
             const y = current.startNodeY + (event.clientY - current.startClientY) / zoom;
             setNodes((items) => items.map((node) => node.id === current.id ? { ...node, x, y } : node));
@@ -405,9 +418,9 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
             if (canvasPan.current?.pointerId === event.pointerId) canvasPan.current = null;
             if (drawing.current?.pointerId === event.pointerId) { setStrokes((items) => items.filter((item) => item.id !== "__preview")); void finishDrawing(); }
             if (strokeDrag.current?.pointerId === event.pointerId) { const current = strokeDrag.current; const point = worldPoint(event, event.currentTarget); const dx = point.x - current.start.x; const dy = point.y - current.start.y; const points = current.points.map((entry) => ({ x: entry.x + dx, y: entry.y + dy })); void updateStroke("mindmap", current.id, { points }); setStrokes((items) => items.map((item) => item.id === current.id ? { ...item, points } : item)); strokeDrag.current = null; }
-            finishDrag();
+            finishDrag(event);
           }}
-          onPointerCancel={() => { pointers.current.clear(); pinch.current = null; drawing.current = null; strokeDrag.current = null; setStrokes((items) => items.filter((item) => item.id !== "__preview")); canvasPan.current = null; finishDrag(); }}
+          onPointerCancel={() => { pointers.current.clear(); pinch.current = null; drawing.current = null; strokeDrag.current = null; setStrokes((items) => items.filter((item) => item.id !== "__preview")); canvasPan.current = null; cancelDrag(); }}
         >
           <defs><marker id="mindmap-arrow-end" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--color-accent)" /></marker><marker id="mindmap-arrow-start" markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto"><path d="M8,0 L0,4 L8,8 z" fill="var(--color-accent)" /></marker></defs>
           <g transform={`translate(${pan.x} ${pan.y}) scale(${zoom})`}>
@@ -430,7 +443,7 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
                 aria-label={`Ô "${node.title || "chưa đặt tên"}". Chọn rồi dùng phím mũi tên để di chuyển, giữ Shift để di chuyển nhanh hơn.`}
                 onFocus={() => { setSelected(node.id); setSelectedEdge(null); setSelectedStroke(null); }}
                 onKeyDown={(event) => handleNodeKeyDown(event, node.id)}
-                onPointerDown={(event) => { if (drawMode) return; if (connectMode) { event.preventDefault(); event.stopPropagation(); void connectNodes(node.id); return; } if (pointers.current.size > 1) return; event.preventDefault(); event.stopPropagation(); setSelected(node.id); setSelectedEdge(null); setSelectedStroke(null); drag.current = { id: node.id, startClientX: event.clientX, startClientY: event.clientY, startNodeX: node.x, startNodeY: node.y }; event.currentTarget.setPointerCapture(event.pointerId); }}
+                onPointerDown={(event) => { if (drawMode) return; if (connectMode) { event.preventDefault(); event.stopPropagation(); void connectNodes(node.id); return; } if (pointers.current.size > 1) return; event.preventDefault(); event.stopPropagation(); setSelected(node.id); setSelectedEdge(null); setSelectedStroke(null); drag.current = { id: node.id, pointerId: event.pointerId, startClientX: event.clientX, startClientY: event.clientY, startNodeX: node.x, startNodeY: node.y }; event.currentTarget.setPointerCapture(event.pointerId); }}
               >
                 <rect width={nodeWidth(node.title)} height="44" rx="12" fill={selected === node.id || connectSourceId === node.id ? "var(--color-accent)" : "var(--color-node)"} stroke={connectSourceId === node.id ? "var(--color-text)" : "var(--color-border)"} strokeWidth={connectSourceId === node.id ? "3" : "1"} />
                 <rect width={NODE_HANDLE_WIDTH} height="44" rx="12" fill="transparent" className="mindmap-node-grip" />

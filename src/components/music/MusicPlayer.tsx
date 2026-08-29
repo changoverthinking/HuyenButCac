@@ -21,22 +21,23 @@ export function MusicPlayer() {
   const current=tracks.find((track)=>track.id===currentId)??null;
   const totalSize=useMemo(()=>tracks.reduce((sum,track)=>sum+track.size,0),[tracks]);
 
-  const reload=async()=>{const items=await listMusicTracks();setTracks(items);setCurrentId((id)=>{const preferred=id??localStorage.getItem("hbc-music-current");return preferred&&items.some((item)=>item.id===preferred)?preferred:items[0]?.id??null;});};
+  const reload=async()=>{const items=await listMusicTracks();setTracks(items);setCurrentId((id)=>{const preferred=id??localStorage.getItem("hbc-music-current");return preferred&&items.some((item)=>item.id===preferred)?preferred:items[0]?.id??null;});if(!items.length)setPlaying(false);};
   useEffect(()=>{void reload();},[]);
   useEffect(()=>{const toggle=()=>setExpanded(value=>!value);window.addEventListener("hbc-toggle-music",toggle);return()=>window.removeEventListener("hbc-toggle-music",toggle);},[]);
+  useEffect(()=>{const closeOnEscape=(event:KeyboardEvent)=>{if(event.key==="Escape")setExpanded(false);};window.addEventListener("keydown",closeOnEscape);return()=>window.removeEventListener("keydown",closeOnEscape);},[]);
 
   useEffect(()=>{
     const audio=audioRef.current;if(!audio)return;
     if(!current){audio.removeAttribute("src");audio.load();return;}
     const url=URL.createObjectURL(current.audioBlob);audio.src=url;audio.load();setCurrentTime(0);setDuration(0);
     return()=>URL.revokeObjectURL(url);
-  },[currentId,current?.audioBlob,current]);
+  },[currentId]);
 
   useEffect(()=>{
     const audio=audioRef.current;if(!audio||!current)return;
     if(playing) void audio.play().catch(()=>setPlaying(false));
     else audio.pause();
-  },[playing,currentId,current]);
+  },[playing,currentId]);
 
   useEffect(()=>{if(audioRef.current)audioRef.current.volume=volume;},[volume]);
   useEffect(()=>{if(currentId)localStorage.setItem("hbc-music-current",currentId);},[currentId]);
@@ -60,8 +61,14 @@ export function MusicPlayer() {
   };
 
   const playTrack=(id:string)=>{
-    if(id===currentId){void audioRef.current?.play();setPlaying(true);}
-    else{setCurrentId(id);setPlaying(true);}
+    if(id===currentId){
+      const audio=audioRef.current;
+      if(!audio)return;
+      if(audio.paused){void audio.play().then(()=>setPlaying(true)).catch(()=>setMessage("Trình duyệt chưa cho phép phát nhạc. Hãy bấm lại nút phát."));}
+      else{audio.pause();setPlaying(false);}
+    } else {
+      setCurrentId(id);setPlaying(true);
+    }
   };
 
   useEffect(()=>{
@@ -76,12 +83,12 @@ export function MusicPlayer() {
 
   return (
     <section className={`music-player immortal-music z-40 ${expanded?"is-open":"is-collapsed"}`} style={{borderColor:"var(--color-border)",background:"var(--color-surface)"}}>
-      <audio ref={audioRef} onTimeUpdate={(e)=>setCurrentTime(e.currentTarget.currentTime)} onLoadedMetadata={(e)=>setDuration(e.currentTarget.duration)} onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onEnded={()=>chooseNext(1,true)} />
+      <audio ref={audioRef} onTimeUpdate={(e)=>setCurrentTime(e.currentTarget.currentTime)} onLoadedMetadata={(e)=>setDuration(e.currentTarget.duration)} onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onError={()=>{setPlaying(false);setMessage("Không thể đọc tệp MP3 này trên trình duyệt.");}} onEnded={()=>chooseNext(1,true)} />
       {expanded&&(
         <div className="music-library immortal-panel flex flex-col shadow-2xl">
           <div className="flex items-center justify-between p-3 border-b" style={{borderColor:"var(--color-border)"}}>
             <div><div className="immortal-title font-semibold"><Icon name="music" size={15} /> Tiên Âm Các</div><div className="text-xs" style={{color:"var(--color-text-muted)"}}>{tracks.length} khúc · {(totalSize/1024/1024).toFixed(1)} MB lưu trên thiết bị</div></div>
-            <div className="flex items-center gap-2"><label className="music-add-button px-3 py-2 rounded text-sm cursor-pointer"><Icon name="plus" size={15} /> MP3<input type="file" accept="audio/mpeg,.mp3" multiple className="hidden" onChange={async(e)=>{const files=Array.from(e.target.files??[]);if(!files.length)return;try{await addMusicFiles(files);await reload();setMessage(`Đã lưu ${files.length} bài trên thiết bị.`);}catch(error){setMessage((error as Error).message);}e.target.value="";}} /></label><button className="md:hidden music-collapse-button w-9 h-9 rounded-full" aria-label="Thu nhỏ trình phát nhạc" onClick={()=>setExpanded(false)}><Icon name="chevron-down" size={16} /></button></div>
+            <div className="flex items-center gap-2"><label className="music-add-button px-3 py-2 rounded text-sm cursor-pointer"><Icon name="plus" size={15} /> MP3<input type="file" accept="audio/mpeg,.mp3" multiple className="hidden" onChange={async(e)=>{const files=Array.from(e.target.files??[]);if(!files.length)return;try{await addMusicFiles(files);await reload();setMessage(`Đã lưu ${files.length} bài trên thiết bị.`);}catch(error){setMessage((error as Error).message);}e.target.value="";}} /></label><button className="music-collapse-button music-close-button w-9 h-9 rounded-full" aria-label="Đóng Tiên Âm Các" title="Đóng Tiên Âm Các" onClick={()=>setExpanded(false)}><Icon name="close" size={16} /></button></div>
           </div>
           {message&&<div className="px-3 py-2 text-xs" style={{color:"var(--color-warning)"}}>{message}</div>}
           <div className="overflow-y-auto p-2">
@@ -95,8 +102,9 @@ export function MusicPlayer() {
           </div>
         </div>
       )}
+      {!expanded&&<button className="music-bubble immortal-panel" aria-label="Mở Tiên Âm Các" title="Mở Tiên Âm Các" onClick={()=>setExpanded(true)}><Icon name="music" size={21} /></button>}
       <div className="music-controls immortal-panel h-16 md:h-14 px-2 md:px-4 items-center gap-2">
-        <button aria-label="Mở thư viện nhạc" className="music-square-button w-9 h-9 rounded" onClick={()=>setExpanded((value)=>!value)}><Icon name="music" size={17} /></button>
+        <button aria-label={expanded?"Đóng thư viện nhạc":"Mở thư viện nhạc"} title={expanded?"Đóng thư viện nhạc":"Mở thư viện nhạc"} className="music-square-button w-9 h-9 rounded" onClick={()=>setExpanded((value)=>!value)}><Icon name="music" size={17} /></button>
         <div className="hidden sm:block min-w-0 w-36"><div className="truncate text-sm">{current?.name??"Chưa có nhạc"}</div><div className="text-[11px]" style={{color:"var(--color-text-muted)"}}>{formatTime(currentTime)} / {formatTime(duration)}</div></div>
         <button className="music-plain-button" aria-label="Bài trước" onClick={()=>chooseNext(-1)}><Icon name="previous" size={17} /></button>
         <button aria-label={playing?"Tạm dừng":"Phát"} className={`music-play-button w-10 h-10 rounded-full ${playing?"is-playing":""}`} onClick={togglePlay}><Icon name={playing?"pause":"play"} size={17} /></button>

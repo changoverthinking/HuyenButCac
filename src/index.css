@@ -954,3 +954,30 @@ select:disabled { cursor: not-allowed; }
   .focus-writer-stats { gap: .45rem !important; font-size: .65rem; }
   .story-bible-tabs { margin-inline: 0; }
 }
+
+/* Trạng thái trình phát: thu gọn là một nút nổi, mở rộng mới chiếm thanh điều khiển. */
+.music-player { width: 100%; align-self: stretch; border: 0 !important; background: transparent !important; }
+.music-player > audio { display: none; }
+.music-player.is-collapsed { height: 0; min-height: 0; pointer-events: none; }
+.music-player.is-collapsed .music-bubble { pointer-events: auto; }
+.music-player.is-collapsed .music-controls { display: none; }
+.music-player.is-open { height: auto; pointer-events: auto; }
+.music-player.is-open .music-controls { display: flex; width: 100%; }
+.music-library { left: auto; right: .75rem; z-index: 3; }
+.music-bubble { position: absolute; right: 1rem; bottom: 1rem; z-index: 55; display: grid; place-items: center; width: 54px; height: 54px; padding: 0; border: 1px solid color-mix(in srgb, var(--hbc-gold) 70%, white) !important; border-radius: 50%; color: var(--hbc-ink); background: radial-gradient(circle at 34% 25%, color-mix(in srgb, var(--hbc-gold) 35%, white), var(--hbc-jade) 58%, var(--hbc-ink)) !important; box-shadow: 0 0 0 5px color-mix(in srgb, var(--hbc-jade) 13%, transparent), 0 14px 30px rgb(0 0 0 / .34); pointer-events: auto; }
+.music-bubble:hover { transform: translateY(-2px); }
+.music-close-button { display: grid; place-items: center; min-width: 40px; min-height: 40px; border: 1px solid var(--hbc-line) !important; color: var(--color-text-muted); background: color-mix(in srgb, var(--hbc-panel-alt) 76%, transparent); }
+.music-close-button:hover { color: var(--hbc-gold-soft); border-color: var(--hbc-gold) !important; }
+.immortal-title { display: inline-flex; align-items: center; gap: .4rem; }
+
+@media (max-width: 767px) {
+  .music-player { width: auto; }
+  .music-player.is-collapsed { right: max(.8rem, env(safe-area-inset-right)); bottom: calc(4.35rem + env(safe-area-inset-bottom)); width: 0; }
+  .music-player.is-open { left: max(.5rem, env(safe-area-inset-left)); right: max(.5rem, env(safe-area-inset-right)); width: auto; }
+  .music-bubble { right: 0; bottom: 0; width: 54px; height: 54px; }
+  .music-library { left: max(.5rem, env(safe-area-inset-left)); right: max(.5rem, env(safe-area-inset-right)); }
+}
+
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) {
+  .music-player { width: auto; }
+}

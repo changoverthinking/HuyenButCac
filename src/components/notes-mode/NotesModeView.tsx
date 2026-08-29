@@ -25,7 +25,7 @@ export function NotesModeView() {
   }, [loadFolders, loadNotes]);
 
   useEffect(() => {
-    if (selectedNoteId) setMobileView("editor");
+    setMobileView(selectedNoteId ? "editor" : "list");
   }, [selectedNoteId]);
 
   const selectedNote = view === "active" ? notes.find((n) => n.id === selectedNoteId) ?? null : null;
