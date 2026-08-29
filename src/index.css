@@ -121,7 +121,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, [contenteditabl
 .canvas-toolbars button:disabled, .whiteboard-toolbar button:disabled { opacity: .42; cursor: not-allowed; }
 .canvas-toolbars,.whiteboard-toolbar { max-width:100%; min-width:0; }
 .canvas-toolbars > div,.whiteboard-toolbar > div { overflow-x:auto; overscroll-behavior-inline:contain; scrollbar-width:thin; }
-.canvas-add-fab { border: 2px solid color-mix(in srgb, var(--color-accent) 55%, white); }
 .rich-text-toolbar { flex-wrap: wrap; }
 .music-player { position: relative; flex: 0 0 auto; border-top-width: 1px; }
 .music-controls { display: flex; }
@@ -832,8 +831,77 @@ select:disabled { cursor: not-allowed; }
 .mind-map-view > main,
 .whiteboard-view .whiteboard-canvas { background-color: color-mix(in srgb, var(--hbc-ink) 92%, #02060b) !important; background-image: radial-gradient(circle, color-mix(in srgb, var(--hbc-gold) 15%, transparent) 1px, transparent 1px) !important; background-size: 28px 28px !important; }
 .canvas-toolbars > div { padding: .25rem; border: 1px solid color-mix(in srgb, var(--hbc-line) 74%, transparent); border-radius: 13px; background: color-mix(in srgb, var(--hbc-ink) 70%, transparent); box-shadow: 0 10px 24px rgb(0 0 0 / .2); backdrop-filter: blur(14px); }
-.canvas-add-fab { border-color: color-mix(in srgb, var(--hbc-gold) 82%, white) !important; background: radial-gradient(circle at 34% 25%, color-mix(in srgb, var(--hbc-gold) 35%, white), var(--hbc-jade) 58%, var(--hbc-ink)) !important; color: var(--hbc-ink) !important; box-shadow: 0 0 0 5px color-mix(in srgb, var(--hbc-jade) 13%, transparent), 0 14px 30px rgb(0 0 0 / .34); }
-.canvas-add-fab:hover { transform: translateY(-2px); }
+.mindmap-free-node-action { display: inline-flex; align-items: center; gap: .2rem; }
+.canvas-toolbars .mindmap-toolbar-icon-action {
+  display: grid !important;
+  place-items: center !important;
+  flex: 0 0 40px;
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  border-radius: 50% !important;
+  border-color: color-mix(in srgb, var(--hbc-gold) 82%, white) !important;
+  background: radial-gradient(circle at 34% 25%, color-mix(in srgb, var(--hbc-gold) 35%, white), var(--hbc-jade) 58%, var(--hbc-ink)) !important;
+  color: var(--hbc-ink) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--hbc-jade) 13%, transparent), 0 8px 18px rgb(0 0 0 / .28);
+}
+.canvas-toolbars .mindmap-toolbar-icon-action svg { display: block; }
+.canvas-toolbars .mindmap-toolbar-icon-action:hover { transform: translateY(-1px); }
+.canvas-toolbars .mindmap-toolbar-icon-action.is-muted {
+  border-color: var(--hbc-line) !important;
+  background: color-mix(in srgb, var(--hbc-panel-alt) 78%, transparent) !important;
+  color: var(--hbc-gold-soft) !important;
+  box-shadow: none;
+}
+.canvas-toolbars .mindmap-toolbar-icon-config {
+  display: grid !important;
+  place-items: center !important;
+  flex: 0 0 26px;
+  width: 26px !important;
+  min-width: 26px !important;
+  max-width: 26px;
+  height: 26px !important;
+  min-height: 26px !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  border-radius: 50% !important;
+  color: var(--hbc-gold-soft) !important;
+  background: color-mix(in srgb, var(--hbc-panel-alt) 82%, transparent) !important;
+}
+.canvas-toolbars .mindmap-toolbar-icon-config:hover { color: var(--hbc-gold) !important; transform: none; }
+.mindmap-free-node-config { min-height: 40px; white-space: nowrap; }
+.mindmap-free-node-config > span { color: var(--hbc-gold-soft); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; }
+.canvas-toolbars .mindmap-free-node-config button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  min-height: 32px !important;
+  padding: 0 !important;
+}
+.canvas-toolbars .mindmap-free-node-config .mindmap-icon-choice {
+  width: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px;
+  height: 32px !important;
+  border-radius: 50% !important;
+}
+.canvas-toolbars .mindmap-free-node-config .mindmap-icon-choice.is-active {
+  border-color: color-mix(in srgb, var(--hbc-gold) 82%, white) !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--hbc-gold) 82%, white), var(--hbc-jade)) !important;
+  color: var(--hbc-ink) !important;
+}
+.canvas-toolbars .mindmap-free-node-config .mindmap-hide-action {
+  display: inline-flex;
+  width: auto !important;
+  min-width: max-content !important;
+  padding: .35rem .65rem !important;
+  border-radius: 9px !important;
+  color: var(--color-error) !important;
+}
 
 .music-controls.immortal-panel,
 .music-library.immortal-panel { border-color: var(--hbc-line-strong); background: linear-gradient(135deg, color-mix(in srgb, var(--hbc-panel) 93%, transparent), color-mix(in srgb, var(--hbc-ink) 93%, transparent)); box-shadow: var(--hbc-shadow-float); }
@@ -884,7 +952,8 @@ select:disabled { cursor: not-allowed; }
   .app-sidebar-item,
   .note-row,
   .codex-card,
-  .canvas-add-fab { transition: none !important; transform: none !important; }
+  .mindmap-toolbar-icon-action,
+  .mindmap-toolbar-icon-config { transition: none !important; transform: none !important; }
   .app-shell::after { display: none; }
 }
 

@@ -17,7 +17,7 @@ import {
 } from "../../features/mind-map/mindMapService";
 import { listProjects } from "../../features/projects/projectsService";
 import { addStroke, deleteStroke, listStrokes, smoothPoints, strokeDash, strokePath, updateStroke } from "../../features/canvas/strokesService";
-import { Icon } from "../common/Icons";
+import { Icon, type IconName } from "../common/Icons";
 
 type DragState = {
   id: string;
@@ -30,9 +30,35 @@ type DragState = {
 type Point = { x: number; y: number };
 
 const ACTIVE_MAP_STORAGE_KEY = "hbc-active-mindmap-id";
+const FREE_NODE_ACTION_VISIBLE_STORAGE_KEY = "hbc-mindmap-free-node-action-visible";
+const FREE_NODE_ACTION_ICON_STORAGE_KEY = "hbc-mindmap-free-node-action-icon";
 const NODE_HANDLE_WIDTH = 38;
+const FREE_NODE_ICON_OPTIONS: Array<{ value: IconName; label: string }> = [
+  { value: "plus", label: "Dấu cộng" },
+  { value: "spark", label: "Tinh quang" },
+  { value: "target", label: "Tâm điểm" },
+  { value: "pencil", label: "Bút" },
+  { value: "book", label: "Ngọc thư" },
+];
 const nodeWidth = (title: string) => Math.min(320, Math.max(110, 40 + Array.from(title).length * 9));
 const readStoredActiveMap = () => (typeof window === "undefined" ? null : window.localStorage.getItem(ACTIVE_MAP_STORAGE_KEY));
+const readStoredFreeNodeActionVisible = () => {
+  if (typeof window === "undefined") return true;
+  try {
+    return window.localStorage.getItem(FREE_NODE_ACTION_VISIBLE_STORAGE_KEY) !== "hidden";
+  } catch {
+    return true;
+  }
+};
+const readStoredFreeNodeIcon = (): IconName => {
+  if (typeof window === "undefined") return "plus";
+  try {
+    const stored = window.localStorage.getItem(FREE_NODE_ACTION_ICON_STORAGE_KEY);
+    return FREE_NODE_ICON_OPTIONS.some((option) => option.value === stored) ? stored as IconName : "plus";
+  } catch {
+    return "plus";
+  }
+};
 
 function edgePath(edge: MindMapEdge, source: MindMapNode, target: MindMapNode) {
   const tree = getMindMapEdgeType(edge) === "tree";
@@ -65,6 +91,9 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
   const [smooth, setSmooth] = useState(true);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
+  const [freeNodeActionVisible, setFreeNodeActionVisible] = useState(readStoredFreeNodeActionVisible);
+  const [freeNodeIcon, setFreeNodeIcon] = useState<IconName>(readStoredFreeNodeIcon);
+  const [freeNodeConfigOpen, setFreeNodeConfigOpen] = useState(false);
   const activeRef = useRef<string | null>(readStoredActiveMap());
   const reloadToken = useRef(0);
   const drag = useRef<DragState | null>(null);
@@ -192,6 +221,34 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
     const created = await addMindMapNode(mapId, null, "Ô tự do", 220 + (index % 4) * 160, 100 + (Math.floor(index / 4) % 5) * 100);
     await reload(mapId);
     setSelected(created.id);
+  };
+
+  const changeFreeNodeIcon = (icon: IconName) => {
+    setFreeNodeIcon(icon);
+    try {
+      window.localStorage.setItem(FREE_NODE_ACTION_ICON_STORAGE_KEY, icon);
+    } catch {
+      // Giao diện vẫn hoạt động nếu trình duyệt chặn localStorage.
+    }
+  };
+
+  const hideFreeNodeAction = () => {
+    setFreeNodeActionVisible(false);
+    setFreeNodeConfigOpen(false);
+    try {
+      window.localStorage.setItem(FREE_NODE_ACTION_VISIBLE_STORAGE_KEY, "hidden");
+    } catch {
+      // Giao diện vẫn hoạt động nếu trình duyệt chặn localStorage.
+    }
+  };
+
+  const restoreFreeNodeAction = () => {
+    setFreeNodeActionVisible(true);
+    try {
+      window.localStorage.removeItem(FREE_NODE_ACTION_VISIBLE_STORAGE_KEY);
+    } catch {
+      // Giao diện vẫn hoạt động nếu trình duyệt chặn localStorage.
+    }
   };
 
   const removeActiveMap = async () => {
@@ -378,13 +435,21 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
             <button disabled={!selected} onClick={() => void deleteSelectedNode()} className="rounded px-3 py-2 icon-label" style={{ background: "var(--color-surface)" }}><Icon name="trash" size={15} /> Xóa ô</button>
             <button disabled={!selectedNode?.linkId} onClick={() => void openLinked()} className="shrink-0 rounded px-3 py-2 icon-label" style={{ background: "var(--color-surface-alt)", color: "var(--color-accent)" }}><Icon name="book" size={15} /> Đọc chi tiết</button>
             <button className="shrink-0 rounded px-3 py-2 icon-label" style={{ background: connectMode ? "var(--color-accent)" : "var(--color-surface-alt)", color: connectMode ? "var(--color-bg)" : "var(--color-text)" }} onClick={toggleConnectMode}><Icon name="link" size={15} /> Nối tự do</button>
-            <button className="shrink-0 rounded px-3 py-2 icon-label" style={{ background: "var(--color-surface-alt)" }} onClick={() => void addFreeNode()}><Icon name="plus" size={15} /> Ô tự do</button>
+            {freeNodeActionVisible ? <div className="mindmap-free-node-action shrink-0">
+              <button aria-label="Tạo ô tự do" title="Tạo ô tự do" className="mindmap-toolbar-icon-action" onClick={() => void addFreeNode()}><Icon name={freeNodeIcon} size={18} /></button>
+              <button aria-label="Tùy chỉnh nút tạo ô tự do" title="Tùy chỉnh nút tạo ô tự do" aria-expanded={freeNodeConfigOpen} className="mindmap-toolbar-icon-config" onClick={() => setFreeNodeConfigOpen((value) => !value)}><Icon name="palette" size={13} /></button>
+            </div> : <button aria-label="Khôi phục nút tạo ô tự do" title="Khôi phục nút tạo ô tự do" className="mindmap-toolbar-icon-action is-muted shrink-0" onClick={restoreFreeNodeAction}><Icon name="refresh" size={17} /></button>}
             <button className="shrink-0 rounded px-3 py-2 icon-label" style={{ background: "var(--color-surface-alt)" }} onClick={() => void addBranch()}><Icon name="plus" size={15} /> Nhánh con</button>
             <button aria-label="Thu nhỏ" className="rounded px-2 py-2" style={{ background: "var(--color-surface)" }} onClick={() => zoomAt(zoom - 0.15, { x: 200, y: 160 })}><Icon name="zoom-out" size={16} /></button>
             <button title="Đặt lại góc nhìn" className="rounded px-2 py-2 text-xs" style={{ background: "var(--color-surface)" }} onClick={resetView}>{Math.round(zoom * 100)}%</button>
             <button aria-label="Phóng to" className="rounded px-2 py-2" style={{ background: "var(--color-surface)" }} onClick={() => zoomAt(zoom + 0.15, { x: 200, y: 160 })}><Icon name="zoom-in" size={16} /></button>
             <span className="hidden lg:inline rounded px-2 py-2 text-xs" style={{ background: "var(--color-surface)", color: "var(--color-text-muted)" }}>{connectMode ? (connectSource ? `Đã chọn “${connectSource.title}”, chạm ô thứ hai` : "Chạm ô đầu tiên để bắt đầu nối") : "Kéo ô để đặt vị trí"}</span>
           </div>
+          {freeNodeConfigOpen && freeNodeActionVisible && <div className="mindmap-free-node-config flex items-center gap-2 overflow-x-auto pointer-events-auto">
+            <span>Icon ô tự do</span>
+            {FREE_NODE_ICON_OPTIONS.map((option) => <button key={option.value} aria-label={`Dùng icon ${option.label}`} aria-pressed={freeNodeIcon === option.value} title={option.label} className={freeNodeIcon === option.value ? "mindmap-icon-choice is-active" : "mindmap-icon-choice"} onClick={() => changeFreeNodeIcon(option.value)}><Icon name={option.value} size={16} /></button>)}
+            <button aria-label="Ẩn icon tạo ô tự do" className="mindmap-hide-action icon-label" onClick={hideFreeNodeAction}><Icon name="trash" size={14} /> Ẩn khỏi thanh công cụ</button>
+          </div>}
           <div className="flex gap-2 overflow-x-auto pointer-events-auto">
             <select aria-label="Chọn dự án liên kết" value={projectChoice} onChange={(event) => setProjectChoice(event.target.value)} className="min-w-40 max-w-64 rounded px-2 py-2" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}><option value="">Liên kết dự án…</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.title}</option>)}</select>
             <button disabled={!projectChoice} className="shrink-0 rounded px-3 py-2 icon-label" style={{ background: "var(--color-surface-alt)" }} onClick={async () => { if (!projectChoice) return; const map = await createOrSyncProjectMap(projectChoice); selectMap(map.id); }}><Icon name="refresh" size={15} /> Tạo/đồng bộ cây</button>
@@ -394,8 +459,6 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
             {selectedStroke && <><button className="shrink-0 rounded px-3 icon-label" style={{ background: "var(--color-surface-alt)" }} onClick={async () => { const item = strokes.find((stroke) => stroke.id === selectedStroke); if (!item) return; await updateStroke("mindmap", item.id, { locked: !item.locked }); setStrokes((items) => items.map((stroke) => stroke.id === item.id ? { ...stroke, locked: !stroke.locked } : stroke)); }}>{strokes.find((item) => item.id === selectedStroke)?.locked ? <><Icon name="unlock" size={15} /> Mở khóa</> : <><Icon name="lock" size={15} /> Khóa</>}</button><button disabled={strokes.find((item) => item.id === selectedStroke)?.locked} className="shrink-0 rounded px-3 icon-label" style={{ color: "var(--color-error)", background: "var(--color-surface-alt)" }} onClick={async () => { await deleteStroke("mindmap", selectedStroke); setStrokes((items) => items.filter((item) => item.id !== selectedStroke)); setSelectedStroke(null); }}><Icon name="trash" size={15} /> Xóa nét</button></>}
           </div>
         </div>
-
-        <button aria-label="Tạo ô tự do" title="Tạo ô tự do" onClick={() => void addFreeNode()} className="canvas-add-fab absolute z-20 right-4 bottom-4 w-14 h-14 rounded-full text-3xl shadow-xl" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}><Icon name="plus" size={25} /></button>
 
         <svg
           className="w-full h-full touch-none"
