@@ -4,6 +4,7 @@ import { cloudConfigured, missingCloudSettings, supabase } from "../../features/
 import { authErrorMessage, normalizeAuthEmail } from "../../features/auth/authMessages";
 import { getLastSync, syncNow, type SyncStatus } from "../../features/sync/syncService";
 import { getVaultState, isVaultUnlocked, lockVault, setupVault, unlockVault } from "../../features/crypto/vaultService";
+import { Icon } from "../common/Icons";
 
 export function AccountPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -169,7 +170,7 @@ export function AccountPanel({ open, onClose }: { open: boolean; onClose: () => 
   if (!open) return null;
   return <div className="fixed inset-0 z-[80] grid place-items-center bg-black/60 p-4" onMouseDown={onClose}>
     <section className="account-panel immortal-panel max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border p-5 shadow-2xl" onMouseDown={e=>e.stopPropagation()}>
-      <div className="account-heading flex items-center justify-between mb-4"><div className="flex items-center gap-3"><span className="brand-sigil small">鑰</span><div><h2 className="text-xl font-bold">Tàng Thư Mật Cảnh</h2><p className="text-xs opacity-65">Tài khoản · Kho bảo mật · Đồng bộ</p></div></div><button className="mystic-close" onClick={onClose} aria-label="Đóng">✕</button></div>
+      <div className="account-heading flex items-center justify-between mb-4"><div className="flex items-center gap-3"><span className="brand-sigil small" aria-hidden="true"><Icon name="seal" size={21} /></span><div><h2 className="text-xl font-bold">Tàng Thư Mật Cảnh</h2><p className="text-xs opacity-65">Tài khoản · Kho bảo mật · Đồng bộ</p></div></div><button className="mystic-close" onClick={onClose} aria-label="Đóng"><Icon name="close" size={18} /></button></div>
       {!cloudConfigured && <div className="mb-4 rounded-xl border p-3" style={{background:"var(--color-surface-alt)",borderColor:"var(--color-warning)"}}>
         <p>Máy chủ Supabase chưa được đưa vào bản triển khai. Dữ liệu hiện vẫn lưu trên thiết bị này.</p>
         <p className="mt-2 text-sm">Thiếu GitHub Actions Variable: <b>{missingCloudSettings.join(" và ")}</b>.</p>
@@ -182,7 +183,7 @@ export function AccountPanel({ open, onClose }: { open: boolean; onClose: () => 
         </form>
       : session && vaultState !== "unlocked" ? <div className="space-y-4">
           <div className="rounded-xl p-3" style={{background:"var(--color-surface-alt)"}}>
-            <div className="font-semibold">🔐 {vaultState === "setup" ? "Tạo Kho bảo mật" : vaultState === "locked" ? "Mở Kho bảo mật" : "Đang kiểm tra Kho…"}</div>
+            <div className="font-semibold"><Icon name="lock" size={16} /> {vaultState === "setup" ? "Tạo Kho bảo mật" : vaultState === "locked" ? "Mở Kho bảo mật" : "Đang kiểm tra Kho…"}</div>
             <p className="mt-1 text-sm opacity-75">{vaultState === "setup" ? "Tạo mật khẩu riêng để mã hóa dữ liệu trước khi đồng bộ." : "Nhập mật khẩu Kho đã tạo trên thiết bị đầu tiên."}</p>
           </div>
           {vaultState !== "loading" && <form className="space-y-3" onSubmit={submitVault}>
@@ -195,8 +196,8 @@ export function AccountPanel({ open, onClose }: { open: boolean; onClose: () => 
       : session ? <div className="space-y-4">
           <div className="rounded-xl p-3" style={{background:"var(--color-surface-alt)"}}><div className="text-sm opacity-70">Đã đăng nhập</div><div className="font-semibold break-all">{session.user.email}</div></div>
           <div className="text-sm">Trạng thái: <b>{status === "syncing" ? "Đang đồng bộ…" : status === "synced" ? "Đã đồng bộ" : status === "offline" ? "Ngoại tuyến – sẽ đồng bộ khi có mạng" : status === "error" ? "Có lỗi" : "Sẵn sàng"}</b>{lastSync>0 && <div className="opacity-70 mt-1">Lần cuối: {new Date(lastSync).toLocaleString("vi-VN")}</div>}</div>
-          <button className="account-primary w-full" disabled={status==="syncing"} onClick={()=>void runSync()}>↻ Đồng bộ ngay</button>
-          <button className="w-full rounded-xl border px-4 py-2" style={{borderColor:"var(--color-border)"}} onClick={()=>{lockVault(session.user.id);setVaultState("locked");setStatus("idle");}}>🔒 Khóa Kho ngay</button>
+          <button className="account-primary w-full" disabled={status==="syncing"} onClick={()=>void runSync()}><Icon name="refresh" size={16} /> Đồng bộ ngay</button>
+          <button className="account-secondary w-full rounded-xl border px-4 py-2" style={{borderColor:"var(--color-border)"}} onClick={()=>{lockVault(session.user.id);setVaultState("locked");setStatus("idle");}}><Icon name="lock" size={16} /> Khóa Kho ngay</button>
           <button disabled={busy} className="w-full rounded-xl border px-4 py-2" style={{borderColor:"var(--color-border)"}} onClick={()=>void signOutSafely()}>{busy?"Đang đồng bộ…":"Đăng xuất an toàn"}</button>
         </div>
       : <>
@@ -205,7 +206,7 @@ export function AccountPanel({ open, onClose }: { open: boolean; onClose: () => 
           <input required name="email" type="email" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
           {mode!=="forgot" && <div className="relative">
             <input required name="password" minLength={8} className="account-password-input" type={showPassword?"text":"password"} autoComplete={mode==="register"?"new-password":"current-password"} placeholder="Mật khẩu (ít nhất 8 ký tự)" value={password} onChange={e=>setPassword(e.target.value)} />
-            <button type="button" className="absolute inset-y-0 right-0 grid w-12 place-items-center text-lg opacity-70" aria-label={showPassword?"Ẩn mật khẩu":"Hiện mật khẩu"} title={showPassword?"Ẩn mật khẩu":"Hiện mật khẩu"} onClick={()=>setShowPassword(value=>!value)}>{showPassword?"◉":"◎"}</button>
+            <button type="button" className="absolute inset-y-0 right-0 grid w-12 place-items-center text-lg opacity-70" aria-label={showPassword?"Ẩn mật khẩu":"Hiện mật khẩu"} title={showPassword?"Ẩn mật khẩu":"Hiện mật khẩu"} onClick={()=>setShowPassword(value=>!value)}><Icon name="eye" size={18} /></button>
           </div>}
           {mode!=="forgot" && <div>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={rememberLogin} onChange={e=>setRememberLogin(e.target.checked)} /> Ghi nhớ đăng nhập trên thiết bị này</label>

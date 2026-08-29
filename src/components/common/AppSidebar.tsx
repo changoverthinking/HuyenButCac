@@ -1,6 +1,7 @@
 import { APP_CONFIG } from "../../app/appConfig";
+import { Icon, type IconName } from "./Icons";
 
-export type AppSidebarItem = { id: string; label: string; icon: string; ready: boolean };
+export type AppSidebarItem = { id: string; label: string; kicker?: string; icon: IconName; ready: boolean };
 
 /**
  * Sidebar điều hướng cấp ứng dụng, cố định bên trái trên desktop (md+).
@@ -36,7 +37,7 @@ export function AppSidebar<T extends string>({
         className="flex items-center gap-3 border-b shrink-0"
         style={{ padding: collapsed ? "1.1rem .6rem" : "1.1rem 1.1rem", borderColor: "var(--color-border)" }}
       >
-        <span className="brand-sigil small shrink-0">玄</span>
+        <span className="brand-sigil small shrink-0" aria-hidden="true"><Icon name="seal" size={22} /></span>
         {!collapsed && (
           <div className="min-w-0">
             <div
@@ -61,7 +62,7 @@ export function AppSidebar<T extends string>({
               onClick={() => onSelect(item.id as T)}
               aria-current={active ? "page" : undefined}
               title={collapsed ? item.label : undefined}
-              className="app-sidebar-item w-full flex items-center gap-3 text-sm"
+              className={`app-sidebar-item w-full flex items-center gap-3 text-sm ${active ? "is-active" : ""}`}
               style={{
                 padding: collapsed ? ".72rem 0" : ".72rem 1.1rem",
                 justifyContent: collapsed ? "center" : "flex-start",
@@ -70,11 +71,12 @@ export function AppSidebar<T extends string>({
                 color: active ? "var(--color-accent)" : "var(--color-text-muted)",
               }}
             >
-              <span className="shrink-0" style={{ fontSize: "1.05rem", lineHeight: 1 }}>{item.icon}</span>
+              <span className="app-sidebar-icon shrink-0" aria-hidden="true"><Icon name={item.icon} size={21} /></span>
               {!collapsed && (
-                <span className="truncate" style={{ fontWeight: active ? 600 : 400 }}>
-                  {item.label}
-                  {!item.ready && <span className="ml-1 text-[10px] opacity-60">(sắp có)</span>}
+                <span className="app-sidebar-copy truncate" style={{ fontWeight: active ? 600 : 400 }}>
+                  <span>{item.label}</span>
+                  <small>{item.kicker ?? (item.ready ? "KHÔNG GIAN LÀM VIỆC" : "SẮP MỞ")}</small>
+                  {!item.ready && <em>(sắp có)</em>}
                 </span>
               )}
             </button>
@@ -95,7 +97,8 @@ export function AppSidebar<T extends string>({
           background: "transparent",
         }}
       >
-        {collapsed ? "▶" : "◀ Thu gọn"}
+        <span aria-hidden="true"><Icon name={collapsed ? "chevron-right" : "chevron-left"} size={16} /></span>
+        {!collapsed && <span>Thu gọn</span>}
       </button>
     </aside>
   );

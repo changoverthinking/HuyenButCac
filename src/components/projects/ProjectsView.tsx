@@ -5,6 +5,7 @@ import type { ProjectKind } from "../../types/entities";
 import { FocusWriter } from "./FocusWriter";
 import { KanbanBoard } from "./KanbanBoard";
 import { StoryBibleTab } from "./StoryBibleTab";
+import { Icon } from "../common/Icons";
 
 const KIND_LABEL: Record<ProjectKind, string> = {
   novel: "Tiểu thuyết / Truyện dài",
@@ -29,9 +30,21 @@ function ProjectPicker() {
   }, [loadProjects]);
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <h2 className="text-xl font-semibold mb-4" style={{ color: "var(--color-text)" }}>
-        Dự án của bạn
+    <div className="project-picker p-6 max-w-2xl mx-auto">
+      <div className="project-library-hero">
+        <div>
+          <span className="section-eyebrow">THIÊN THƯ · XƯỞNG SÁNG TÁC</span>
+          <h2>Vạn giới trong một ngọc giản</h2>
+          <p>Gom dàn ý, nhân vật, bối cảnh và từng chương vào một không gian có thể lớn lên cùng thế giới của bạn.</p>
+          <div className="project-hero-stats">
+            <span><b>{projects.length}</b> thư quyển</span>
+            <span><b>∞</b> ý niệm</span>
+          </div>
+        </div>
+        <div className="project-library-seal" aria-hidden="true"><Icon name="projects" size={40} /></div>
+      </div>
+      <h2 className="project-list-heading text-xl font-semibold mb-4" style={{ color: "var(--color-text)" }}>
+        Thư quyển của bạn
       </h2>
 
       <form
@@ -64,10 +77,10 @@ function ProjectPicker() {
         </select>
         <button
           type="submit"
-          className="px-3 py-2 rounded-lg text-sm font-medium"
+          className="px-3 py-2 rounded-lg text-sm font-medium icon-label"
           style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}
         >
-          Tạo
+          <Icon name="plus" size={15} /> Tạo
         </button>
       </form>
 
@@ -78,13 +91,14 @@ function ProjectPicker() {
           </p>
         )}
         {projects.map((p) => (
-          <div key={p.id} className="flex items-center gap-2 p-3 rounded-lg border" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
+          <div key={p.id} className="project-list-card">
+            <span className="project-card-mark" aria-hidden="true"><Icon name={p.kind === "novel" ? "book" : "projects"} size={20} /></span>
             <button onClick={() => selectProject(p.id)} className="text-left flex-1 min-w-0">
               <div className="font-medium truncate" style={{ color: "var(--color-text)" }}>{p.title}</div>
               <div className="text-xs" style={{ color: "var(--color-text-muted)" }}>{KIND_LABEL[p.kind]} · {p.status}</div>
             </button>
-            <button className="text-xs" onClick={async()=>{const title=window.prompt("Đổi tên dự án:",p.title)?.trim();if(title)await updateProject(p.id,{title});}}>Đổi tên</button>
-            <button className="text-xs" style={{color:"var(--color-error)"}} onClick={()=>{if(window.confirm(`Xóa dự án “${p.title}” và toàn bộ chương?`))void deleteProject(p.id);}}>Xóa</button>
+            <button className="text-xs icon-label" onClick={async()=>{const title=window.prompt("Đổi tên dự án:",p.title)?.trim();if(title)await updateProject(p.id,{title});}}><Icon name="pencil" size={14} /> Đổi tên</button>
+            <button className="text-xs icon-label" style={{color:"var(--color-error)"}} onClick={()=>{if(window.confirm(`Xóa dự án “${p.title}” và toàn bộ chương?`))void deleteProject(p.id);}}><Icon name="trash" size={14} /> Xóa</button>
           </div>
         ))}
       </div>
@@ -103,7 +117,7 @@ function ChapterSynopsis({ chapterId, synopsis }: { chapterId: string; synopsis:
         className="text-[11px]"
         style={{ color: synopsis ? "var(--color-accent)" : "var(--color-text-muted)" }}
       >
-        {open ? "▾" : "▸"} {synopsis ? "Tóm tắt chương" : "+ Thêm tóm tắt chương (chống quên mạch)"}
+        <Icon name={open ? "chevron-down" : "chevron-right"} size={13} /> {synopsis ? "Tóm tắt chương" : "+ Thêm tóm tắt chương (chống quên mạch)"}
       </button>
       {open && (
         <textarea
@@ -133,7 +147,7 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
   const rootChapters = chapters.filter((c) => c.sectionId === null);
 
   return (
-    <div className="p-4">
+    <div className="project-outline p-4">
       <div className="flex gap-2 mb-3">
         <input
           value={chapterTitle}
@@ -151,7 +165,7 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
           className="px-3 py-1.5 rounded text-sm"
           style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}
         >
-          + Chương
+          <Icon name="plus" size={15} /> Chương
         </button>
       </div>
 
@@ -188,14 +202,14 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
           className="px-3 py-1.5 rounded text-sm"
           style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}
         >
-          + Phần
+          <Icon name="plus" size={15} /> Phần
         </button>
       </div>
 
       {sections.map((s) => (
         <div key={s.id} id={`project-section-${s.id}`} className="mb-3 rounded-lg p-2" style={{outline:focusedSectionId===s.id?"2px solid var(--color-focus)":"none"}}>
-          <div className="text-sm font-semibold mb-1" style={{ color: "var(--color-accent)" }}>
-            📖 {s.title}
+            <div className="text-sm font-semibold mb-1 section-heading" style={{ color: "var(--color-accent)" }}>
+            <Icon name="book" size={16} /> {s.title}
           </div>
           <ul className="pl-4">
             {chapters
@@ -222,7 +236,7 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
             className="text-xs ml-4 mt-1"
             style={{ color: "var(--color-text-muted)" }}
           >
-            + Thêm chương vào phần
+            <Icon name="plus" size={14} /> Thêm chương vào phần
           </button>
         </div>
       ))}
@@ -238,7 +252,7 @@ function WordGoalBar({ projectId, wordCountGoal }: { projectId: string; wordCoun
   const pct = wordCountGoal ? Math.min(100, Math.round((total / wordCountGoal) * 100)) : 0;
 
   return (
-    <div className="px-4 py-2 border-b flex items-center gap-3" style={{ borderColor: "var(--color-border)" }}>
+    <div className="project-goal-bar px-4 py-2 border-b flex items-center gap-3" style={{ borderColor: "var(--color-border)" }}>
       <span className="text-xs whitespace-nowrap" style={{ color: "var(--color-text-muted)" }}>
         {total.toLocaleString("vi-VN")} từ{wordCountGoal ? ` / ${wordCountGoal.toLocaleString("vi-VN")}` : ""}
       </span>
@@ -294,10 +308,10 @@ export function ProjectsView({focusedSectionId=null}:{focusedSectionId?:string|n
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b" style={{ borderColor: "var(--color-border)" }}>
-        <button onClick={() => selectProject(null)} className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-          ← Danh sách dự án
+    <div className="project-view h-full flex flex-col">
+      <div className="project-header flex items-center justify-between gap-2 px-4 py-3 border-b" style={{ borderColor: "var(--color-border)" }}>
+        <button onClick={() => selectProject(null)} className="project-back-button text-sm" style={{ color: "var(--color-text-muted)" }}>
+          <Icon name="chevron-left" size={16} /> Danh sách dự án
         </button>
         <h2 className="min-w-0 flex-1 truncate text-center font-semibold" style={{ color: "var(--color-text)" }}>
           {selectedProject?.title}
@@ -313,10 +327,10 @@ export function ProjectsView({focusedSectionId=null}:{focusedSectionId?:string|n
             a.click();
             URL.revokeObjectURL(url);
           }}
-          className="text-sm px-3 py-1.5 rounded"
+          className="project-export-button text-sm px-3 py-1.5 rounded"
           style={{ background: "var(--color-surface-alt)", color: "var(--color-text)" }}
         >
-          Xuất Markdown
+          <Icon name="export" size={15} /> <span className="hidden sm:inline">Xuất Markdown</span>
         </button>
       </div>
 
@@ -324,22 +338,22 @@ export function ProjectsView({focusedSectionId=null}:{focusedSectionId?:string|n
 
       <div className="project-mode-tabs flex gap-1 overflow-x-auto px-4 pt-2 border-b" style={{ borderColor: "var(--color-border)" }}>
         {[
-          { id: "outline", label: "Dàn ý" },
-          { id: "bible", label: "Thư Viện Truyện" },
-          { id: "kanban", label: "Kanban" },
-          { id: "milestones", label: "Milestone" },
+          { id: "outline", label: "Dàn ý", icon: "notes" as const },
+          { id: "bible", label: "Thư Viện Truyện", icon: "book" as const },
+          { id: "kanban", label: "Kanban", icon: "mindmap" as const },
+          { id: "milestones", label: "Milestone", icon: "target" as const },
         ].map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id as typeof tab)}
-            className="shrink-0 px-3 py-2 text-sm rounded-t-lg"
+            className={`project-mode-tab shrink-0 px-3 py-2 text-sm rounded-t-lg ${tab === t.id ? "is-active" : ""}`}
             style={{
               background: tab === t.id ? "var(--color-surface)" : "transparent",
               color: tab === t.id ? "var(--color-accent)" : "var(--color-text-muted)",
               borderBottom: tab === t.id ? "2px solid var(--color-accent)" : "2px solid transparent",
             }}
           >
-            {t.label}
+            <Icon name={t.icon} size={16} /> {t.label}
           </button>
         ))}
       </div>
@@ -388,7 +402,7 @@ function MilestonesTab() {
           style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)" }}
         />
         <button type="submit" className="px-3 py-1.5 rounded text-sm" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}>
-          + Thêm
+          <Icon name="plus" size={15} /> Thêm
         </button>
       </form>
       <ul>

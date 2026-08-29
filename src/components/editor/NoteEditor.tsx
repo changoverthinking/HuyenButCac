@@ -39,9 +39,9 @@ export function NoteEditor({ note }: { note: Note }) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="note-editor-view flex flex-col h-full">
       <div
-        className="flex items-center gap-2 px-4 py-2 border-b flex-wrap"
+        className="note-editor-toolbar flex items-center gap-2 px-4 py-2 border-b flex-wrap"
         style={{ borderColor: "var(--color-border)" }}
       >
         <RichTextToolbar editorRef={editorRef} compact onFormat={() => scheduleSave({ contentHtml: editorRef.current?.innerHTML ?? "" })} />
@@ -53,7 +53,7 @@ export function NoteEditor({ note }: { note: Note }) {
         </span>
       </div>
 
-      <div className="px-6 pt-4">
+      <div className="note-editor-title px-6 pt-4">
         <input
           className="w-full bg-transparent text-2xl font-semibold outline-none"
           style={{ color: "var(--color-text)" }}
@@ -68,14 +68,14 @@ export function NoteEditor({ note }: { note: Note }) {
 
       <div
         ref={(node)=>{editorRef.current=node;if(node&&!editorInitialized.current){node.innerHTML=note.contentHtml;editorInitialized.current=true;}}}
-        className="hbc-editor flex-1 px-6 py-4 overflow-y-auto max-w-[70ch]"
+        className="note-editor-canvas hbc-editor flex-1 px-6 py-4 overflow-y-auto max-w-[70ch]"
         contentEditable
         suppressContentEditableWarning
         data-placeholder="Bắt đầu viết…"
         onInput={() => scheduleSave({ contentHtml: editorRef.current?.innerHTML ?? "" })}
       />
 
-      <div className="px-6 py-2 border-t" style={{ borderColor: "var(--color-border)" }}>
+      <div className="note-editor-footer px-6 py-2 border-t" style={{ borderColor: "var(--color-border)" }}>
         <button
           type="button"
           className="text-sm"

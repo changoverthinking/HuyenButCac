@@ -8,6 +8,27 @@
   --radius-base: 10px;
   --font-scale: 1;
   --font-display: "Philosopher", "Noto Serif", "Times New Roman", serif;
+  --color-bg: #070c14;
+  --color-surface: #101828;
+  --color-surface-alt: #162035;
+  --color-text: #e7eef6;
+  --color-text-muted: #8fa2bb;
+  --color-border: #283d5c;
+  --color-accent: #3d9e7a;
+  --color-focus: #8be2c5;
+  --color-error: #e06a7f;
+  --color-warning: #e0a84e;
+  --color-success: #50c69a;
+  --color-node: #1d2b44;
+  --color-connector: #3a5278;
+  --color-editor-bg: #0a1020;
+  --color-canvas-bg: #04060a;
+  --music-bg-1: #101828;
+  --music-bg-2: #04060a;
+  --music-metal: #b8843a;
+  --music-gem: #3d9e7a;
+  --music-gem-light: #a8f0d8;
+  --music-ink: #070c14;
   --color-accent-gold: var(--color-accent);
   --color-accent-gold-pale: var(--color-accent);
 }

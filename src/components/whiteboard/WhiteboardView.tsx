@@ -5,6 +5,7 @@ import {
   listWhiteboards, removeBoardObjectConnections, renameWhiteboard, updateBoardObject,
 } from "../../features/whiteboard/whiteboardService";
 import { addStroke, deleteStroke, listStrokes, smoothPoints, strokeDash, strokePath, updateStroke } from "../../features/canvas/strokesService";
+import { Icon } from "../common/Icons";
 
 type Point={x:number;y:number};
 
@@ -83,10 +84,10 @@ export function WhiteboardView() {
   const finishDrawing=async()=>{const current=drawing.current;drawing.current=null;if(!active||!current||current.points.length<2)return;const points=smooth?smoothPoints(current.points):current.points;const created=await addStroke("whiteboard",{ownerId:active,points,color:"#4fd1c5",width:strokeWidth,dash:strokeDashStyle,arrow:strokeArrow,smoothed:smooth,locked:false});setStrokes(items=>[...items.filter(item=>item.id!=="__preview"),created]);};
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="whiteboard-view h-full flex flex-col">
       <header className="whiteboard-toolbar shrink-0 border-b" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
         <div className="flex gap-2 p-2 min-w-0">
-        <button className="shrink-0" onClick={async () => { const board = await createWhiteboard(); setActive(board.id); await reload(board.id); }}>＋ Bảng <span className="hidden sm:inline">({boards.length})</span></button>
+        <button className="shrink-0 icon-label" onClick={async () => { const board = await createWhiteboard(); setActive(board.id); await reload(board.id); }}><Icon name="plus" size={15} /> Bảng <span className="hidden sm:inline">({boards.length})</span></button>
         <select
           aria-label="Chọn bảng trắng"
           value={active ?? ""}
@@ -96,24 +97,24 @@ export function WhiteboardView() {
         >
           {boards.map((board) => <option key={board.id} value={board.id}>{board.title}</option>)}
         </select>
-        <button className="shrink-0" aria-label="Đổi tên bảng" onClick={async()=>{if(!active)return;const current=boards.find((board)=>board.id===active);const title=window.prompt("Tên bảng trắng:",current?.title??"")?.trim();if(!title)return;await renameWhiteboard(active,title);await reload(active);}}>✎<span className="hidden md:inline"> Đổi tên</span></button>
-        <button className="shrink-0" aria-label="Xóa bảng" style={{ color: "var(--color-error)" }} onClick={removeActiveBoard}>⌫<span className="hidden md:inline"> Xóa bảng</span></button>
+        <button className="shrink-0 icon-label" aria-label="Đổi tên bảng" onClick={async()=>{if(!active)return;const current=boards.find((board)=>board.id===active);const title=window.prompt("Tên bảng trắng:",current?.title??"")?.trim();if(!title)return;await renameWhiteboard(active,title);await reload(active);}}><Icon name="pencil" size={15} /><span className="hidden md:inline">Đổi tên</span></button>
+        <button className="shrink-0 icon-label" aria-label="Xóa bảng" style={{ color: "var(--color-error)" }} onClick={removeActiveBoard}><Icon name="trash" size={15} /><span className="hidden md:inline">Xóa bảng</span></button>
         </div>
         <div className="flex items-center gap-2 px-2 pb-2 overflow-x-auto">
         {([{"kind":"note","label":"Ghi chú"},{"kind":"text","label":"Chữ"},{"kind":"rectangle","label":"Chữ nhật"},{"kind":"ellipse","label":"Elip"}] as {kind:WhiteboardObjectKind;label:string}[]).map(({kind,label}) => (
-          <button key={kind} className="shrink-0 px-3 py-1.5 rounded" style={{ background: "var(--color-surface-alt)" }} onClick={() => void add(kind)}>＋ {label}</button>
+          <button key={kind} className="shrink-0 px-3 py-1.5 rounded icon-label" style={{ background: "var(--color-surface-alt)" }} onClick={() => void add(kind)}><Icon name="plus" size={15} /> {label}</button>
         ))}
         <button disabled={!selected || objects.find(item=>item.id===selected)?.locked} onClick={async () => {
           if (!selected) return;
           await deleteBoardObject(selected); setSelected(null); await reload();
-        }}>Xóa</button>
-        <button className="shrink-0 rounded px-3 py-1.5" style={{background:drawMode?"var(--color-accent)":"var(--color-surface-alt)",color:drawMode?"var(--color-bg)":"var(--color-text)"}} onClick={()=>{setDrawMode(value=>!value);setSelectedStroke(null);}}>✎ Bút chì</button>
+        }}><span className="icon-label"><Icon name="trash" size={15} /> Xóa</span></button>
+        <button className="shrink-0 rounded px-3 py-1.5 icon-label" style={{background:drawMode?"var(--color-accent)":"var(--color-surface-alt)",color:drawMode?"var(--color-bg)":"var(--color-text)"}} onClick={()=>{setDrawMode(value=>!value);setSelectedStroke(null);}}><Icon name="pencil" size={15} /> Bút chì</button>
         {drawMode&&<><select aria-label="Kiểu nét" value={strokeDashStyle} onChange={event=>setStrokeDashStyle(event.target.value as CanvasStroke["dash"])} className="shrink-0 rounded px-2" style={{background:"var(--color-surface)"}}><option value="solid">Liền</option><option value="dashed">Đứt</option><option value="dotted">Chấm</option></select><select aria-label="Mũi tên" value={strokeArrow} onChange={event=>setStrokeArrow(event.target.value as CanvasStroke["arrow"])} className="shrink-0 rounded px-2" style={{background:"var(--color-surface)"}}><option value="none">Không mũi tên</option><option value="end">Mũi tên cuối</option><option value="both">Hai đầu</option></select><label className="shrink-0">Nét {strokeWidth}<input aria-label="Độ dày nét" type="range" min="1" max="12" value={strokeWidth} onChange={event=>setStrokeWidth(Number(event.target.value))}/></label><label className="shrink-0"><input type="checkbox" checked={smooth} onChange={event=>setSmooth(event.target.checked)}/> Mượt</label></>}
-        {(selected||selectedStroke)&&<button className="shrink-0" onClick={async()=>{if(selectedStroke){const item=strokes.find(stroke=>stroke.id===selectedStroke);if(!item)return;await updateStroke("whiteboard",item.id,{locked:!item.locked});setStrokes(items=>items.map(stroke=>stroke.id===item.id?{...stroke,locked:!stroke.locked}:stroke));}else if(selected){const item=objects.find(object=>object.id===selected);if(!item)return;await updateBoardObject(item.id,{locked:!item.locked});setObjects(items=>items.map(object=>object.id===item.id?{...object,locked:!object.locked}:object));}}}>{(selectedStroke?strokes.find(item=>item.id===selectedStroke)?.locked:objects.find(item=>item.id===selected)?.locked)?"🔓 Mở khóa":"🔒 Khóa"}</button>}
-        {selectedStroke&&<button disabled={strokes.find(item=>item.id===selectedStroke)?.locked} className="shrink-0" style={{color:"var(--color-error)"}} onClick={async()=>{await deleteStroke("whiteboard",selectedStroke);setStrokes(items=>items.filter(item=>item.id!==selectedStroke));setSelectedStroke(null);}}>Xóa nét</button>}
-        <button disabled={!selected} className="shrink-0 rounded px-3 py-1.5" style={{background:linkSource?"var(--color-accent)":"var(--color-surface-alt)",color:linkSource?"var(--color-bg)":"var(--color-text)"}} onClick={()=>setLinkSource(current=>current?null:selected)}>⇢ {linkSource?"Chạm hình đích":"Nối"}</button>
-        <button disabled={!selected} className="shrink-0" onClick={async()=>{if(!selected)return;await removeBoardObjectConnections(selected);setLinkSource(null);await reload();}}>Bỏ nối</button>
-        <div className="ml-auto flex shrink-0 items-center gap-1"><button onClick={()=>zoomAt(zoom-.15,{x:200,y:160})}>−</button><button title="Đặt lại góc nhìn" onClick={resetView}>{Math.round(zoom * 100)}%</button><button onClick={()=>zoomAt(zoom+.15,{x:200,y:160})}>＋</button></div>
+        {(selected||selectedStroke)&&<button className="shrink-0 icon-label" onClick={async()=>{if(selectedStroke){const item=strokes.find(stroke=>stroke.id===selectedStroke);if(!item)return;await updateStroke("whiteboard",item.id,{locked:!item.locked});setStrokes(items=>items.map(stroke=>stroke.id===item.id?{...stroke,locked:!stroke.locked}:stroke));}else if(selected){const item=objects.find(object=>object.id===selected);if(!item)return;await updateBoardObject(item.id,{locked:!item.locked});setObjects(items=>items.map(object=>object.id===item.id?{...object,locked:!object.locked}:object));}}}>{(selectedStroke?strokes.find(item=>item.id===selectedStroke)?.locked:objects.find(item=>item.id===selected)?.locked)?<><Icon name="unlock" size={15} /> Mở khóa</>:<><Icon name="lock" size={15} /> Khóa</>}</button>}
+        {selectedStroke&&<button disabled={strokes.find(item=>item.id===selectedStroke)?.locked} className="shrink-0 icon-label" style={{color:"var(--color-error)"}} onClick={async()=>{await deleteStroke("whiteboard",selectedStroke);setStrokes(items=>items.filter(item=>item.id!==selectedStroke));setSelectedStroke(null);}}><Icon name="trash" size={15} /> Xóa nét</button>}
+        <button disabled={!selected} className="shrink-0 rounded px-3 py-1.5 icon-label" style={{background:linkSource?"var(--color-accent)":"var(--color-surface-alt)",color:linkSource?"var(--color-bg)":"var(--color-text)"}} onClick={()=>setLinkSource(current=>current?null:selected)}><Icon name="link" size={15} /> {linkSource?"Chạm hình đích":"Nối"}</button>
+        <button disabled={!selected} className="shrink-0 icon-label" onClick={async()=>{if(!selected)return;await removeBoardObjectConnections(selected);setLinkSource(null);await reload();}}><Icon name="unlink" size={15} /> Bỏ nối</button>
+        <div className="ml-auto flex shrink-0 items-center gap-1"><button aria-label="Thu nhỏ" onClick={()=>zoomAt(zoom-.15,{x:200,y:160})}><Icon name="zoom-out" size={16} /></button><button title="Đặt lại góc nhìn" onClick={resetView}>{Math.round(zoom * 100)}%</button><button aria-label="Phóng to" onClick={()=>zoomAt(zoom+.15,{x:200,y:160})}><Icon name="zoom-in" size={16} /></button></div>
         </div>
       </header>
       <div
@@ -187,7 +188,7 @@ export function WhiteboardView() {
                 className="h-9 px-2 flex items-center cursor-move select-none text-xs font-semibold"
                 style={{background:"color-mix(in srgb, var(--color-bg) 18%, transparent)",borderRadius:item.kind==="ellipse"?"50% 50% 0 0":"9px 9px 0 0"}}
               >
-                ⠿ Kéo <span className="ml-auto opacity-60">{(item.connectedToIds??[]).length?"⇢":""}</span>
+                <span className="icon-label"><Icon name="move" size={14} /> Kéo</span> <span className="ml-auto opacity-60">{(item.connectedToIds??[]).length?<Icon name="link" size={13} />:null}</span>
               </div>
               <textarea
                 aria-label="Nội dung đối tượng"

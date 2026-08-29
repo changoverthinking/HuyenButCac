@@ -10,14 +10,15 @@ import { Sidebar } from "./components/common/Sidebar";
 import { AppSidebar } from "./components/common/AppSidebar";
 import { useProjectsStore } from "./stores/projectsStore";
 import { AccountPanel } from "./components/auth/AccountPanel";
+import { Icon, type IconName } from "./components/common/Icons";
 
 type Mode = "notes" | "projects" | "mindmap" | "whiteboard";
 
-const MODE_TABS: { id: Mode; label: string; icon: string; ready: boolean }[] = [
-  { id: "notes", label: "Ghi chú", icon: "✦", ready: true },
-  { id: "projects", label: "Dự án", icon: "冊", ready: true },
-  { id: "mindmap", label: "Sơ đồ", icon: "⌘", ready: true },
-  { id: "whiteboard", label: "Bảng trắng", icon: "◇", ready: true },
+const MODE_TABS: { id: Mode; label: string; kicker: string; icon: IconName; ready: boolean }[] = [
+  { id: "notes", label: "Ghi chú", kicker: "TÂM THỨC", icon: "notes", ready: true },
+  { id: "projects", label: "Dự án", kicker: "THƯ VIỆN TRUYỆN", icon: "projects", ready: true },
+  { id: "mindmap", label: "Sơ đồ", kicker: "LINH ĐỒ", icon: "mindmap", ready: true },
+  { id: "whiteboard", label: "Bảng trắng", kicker: "BẠCH ĐÀI", icon: "whiteboard", ready: true },
 ];
 
 export default function App() {
@@ -54,19 +55,25 @@ export default function App() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="mobile-topbar md:hidden flex items-center gap-2 px-2 py-1.5 border-b shrink-0">
-          <button aria-label="Mở menu" className="mobile-icon-button mystic-icon" onClick={()=>setMobileMenuOpen(true)}>☰</button>
+          <button aria-label="Mở menu" className="mobile-icon-button mystic-icon" onClick={()=>setMobileMenuOpen(true)}><Icon name="menu" size={21} /></button>
           <div className="flex-1 text-center min-w-0"><div className="mobile-brand">Huyền Bút Các</div><div className="mobile-mode">{MODE_TABS.find(item=>item.id===mode)?.label}</div></div>
-          <button aria-label="Mở tài khoản" className="mobile-icon-button mystic-icon" onClick={()=>setAccountOpen(true)}>♙</button>
+          <button aria-label="Mở tài khoản" className="mobile-icon-button mystic-icon" onClick={()=>setAccountOpen(true)}><Icon name="user" size={20} /></button>
         </div>
         {mobileMenuOpen&&<div className="md:hidden fixed inset-0 z-50 flex"><div className="relative z-10 h-full"><Sidebar onNavigate={()=>setMobileMenuOpen(false)} onOpenNotes={()=>setMode("notes")}/></div><button aria-label="Đóng menu" className="absolute inset-0 bg-black/50" onClick={()=>setMobileMenuOpen(false)}/></div>}
 
         {/* Topbar desktop: trạng thái + tài khoản (điều hướng đã chuyển sang AppSidebar bên trái) */}
-        <div className="desktop-topbar hidden md:flex items-center gap-3 px-5 py-2.5 border-b shrink-0">
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 13, color: "var(--color-text-muted)", letterSpacing: ".04em" }}>
-            {MODE_TABS.find(item=>item.id===mode)?.label}
+        <header className="desktop-topbar hidden md:flex items-center gap-3 px-5 py-2.5 border-b shrink-0">
+          <div className="topbar-context" aria-live="polite">
+            <span className="topbar-eyebrow">{MODE_TABS.find(item=>item.id===mode)?.kicker}</span>
+            <strong>{MODE_TABS.find(item=>item.id===mode)?.label}</strong>
+            <span className="topbar-subtitle">Không gian sáng tác cá nhân</span>
           </div>
-          <button className="account-pill ml-auto px-3 py-1.5 rounded-lg text-sm" onClick={()=>setAccountOpen(true)}><span className="status-jade"/> Tài khoản</button>
-        </div>
+          <div className="topbar-realm-status hidden lg:flex" aria-label="Trạng thái ứng dụng">
+            <span className="topbar-status-orb" aria-hidden="true" />
+            <span><b>LINH MẠCH ỔN ĐỊNH</b><small>LOCAL-FIRST WORKSPACE</small></span>
+          </div>
+          <button className="account-pill ml-auto px-3 py-1.5 rounded-lg text-sm" onClick={()=>setAccountOpen(true)} aria-label="Mở tài khoản"><span className="status-jade"/><Icon name="user" size={16} /> Tài khoản</button>
+        </header>
 
         <div className="app-content flex-1 overflow-hidden">
           {mode === "notes" && <NotesModeView key={`notes-${syncRevision}`} />}
@@ -91,7 +98,7 @@ export default function App() {
               className={`mobile-nav-item flex flex-col items-center px-3 py-1.5 text-xs ${mode===t.id?"is-active":""}`}
               aria-current={mode===t.id?"page":undefined}
             >
-              <span className="text-lg">{t.icon}</span>
+              <span className="text-lg" aria-hidden="true"><Icon name={t.icon} size={20} /></span>
               {t.label}
             </button>
           ))}

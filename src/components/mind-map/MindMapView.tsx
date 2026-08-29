@@ -17,6 +17,7 @@ import {
 } from "../../features/mind-map/mindMapService";
 import { listProjects } from "../../features/projects/projectsService";
 import { addStroke, deleteStroke, listStrokes, smoothPoints, strokeDash, strokePath, updateStroke } from "../../features/canvas/strokesService";
+import { Icon } from "../common/Icons";
 
 type DragState = {
   id: string;
@@ -335,20 +336,20 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
   };
 
   return (
-    <div className="h-full min-h-0 flex flex-col md:flex-row">
-      <div className="md:hidden shrink-0 border-b p-2" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
+    <div className="mind-map-view h-full min-h-0 flex flex-col md:flex-row">
+      <div className="mind-map-mobile-toolbar md:hidden shrink-0 border-b p-2" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
         <div className="flex gap-2 min-w-0">
           <select aria-label="Chọn sơ đồ" className="min-w-0 flex-1 rounded border bg-transparent px-2 py-2" style={{ borderColor: "var(--color-border)" }} value={active ?? ""} onChange={(event) => selectMap(event.target.value)}>
             {maps.map((map) => <option key={map.id} value={map.id}>{map.title}</option>)}
           </select>
-          <button aria-label="Tạo sơ đồ" className="mobile-icon-button" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }} onClick={async () => { const created = await createMindMap(); selectMap(created.map.id); }}>＋</button>
-          <button aria-label="Đổi tên sơ đồ" className="mobile-icon-button" style={{ background: "var(--color-surface-alt)" }} onClick={renameActiveMap}>✎</button>
-          <button aria-label="Xóa sơ đồ" className="mobile-icon-button" style={{ background: "var(--color-surface-alt)", color: "var(--color-error)" }} onClick={removeActiveMap}>⌫</button>
+          <button aria-label="Tạo sơ đồ" className="mobile-icon-button" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }} onClick={async () => { const created = await createMindMap(); selectMap(created.map.id); }}><Icon name="plus" size={19} /></button>
+          <button aria-label="Đổi tên sơ đồ" className="mobile-icon-button" style={{ background: "var(--color-surface-alt)" }} onClick={renameActiveMap}><Icon name="pencil" size={17} /></button>
+          <button aria-label="Xóa sơ đồ" className="mobile-icon-button" style={{ background: "var(--color-surface-alt)", color: "var(--color-error)" }} onClick={removeActiveMap}><Icon name="trash" size={17} /></button>
         </div>
       </div>
 
-      <aside className="hidden md:block w-56 shrink-0 border-r p-3 space-y-2" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
-        <button className="w-full rounded p-2" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }} onClick={async () => { const created = await createMindMap(); selectMap(created.map.id); }}>＋ Sơ đồ mới</button>
+      <aside className="mind-map-sidebar hidden md:block w-56 shrink-0 border-r p-3 space-y-2" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
+        <button className="w-full rounded p-2" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }} onClick={async () => { const created = await createMindMap(); selectMap(created.map.id); }}><Icon name="plus" size={16} /> Sơ đồ mới</button>
         <div className="grid grid-cols-2 gap-2">
           <button disabled={!active} className="rounded p-2 text-sm" style={{ background: "var(--color-surface-alt)" }} onClick={renameActiveMap}>Đổi tên</button>
           <button disabled={!active} className="rounded p-2 text-sm" style={{ color: "var(--color-error)", background: "var(--color-surface-alt)" }} onClick={removeActiveMap}>Xóa sơ đồ</button>
@@ -358,30 +359,30 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
         ))}
       </aside>
 
-      <main className="flex-1 min-h-0 min-w-0 relative overflow-hidden" style={{ background: "var(--color-canvas-bg)" }}>
+      <main className="mind-map-canvas flex-1 min-h-0 min-w-0 relative overflow-hidden" style={{ background: "var(--color-canvas-bg)" }}>
         <div className="canvas-toolbars absolute z-10 left-2 right-2 top-2 md:left-3 md:right-3 md:top-3 flex flex-col gap-2 pointer-events-none">
           <div className="flex gap-2 overflow-x-auto pointer-events-auto">
-            <button disabled={!selected} onClick={() => void deleteSelectedNode()} className="rounded px-3 py-2" style={{ background: "var(--color-surface)" }}>Xóa ô</button>
-            <button disabled={!selectedNode?.linkId} onClick={() => void openLinked()} className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)", color: "var(--color-accent)" }}>Đọc chi tiết</button>
-            <button className="shrink-0 rounded px-3 py-2" style={{ background: connectMode ? "var(--color-accent)" : "var(--color-surface-alt)", color: connectMode ? "var(--color-bg)" : "var(--color-text)" }} onClick={toggleConnectMode}>🔗 Nối tự do</button>
-            <button className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)" }} onClick={() => void addFreeNode()}>＋ Ô tự do</button>
-            <button className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)" }} onClick={() => void addBranch()}>＋ Nhánh con</button>
-            <button aria-label="Thu nhỏ" className="rounded px-2 py-2" style={{ background: "var(--color-surface)" }} onClick={() => zoomAt(zoom - 0.15, { x: 200, y: 160 })}>−</button>
+            <button disabled={!selected} onClick={() => void deleteSelectedNode()} className="rounded px-3 py-2 icon-label" style={{ background: "var(--color-surface)" }}><Icon name="trash" size={15} /> Xóa ô</button>
+            <button disabled={!selectedNode?.linkId} onClick={() => void openLinked()} className="shrink-0 rounded px-3 py-2 icon-label" style={{ background: "var(--color-surface-alt)", color: "var(--color-accent)" }}><Icon name="book" size={15} /> Đọc chi tiết</button>
+            <button className="shrink-0 rounded px-3 py-2 icon-label" style={{ background: connectMode ? "var(--color-accent)" : "var(--color-surface-alt)", color: connectMode ? "var(--color-bg)" : "var(--color-text)" }} onClick={toggleConnectMode}><Icon name="link" size={15} /> Nối tự do</button>
+            <button className="shrink-0 rounded px-3 py-2 icon-label" style={{ background: "var(--color-surface-alt)" }} onClick={() => void addFreeNode()}><Icon name="plus" size={15} /> Ô tự do</button>
+            <button className="shrink-0 rounded px-3 py-2 icon-label" style={{ background: "var(--color-surface-alt)" }} onClick={() => void addBranch()}><Icon name="plus" size={15} /> Nhánh con</button>
+            <button aria-label="Thu nhỏ" className="rounded px-2 py-2" style={{ background: "var(--color-surface)" }} onClick={() => zoomAt(zoom - 0.15, { x: 200, y: 160 })}><Icon name="zoom-out" size={16} /></button>
             <button title="Đặt lại góc nhìn" className="rounded px-2 py-2 text-xs" style={{ background: "var(--color-surface)" }} onClick={resetView}>{Math.round(zoom * 100)}%</button>
-            <button aria-label="Phóng to" className="rounded px-2 py-2" style={{ background: "var(--color-surface)" }} onClick={() => zoomAt(zoom + 0.15, { x: 200, y: 160 })}>＋</button>
+            <button aria-label="Phóng to" className="rounded px-2 py-2" style={{ background: "var(--color-surface)" }} onClick={() => zoomAt(zoom + 0.15, { x: 200, y: 160 })}><Icon name="zoom-in" size={16} /></button>
             <span className="hidden lg:inline rounded px-2 py-2 text-xs" style={{ background: "var(--color-surface)", color: "var(--color-text-muted)" }}>{connectMode ? (connectSource ? `Đã chọn “${connectSource.title}”, chạm ô thứ hai` : "Chạm ô đầu tiên để bắt đầu nối") : "Kéo ô để đặt vị trí"}</span>
           </div>
           <div className="flex gap-2 overflow-x-auto pointer-events-auto">
             <select aria-label="Chọn dự án liên kết" value={projectChoice} onChange={(event) => setProjectChoice(event.target.value)} className="min-w-40 max-w-64 rounded px-2 py-2" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}><option value="">Liên kết dự án…</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.title}</option>)}</select>
-            <button disabled={!projectChoice} className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)" }} onClick={async () => { if (!projectChoice) return; const map = await createOrSyncProjectMap(projectChoice); selectMap(map.id); }}>↻ Tạo/đồng bộ cây</button>
-            <button className="shrink-0 rounded px-3 py-2" style={{ background: drawMode ? "var(--color-accent)" : "var(--color-surface-alt)", color: drawMode ? "var(--color-bg)" : "var(--color-text)" }} onClick={() => { setDrawMode((value) => !value); setConnectMode(false); setConnectSourceId(null); setSelectedStroke(null); }}>✎ Bút chì</button>
+            <button disabled={!projectChoice} className="shrink-0 rounded px-3 py-2 icon-label" style={{ background: "var(--color-surface-alt)" }} onClick={async () => { if (!projectChoice) return; const map = await createOrSyncProjectMap(projectChoice); selectMap(map.id); }}><Icon name="refresh" size={15} /> Tạo/đồng bộ cây</button>
+            <button className="shrink-0 rounded px-3 py-2 icon-label" style={{ background: drawMode ? "var(--color-accent)" : "var(--color-surface-alt)", color: drawMode ? "var(--color-bg)" : "var(--color-text)" }} onClick={() => { setDrawMode((value) => !value); setConnectMode(false); setConnectSourceId(null); setSelectedStroke(null); }}><Icon name="pencil" size={15} /> Bút chì</button>
             {drawMode && <><select aria-label="Kiểu nét" value={strokeDashStyle} onChange={(event) => setStrokeDashStyle(event.target.value as CanvasStroke["dash"])} className="rounded px-2" style={{ background: "var(--color-surface)" }}><option value="solid">Liền</option><option value="dashed">Đứt</option><option value="dotted">Chấm</option></select><select aria-label="Mũi tên" value={strokeArrow} onChange={(event) => setStrokeArrow(event.target.value as CanvasStroke["arrow"])} className="rounded px-2" style={{ background: "var(--color-surface)" }}><option value="none">Không mũi tên</option><option value="end">Mũi tên cuối</option><option value="both">Hai đầu</option></select><label className="shrink-0 rounded px-2 py-2" style={{ background: "var(--color-surface)" }}>Nét {strokeWidth}<input aria-label="Độ dày nét" type="range" min="1" max="12" value={strokeWidth} onChange={(event) => setStrokeWidth(Number(event.target.value))} /></label><label className="shrink-0 rounded px-2 py-2" style={{ background: "var(--color-surface)" }}><input type="checkbox" checked={smooth} onChange={(event) => setSmooth(event.target.checked)} /> Làm mượt</label></>}
-            {selectedEdgeItem && <><button className="shrink-0 rounded px-3" style={{ background: "var(--color-surface-alt)" }} onClick={() => void deleteSelectedEdge()}>Xóa liên kết</button><span className="shrink-0 rounded px-2 py-2 text-xs" style={{ background: "var(--color-surface)", color: "var(--color-text-muted)" }}>{getMindMapEdgeType(selectedEdgeItem) === "free" ? "Liên kết tự do" : "Nhánh cây"}</span></>}
-            {selectedStroke && <><button className="shrink-0 rounded px-3" style={{ background: "var(--color-surface-alt)" }} onClick={async () => { const item = strokes.find((stroke) => stroke.id === selectedStroke); if (!item) return; await updateStroke("mindmap", item.id, { locked: !item.locked }); setStrokes((items) => items.map((stroke) => stroke.id === item.id ? { ...stroke, locked: !stroke.locked } : stroke)); }}>{strokes.find((item) => item.id === selectedStroke)?.locked ? "🔓 Mở khóa" : "🔒 Khóa"}</button><button disabled={strokes.find((item) => item.id === selectedStroke)?.locked} className="shrink-0 rounded px-3" style={{ color: "var(--color-error)", background: "var(--color-surface-alt)" }} onClick={async () => { await deleteStroke("mindmap", selectedStroke); setStrokes((items) => items.filter((item) => item.id !== selectedStroke)); setSelectedStroke(null); }}>Xóa nét</button></>}
+            {selectedEdgeItem && <><button className="shrink-0 rounded px-3 icon-label" style={{ background: "var(--color-surface-alt)" }} onClick={() => void deleteSelectedEdge()}><Icon name="unlink" size={15} /> Xóa liên kết</button><span className="shrink-0 rounded px-2 py-2 text-xs" style={{ background: "var(--color-surface)", color: "var(--color-text-muted)" }}>{getMindMapEdgeType(selectedEdgeItem) === "free" ? "Liên kết tự do" : "Nhánh cây"}</span></>}
+            {selectedStroke && <><button className="shrink-0 rounded px-3 icon-label" style={{ background: "var(--color-surface-alt)" }} onClick={async () => { const item = strokes.find((stroke) => stroke.id === selectedStroke); if (!item) return; await updateStroke("mindmap", item.id, { locked: !item.locked }); setStrokes((items) => items.map((stroke) => stroke.id === item.id ? { ...stroke, locked: !stroke.locked } : stroke)); }}>{strokes.find((item) => item.id === selectedStroke)?.locked ? <><Icon name="unlock" size={15} /> Mở khóa</> : <><Icon name="lock" size={15} /> Khóa</>}</button><button disabled={strokes.find((item) => item.id === selectedStroke)?.locked} className="shrink-0 rounded px-3 icon-label" style={{ color: "var(--color-error)", background: "var(--color-surface-alt)" }} onClick={async () => { await deleteStroke("mindmap", selectedStroke); setStrokes((items) => items.filter((item) => item.id !== selectedStroke)); setSelectedStroke(null); }}><Icon name="trash" size={15} /> Xóa nét</button></>}
           </div>
         </div>
 
-        <button aria-label="Tạo ô tự do" title="Tạo ô tự do" onClick={() => void addFreeNode()} className="canvas-add-fab absolute z-20 right-4 bottom-4 w-14 h-14 rounded-full text-3xl shadow-xl" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}>＋</button>
+        <button aria-label="Tạo ô tự do" title="Tạo ô tự do" onClick={() => void addFreeNode()} className="canvas-add-fab absolute z-20 right-4 bottom-4 w-14 h-14 rounded-full text-3xl shadow-xl" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}><Icon name="plus" size={25} /></button>
 
         <svg
           className="w-full h-full touch-none"
@@ -434,8 +435,11 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
                 <rect width={nodeWidth(node.title)} height="44" rx="12" fill={selected === node.id || connectSourceId === node.id ? "var(--color-accent)" : "var(--color-node)"} stroke={connectSourceId === node.id ? "var(--color-text)" : "var(--color-border)"} strokeWidth={connectSourceId === node.id ? "3" : "1"} />
                 <rect width={NODE_HANDLE_WIDTH} height="44" rx="12" fill="transparent" className="mindmap-node-grip" />
                 <line x1={NODE_HANDLE_WIDTH} y1="7" x2={NODE_HANDLE_WIDTH} y2="37" stroke="var(--color-border)" opacity=".75" />
-                <text x="19" y="28" textAnchor="middle" fill={selected === node.id || connectSourceId === node.id ? "var(--color-bg)" : "var(--color-text-muted)"} fontSize="18" className="pointer-events-none select-none">⠿</text>
-                <title>{connectMode ? "Chạm để nối ô này" : "Giữ dấu ⠿ rồi kéo để di chuyển ô"}</title>
+                <g className="mindmap-node-handle" fill={selected === node.id || connectSourceId === node.id ? "var(--color-bg)" : "var(--color-text-muted)"} aria-hidden="true">
+                  <circle cx="13" cy="16" r="1.5" /><circle cx="19" cy="16" r="1.5" /><circle cx="25" cy="16" r="1.5" />
+                  <circle cx="13" cy="27" r="1.5" /><circle cx="19" cy="27" r="1.5" /><circle cx="25" cy="27" r="1.5" />
+                </g>
+                <title>{connectMode ? "Chạm để nối ô này" : "Giữ tay nắm rồi kéo để di chuyển ô"}</title>
                 <foreignObject x={NODE_HANDLE_WIDTH} width={nodeWidth(node.title) - NODE_HANDLE_WIDTH} height="44">
                   <input aria-label="Tên nút" value={node.title} onPointerDown={(event) => { event.stopPropagation(); if (connectMode) { event.preventDefault(); void connectNodes(node.id); } else { setSelected(node.id); setSelectedEdge(null); setSelectedStroke(null); } }} onChange={(event) => setNodes((items) => items.map((item) => item.id === node.id ? { ...item, title: event.target.value } : item))} onBlur={(event) => void updateMindMapNode(node.id, { title: event.target.value })} className="w-full h-full text-center bg-transparent px-2 outline-none" />
                 </foreignObject>

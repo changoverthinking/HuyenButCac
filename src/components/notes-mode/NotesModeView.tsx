@@ -4,6 +4,7 @@ import { useFoldersStore } from "../../stores/foldersStore";
 import { Sidebar } from "../common/Sidebar";
 import { NoteList } from "../common/NoteList";
 import { NoteEditor } from "../editor/NoteEditor";
+import { Icon } from "../common/Icons";
 
 export function NotesModeView() {
   const loadNotes = useNotesStore((s) => s.loadNotes);
@@ -35,37 +36,48 @@ export function NotesModeView() {
   }
 
   return (
-    <div className="flex h-full w-full overflow-hidden">
-      <div className="hidden md:block h-full">
+    <div className="notes-mode-view flex h-full w-full overflow-hidden">
+      <div className="hidden md:block h-full notes-folder-sidebar">
         <Sidebar />
       </div>
 
       <div
-        className={`w-full md:w-80 shrink-0 border-r h-full flex flex-col ${
+        className={`notes-index-panel w-full md:w-80 shrink-0 border-r h-full flex flex-col ${
           mobileView === "editor" ? "hidden md:flex" : "flex"
         }`}
         style={{ borderColor: "var(--color-border)" }}
       >
-        <div className="p-3 border-b flex gap-2" style={{ borderColor: "var(--color-border)" }}>
-          <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm kiếm ghi chú…"
-            className="flex-1 text-sm px-3 py-2 rounded-lg outline-none border"
-            style={{
-              borderColor: "var(--color-border)",
-              background: "var(--color-surface)",
-              color: "var(--color-text)",
-            }}
-          />
+        <div className="notes-index-heading">
+          <div>
+            <span className="section-eyebrow">TÂM THỨC · LƯU TRỮ</span>
+            <h2>Ngọc giản của ta</h2>
+          </div>
+          <span className="notes-index-count">{notes.length.toLocaleString("vi-VN")} bản ghi</span>
+        </div>
+        <div className="notes-list-toolbar p-3 border-b flex gap-2" style={{ borderColor: "var(--color-border)" }}>
+          <label className="notes-search-field flex-1">
+            <Icon name="search" size={16} />
+            <input
+              aria-label="Tìm kiếm ghi chú"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm trong ngọc giản…"
+            />
+          </label>
           <button
             onClick={handleCreateNote}
             disabled={view === "trash"}
-            className="px-3 py-2 rounded-lg text-sm font-medium"
-            style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}
+            className="note-create-button"
+            aria-label={view === "trash" ? "Không thể tạo ghi chú trong thùng rác" : "Tạo ghi chú mới"}
           >
-            {view === "trash" ? "Thùng rác" : "+ Tạo"}
+            <Icon name="plus" size={18} />
+            <span className="hidden sm:inline">Tạo</span>
           </button>
+        </div>
+        <div className="notes-list-meta">
+          <span>{view === "trash" ? "THÙNG RÁC" : selectedFolderId ? "THƯ MỤC ĐANG CHỌN" : "TẤT CẢ GHI CHÚ"}</span>
+          <span className="notes-list-line" aria-hidden="true" />
+          <span>{searchQuery.trim() ? "ĐANG LỌC" : "MỚI NHẤT"}</span>
         </div>
         <div className="flex-1 overflow-y-auto">
           <NoteList />
@@ -80,13 +92,17 @@ export function NotesModeView() {
               style={{ color: "var(--color-text-muted)" }}
               onClick={() => setMobileView("list")}
             >
-              ← Danh sách
+              <span className="icon-label"><Icon name="chevron-left" size={15} /> Danh sách</span>
             </button>
             <NoteEditor key={selectedNote.id} note={selectedNote} />
           </div>
         ) : (
-          <div className="h-full flex items-center justify-center" style={{ color: "var(--color-text-muted)" }}>
-            Chọn hoặc tạo một ghi chú để bắt đầu.
+          <div className="empty-editor-state">
+            <span className="empty-editor-seal" aria-hidden="true"><Icon name="scroll" size={30} /></span>
+            <span className="section-eyebrow">MỞ MỘT TRANG MỚI</span>
+            <h2>Chọn một ngọc giản</h2>
+            <p>Hoặc tạo ghi chú mới để bắt đầu ghi lại ý niệm đang trôi qua.</p>
+            <span className="empty-editor-rule" aria-hidden="true" />
           </div>
         )}
       </div>
