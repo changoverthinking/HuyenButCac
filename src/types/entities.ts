@@ -45,7 +45,8 @@ export type ThemeId =
   | "hoang-hon-co-thanh"
   | "ngoc-son-van-hai"
   | "huyet-nguyet-ma-canh"
-  | "tinh-ha-van-tuong";
+  | "tinh-ha-van-tuong"
+  | "huyen-kim-bich-ngoc";
 
 // ---- Giai đoạn 4: Viết dự án (mục 9 master prompt) ----
 

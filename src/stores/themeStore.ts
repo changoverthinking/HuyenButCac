@@ -20,6 +20,7 @@ export const THEME_LIST: { id: ThemeId; label: string; colors: [string,string,st
   { id: "ngoc-son-van-hai", label: "Ngọc Sơn Vân Hải", colors:["#eef5ef","#3e8872","#b89558"] },
   { id: "huyet-nguyet-ma-canh", label: "Huyết Nguyệt Ma Cảnh", colors:["#160a13","#d1465b","#8d4dc2"] },
   { id: "tinh-ha-van-tuong", label: "Tinh Hà Vạn Tượng", colors:["#080d22","#657edb","#e0bb69"] },
+  { id: "huyen-kim-bich-ngoc", label: "Huyền Kim Bích Ngọc", colors:["#070c14","#3d9e7a","#e0a84e"] },
 ];
 
 interface ThemeState {
@@ -58,7 +59,7 @@ async function persist(patch: Partial<ThemePreference>) {
   const existing = await db.themePreferences.get(THEME_PREF_ID);
   const next: ThemePreference = {
     id: THEME_PREF_ID,
-    themeId: "mac-van-tien-canh",
+    themeId: "huyen-kim-bich-ngoc",
     followSystem: false,
     reduceMotion: false,
     highContrast: false,
@@ -76,7 +77,7 @@ async function persist(patch: Partial<ThemePreference>) {
 }
 
 export const useThemeStore = create<ThemeState>((set) => ({
-  themeId: "mac-van-tien-canh",
+  themeId: "huyen-kim-bich-ngoc",
   followSystem: false,
   reduceMotion: false,
   highContrast: false,

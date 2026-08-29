@@ -7,6 +7,9 @@
 :root {
   --radius-base: 10px;
   --font-scale: 1;
+  --font-display: "Philosopher", "Noto Serif", "Times New Roman", serif;
+  --color-accent-gold: var(--color-accent);
+  --color-accent-gold-pale: var(--color-accent);
 }
 
 /* 1. Mặc Vân Tiên Cảnh — đen xanh, mây mờ, bạc, linh khí xanh */
@@ -175,6 +178,13 @@
 [data-theme="tinh-ha-van-tuong"] {
   --color-bg:#080d22;--color-surface:#101936;--color-surface-alt:#18234a;--color-text:#edf0ff;--color-text-muted:#9ca9d0;--color-border:#2a396c;--color-accent:#657edb;--color-focus:#91a5f1;--color-error:#e16076;--color-warning:#e0bb69;--color-success:#62b89a;--color-node:#162144;--color-connector:#3c4f8b;--color-editor-bg:#0b122b;--color-canvas-bg:#060a1b;
   --music-bg-1:#17244b;--music-bg-2:#05091a;--music-metal:#e0bb69;--music-gem:#637fe1;--music-gem-light:#e4e9ff;--music-ink:#08102f;
+}
+
+/* 15. Huyền Kim Bích Ngọc — xanh đêm sâu, ngọc bích, vàng kim (theo bản thiết kế "Mystic Brush Pavilion") */
+[data-theme="huyen-kim-bich-ngoc"] {
+  --color-bg:#070c14;--color-surface:#101828;--color-surface-alt:#162035;--color-text:#b8ccdf;--color-text-muted:#6a7d99;--color-border:#283d5c;--color-accent:#3d9e7a;--color-focus:#5cc9a0;--color-error:#d44060;--color-warning:#e0a84e;--color-success:#3d9e7a;--color-node:#1d2b44;--color-connector:#3a5278;--color-editor-bg:#0a1020;--color-canvas-bg:#04060a;
+  --color-accent-gold:#e0a84e;--color-accent-gold-pale:#f5d98a;
+  --music-bg-1:#101828;--music-bg-2:#04060a;--music-metal:#b8843a;--music-gem:#3d9e7a;--music-gem-light:#a8f0d8;--music-ink:#070c14;
 }
 
 /* Chế độ hỗ trợ tiếp cận */

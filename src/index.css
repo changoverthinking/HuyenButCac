@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Philosopher:ital,wght@0,400;0,700;1,400&display=swap');
 @import "tailwindcss";
 @import "./themes/themes.css";
 
@@ -67,7 +68,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, [contenteditabl
 }
 .desktop-mode-tabs::after,.mobile-topbar::after { content:""; position:absolute; left:5%; right:5%; bottom:-1px; height:1px; background:linear-gradient(90deg,transparent,var(--music-metal),transparent); opacity:.55; }
 .desktop-brand { display:flex; align-items:center; gap:.65rem; min-width:12rem; }
-.desktop-brand b { display:block; color:var(--color-text); letter-spacing:.08em; font-size:.94rem; }
+.desktop-brand b { display:block; color:var(--color-text); letter-spacing:.08em; font-size:.94rem; font-family:var(--font-display); }
 .desktop-brand small { display:block; color:var(--color-text-muted); font-size:.62rem; letter-spacing:.18em; margin-top:.05rem; }
 .brand-sigil {
   width:2.35rem; height:2.35rem; flex:0 0 auto; display:grid; place-items:center; border-radius:50%;
@@ -84,7 +85,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, [contenteditabl
 .account-pill { display:flex; align-items:center; gap:.5rem; color:var(--color-text); border:1px solid color-mix(in srgb,var(--music-metal) 40%,var(--color-border)); background:color-mix(in srgb,var(--color-surface-alt) 78%,transparent); box-shadow:inset 0 1px rgb(255 255 255/.05); }
 .status-jade { width:.55rem; height:.55rem; border-radius:50%; background:var(--color-success); box-shadow:0 0 9px var(--color-success); }
 
-.mobile-brand { color:var(--color-accent); font-size:.82rem; font-weight:800; letter-spacing:.12em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mobile-brand { color:var(--color-accent); font-size:.82rem; font-weight:800; letter-spacing:.12em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:var(--font-display); }
 .mobile-mode { color:var(--color-text-muted); font-size:.62rem; letter-spacing:.08em; margin-top:-.05rem; }
 .mystic-icon { color:var(--color-accent); border:1px solid color-mix(in srgb,var(--music-metal) 34%,var(--color-border)); background:linear-gradient(145deg,var(--color-surface-alt),color-mix(in srgb,var(--color-surface) 86%,black)); box-shadow:inset 0 1px rgb(255 255 255/.07); }
 .mobile-nav-item { color:var(--color-text-muted); border-radius:.75rem; min-width:4.1rem; position:relative; transition:.16s ease; }
