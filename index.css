@@ -11,6 +11,16 @@
 .account-panel input:focus { border-color:var(--color-accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--color-accent) 18%,transparent); }
 .account-primary { border-radius:.75rem; padding:.7rem 1rem; font-weight:700; background:var(--color-accent); color:var(--color-background); }
 .account-primary:disabled { opacity:.55; }
+.account-tabs { display:grid; grid-template-columns:repeat(3,1fr); gap:.35rem; padding:.3rem; border:1px solid var(--color-border); border-radius:.85rem; background:color-mix(in srgb,var(--color-surface-alt) 70%,transparent); }
+.account-tabs button { padding:.55rem .3rem; border-radius:.6rem; color:var(--color-text-muted); font-size:.78rem; font-weight:700; }
+.account-tabs button.is-active { color:var(--color-background); background:var(--color-accent); box-shadow:0 4px 14px color-mix(in srgb,var(--color-accent) 22%,transparent); }
+.account-profile-card { display:flex; align-items:center; gap:.8rem; padding:.85rem; border:1px solid var(--color-border); border-radius:.85rem; background:var(--color-surface-alt); }
+.account-avatar { width:2.6rem; height:2.6rem; flex:0 0 auto; display:grid; place-items:center; border:1px solid color-mix(in srgb,var(--color-accent) 55%,var(--color-border)); border-radius:50%; color:var(--color-accent); font-family:var(--hbc-font-display); font-size:1.15rem; }
+.account-details { overflow:hidden; border:1px solid var(--color-border); border-radius:.85rem; }
+.account-details > div { display:flex; justify-content:space-between; gap:1rem; padding:.65rem .8rem; font-size:.8rem; }
+.account-details > div + div { border-top:1px solid var(--color-border); }
+.account-details dt { color:var(--color-text-muted); }
+.account-details dd { text-align:right; font-weight:700; }
 
 html, body, #root {
   height: 100%;

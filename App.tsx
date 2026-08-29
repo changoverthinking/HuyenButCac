@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useThemeStore } from "./stores/themeStore";
 import { UpdatePrompt } from "./components/common/UpdatePrompt";
 import { NotesModeView } from "./components/notes-mode/NotesModeView";
@@ -134,6 +134,7 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [focusedSectionId, setFocusedSectionId] = useState<string | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
+  const openRecovery = useCallback(() => setAccountOpen(true), []);
   const [railCollapsed, setRailCollapsed] = useState(false);
   const [online, setOnline] = useState(() => typeof navigator === "undefined" || navigator.onLine);
   const [syncRevision, setSyncRevision] = useState(0);
@@ -218,7 +219,7 @@ export default function App() {
         </div>
 
         <MusicPlayer />
-        <AccountPanel open={accountOpen} onClose={() => setAccountOpen(false)} />
+        <AccountPanel open={accountOpen} onClose={() => setAccountOpen(false)} onRecoveryRequired={openRecovery} />
 
         <nav className="mobile-bottom-nav md:hidden flex justify-around border-t py-1 shrink-0" style={{ paddingBottom: "max(.25rem, env(safe-area-inset-bottom))" }}>
           {MODE_TABS.map((tab) => (
