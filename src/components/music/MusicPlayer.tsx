@@ -23,6 +23,7 @@ export function MusicPlayer() {
   const reload=async()=>{const items=await listMusicTracks();setTracks(items);setCurrentId((id)=>{const preferred=id??localStorage.getItem("hbc-music-current");return preferred&&items.some((item)=>item.id===preferred)?preferred:items[0]?.id??null;});};
   useEffect(()=>{void reload();},[]);
   useEffect(()=>{const toggle=()=>setExpanded(value=>!value);window.addEventListener("hbc-toggle-music",toggle);return()=>window.removeEventListener("hbc-toggle-music",toggle);},[]);
+  useEffect(()=>{const close=(event:KeyboardEvent)=>{if(event.key==="Escape")setExpanded(false);};window.addEventListener("keydown",close);return()=>window.removeEventListener("keydown",close);},[]);
 
   useEffect(()=>{
     const audio=audioRef.current;if(!audio)return;
@@ -76,11 +77,12 @@ export function MusicPlayer() {
   return (
     <section className={`music-player immortal-music z-40 ${expanded?"is-open":"is-collapsed"}`} style={{borderColor:"var(--color-border)",background:"var(--color-surface)"}}>
       <audio ref={audioRef} onTimeUpdate={(e)=>setCurrentTime(e.currentTarget.currentTime)} onLoadedMetadata={(e)=>setDuration(e.currentTarget.duration)} onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onEnded={()=>chooseNext(1,true)} />
+      {!expanded&&<button className="music-bubble jade-orb" aria-label="Mở Tiên Âm Các" title="Mở Tiên Âm Các" onClick={()=>setExpanded(true)}>♫</button>}
       {expanded&&(
         <div className="music-library immortal-panel flex flex-col shadow-2xl">
           <div className="flex items-center justify-between p-3 border-b" style={{borderColor:"var(--color-border)"}}>
             <div><div className="immortal-title font-semibold"><span>◆</span> Tiên Âm Các <span>◆</span></div><div className="text-xs" style={{color:"var(--color-text-muted)"}}>{tracks.length} khúc · {(totalSize/1024/1024).toFixed(1)} MB lưu trên thiết bị</div></div>
-            <div className="flex items-center gap-2"><label className="px-3 py-2 rounded text-sm cursor-pointer" style={{background:"var(--color-accent)",color:"var(--color-bg)"}}>＋ MP3<input type="file" accept="audio/mpeg,.mp3" multiple className="hidden" onChange={async(e)=>{const files=Array.from(e.target.files??[]);if(!files.length)return;try{await addMusicFiles(files);await reload();setMessage(`Đã lưu ${files.length} bài trên thiết bị.`);}catch(error){setMessage((error as Error).message);}e.target.value="";}} /></label><button className="md:hidden w-9 h-9 rounded-full" aria-label="Thu nhỏ trình phát nhạc" style={{background:"var(--color-surface-alt)"}} onClick={()=>setExpanded(false)}>⌄</button></div>
+            <div className="flex items-center gap-2"><label className="px-3 py-2 rounded text-sm cursor-pointer" style={{background:"var(--color-accent)",color:"var(--color-bg)"}}>＋ MP3<input type="file" accept="audio/mpeg,.mp3" multiple className="hidden" onChange={async(e)=>{const files=Array.from(e.target.files??[]);if(!files.length)return;try{await addMusicFiles(files);await reload();setMessage(`Đã lưu ${files.length} bài trên thiết bị.`);}catch(error){setMessage((error as Error).message);}e.target.value="";}} /></label><button className="grid w-9 h-9 place-items-center rounded-full" aria-label="Đóng Tiên Âm Các" title="Đóng Tiên Âm Các" style={{background:"var(--color-surface-alt)"}} onClick={()=>setExpanded(false)}>←</button></div>
           </div>
           {message&&<div className="px-3 py-2 text-xs" style={{color:"var(--color-warning)"}}>{message}</div>}
           <div className="overflow-y-auto p-2">
