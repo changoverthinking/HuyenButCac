@@ -61,6 +61,9 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
   const [strokeDashStyle, setStrokeDashStyle] = useState<CanvasStroke["dash"]>("solid");
   const [strokeArrow, setStrokeArrow] = useState<CanvasStroke["arrow"]>("none");
   const [smooth, setSmooth] = useState(true);
+  const [freeNodeActionVisible, setFreeNodeActionVisible] = useState(() => localStorage.getItem("hbc-mindmap-free-node-action-visible") !== "hidden");
+  const [freeNodeActionIcon, setFreeNodeActionIcon] = useState(() => localStorage.getItem("hbc-mindmap-free-node-action-icon") ?? "plus");
+  const [customizingFreeNodeAction, setCustomizingFreeNodeAction] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
   const activeRef = useRef<string | null>(readStoredActiveMap());
@@ -329,7 +332,11 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
             <button disabled={!selected} onClick={() => void deleteSelectedNode()} className="rounded px-3 py-2" style={{ background: "var(--color-surface)" }}>Xóa ô</button>
             <button disabled={!selectedNode?.linkId} onClick={() => void openLinked()} className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)", color: "var(--color-accent)" }}>Đọc chi tiết</button>
             <button className="shrink-0 rounded px-3 py-2" style={{ background: connectMode ? "var(--color-accent)" : "var(--color-surface-alt)", color: connectMode ? "var(--color-bg)" : "var(--color-text)" }} onClick={toggleConnectMode}>🔗 Nối tự do</button>
-            <button className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)" }} onClick={() => void addFreeNode()}>＋ Ô tự do</button>
+            {freeNodeActionVisible ? <>
+              <button aria-label="Tạo ô tự do" title="Tạo ô tự do" className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)" }} onClick={() => void addFreeNode()}>{freeNodeActionIcon === "target" ? <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg> : "＋"}<span className="sr-only">Ô tự do</span></button>
+              <button aria-label="Tùy chỉnh nút tạo ô tự do" title="Tùy chỉnh nút tạo ô tự do" className="shrink-0 rounded px-2 py-2" style={{ background: "var(--color-surface)" }} onClick={()=>setCustomizingFreeNodeAction(value=>!value)}>⚙</button>
+            </> : <button aria-label="Khôi phục nút tạo ô tự do" className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)" }} onClick={()=>{localStorage.removeItem("hbc-mindmap-free-node-action-visible");setFreeNodeActionVisible(true);}}>Khôi phục ô tự do</button>}
+            {customizingFreeNodeAction&&freeNodeActionVisible&&<><button aria-label="Dùng icon Tâm điểm" className="shrink-0 rounded px-3 py-2" style={{background:"var(--color-surface)"}} onClick={()=>{localStorage.setItem("hbc-mindmap-free-node-action-icon","target");setFreeNodeActionIcon("target");}}>◎ Tâm điểm</button><button aria-label="Ẩn icon tạo ô tự do" className="shrink-0 rounded px-3 py-2" style={{background:"var(--color-surface)"}} onClick={()=>{localStorage.setItem("hbc-mindmap-free-node-action-visible","hidden");setFreeNodeActionVisible(false);setCustomizingFreeNodeAction(false);}}>Ẩn</button></>}
             <button className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)" }} onClick={() => void addBranch()}>＋ Nhánh con</button>
             <button aria-label="Thu nhỏ" className="rounded px-2 py-2" style={{ background: "var(--color-surface)" }} onClick={() => zoomAt(zoom - 0.15, { x: 200, y: 160 })}>−</button>
             <button title="Đặt lại góc nhìn" className="rounded px-2 py-2 text-xs" style={{ background: "var(--color-surface)" }} onClick={resetView}>{Math.round(zoom * 100)}%</button>
@@ -345,8 +352,6 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
             {selectedStroke && <><button className="shrink-0 rounded px-3" style={{ background: "var(--color-surface-alt)" }} onClick={async () => { const item = strokes.find((stroke) => stroke.id === selectedStroke); if (!item) return; await updateStroke("mindmap", item.id, { locked: !item.locked }); setStrokes((items) => items.map((stroke) => stroke.id === item.id ? { ...stroke, locked: !stroke.locked } : stroke)); }}>{strokes.find((item) => item.id === selectedStroke)?.locked ? "🔓 Mở khóa" : "🔒 Khóa"}</button><button disabled={strokes.find((item) => item.id === selectedStroke)?.locked} className="shrink-0 rounded px-3" style={{ color: "var(--color-error)", background: "var(--color-surface-alt)" }} onClick={async () => { await deleteStroke("mindmap", selectedStroke); setStrokes((items) => items.filter((item) => item.id !== selectedStroke)); setSelectedStroke(null); }}>Xóa nét</button></>}
           </div>
         </div>
-
-        <button aria-label="Tạo ô tự do" title="Tạo ô tự do" onClick={() => void addFreeNode()} className="canvas-add-fab absolute z-20 right-4 bottom-4 w-14 h-14 rounded-full text-3xl shadow-xl" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}>＋</button>
 
         <svg
           className="w-full h-full touch-none"
