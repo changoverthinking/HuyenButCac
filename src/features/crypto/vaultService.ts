@@ -84,6 +84,20 @@ export async function unlockVault(user: User, passphrase: string) {
   keys.set(user.id, key);
 }
 
+export async function resetVault(user: User, newPassphrase: string) {
+  if (!supabase) throw new Error("Chưa cấu hình máy chủ");
+  if (!navigator.onLine) throw new Error("Cần kết nối mạng để đặt lại Kho bảo mật");
+  lockVault(user.id);
+  const { error } = await supabase.rpc("reset_my_vault");
+  if (error) {
+    if (error.message.toLowerCase().includes("function") || error.message.toLowerCase().includes("schema cache")) {
+      throw new Error("Máy chủ chưa cài chức năng đặt lại Kho. Hãy chạy migration_checkpoint_14_2_reset_vault.sql trong Supabase.");
+    }
+    throw error;
+  }
+  await setupVault(user, newPassphrase);
+}
+
 function requireKey(userId: string) {
   const key = keys.get(userId);
   if (!key) throw new Error("Kho bảo mật đang khóa");
