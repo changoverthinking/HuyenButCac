@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useProjectsStore } from "../../stores/projectsStore";
 import type { ProjectChapter } from "../../types/entities";
 import { RichTextToolbar } from "../editor/RichTextToolbar";
-import { Icon } from "../common/Icons";
 
 export function FocusWriter({ chapter, onExit }: { chapter: ProjectChapter; onExit: () => void }) {
   const updateChapter = useProjectsStore((s) => s.updateChapter);
@@ -48,14 +47,14 @@ export function FocusWriter({ chapter, onExit }: { chapter: ProjectChapter; onEx
   const seconds = elapsedSec % 60;
   return (
     <div className="focus-writer fixed inset-0 z-[60] flex flex-col" style={{ background: "var(--color-editor-bg)" }}>
-      <div className="focus-writer-header flex items-center justify-between px-6 py-3 border-b" style={{ borderColor: "var(--color-border)" }}>
-        <button onClick={onExit} className="focus-writer-exit text-sm" style={{ color: "var(--color-text-muted)" }}>
-          <Icon name="chevron-left" size={17} /> Thoát chế độ tập trung
+      <div className="flex items-center justify-between px-6 py-3 border-b" style={{ borderColor: "var(--color-border)" }}>
+        <button onClick={onExit} className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+          ← Thoát chế độ tập trung
         </button>
-        <div className="focus-writer-stats text-sm flex gap-4" style={{ color: "var(--color-text-muted)" }}>
-          <span><b>{liveWordCount.toLocaleString("vi-VN")}</b> từ</span>
+        <div className="text-sm flex gap-4" style={{ color: "var(--color-text-muted)" }}>
+          <span>{liveWordCount.toLocaleString("vi-VN")} từ</span>
           <span>
-            <Icon name="clock" size={14} /> {minutes}:{seconds.toString().padStart(2, "0")}
+            {minutes}:{seconds.toString().padStart(2, "0")}
           </span>
           <span>{saveState === "saving" ? "Đang lưu…" : "Đã lưu"}</span>
         </div>

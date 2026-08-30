@@ -3,10 +3,7 @@ import { db } from "../../database/db";
 import type { CustomBackground, MusicTrack } from "../../types/entities";
 
 const base = () => ({ createdAt: Date.now(), updatedAt: Date.now(), schemaVersion: 1, deletedAt: null, syncState: "local" as const });
-const requestPersistentStorage = () => {
-  const request = navigator.storage?.persist?.();
-  return request?.catch(() => false);
-};
+const requestPersistentStorage = () => navigator.storage?.persist?.().catch(()=>false);
 
 export async function addMusicFiles(files: File[]): Promise<MusicTrack[]> {
   const valid = files.filter((file) => file.type === "audio/mpeg" || file.name.toLowerCase().endsWith(".mp3"));

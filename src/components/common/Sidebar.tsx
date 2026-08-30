@@ -3,7 +3,6 @@ import { useFoldersStore } from "../../stores/foldersStore";
 import { useNotesStore } from "../../stores/notesStore";
 import { useThemeStore, THEME_LIST } from "../../stores/themeStore";
 import { APP_CONFIG } from "../../app/appConfig";
-import { Icon } from "./Icons";
 
 export function Sidebar({ onNavigate, onOpenNotes }: { onNavigate?: () => void; onOpenNotes?:()=>void }) {
   const folders = useFoldersStore((s) => s.folders);
@@ -32,7 +31,7 @@ export function Sidebar({ onNavigate, onOpenNotes }: { onNavigate?: () => void; 
       style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
     >
       <div className="p-4 border-b" style={{ borderColor: "var(--color-border)" }}>
-        <div className="flex items-center gap-3"><span className="brand-sigil small" aria-hidden="true"><Icon name="seal" size={21} /></span><h1 className="text-lg font-bold" style={{ color: "var(--color-accent)" }}>{APP_CONFIG.appNameVi}</h1></div>
+        <div className="flex items-center gap-3"><span className="brand-sigil small">玄</span><h1 className="text-lg font-bold" style={{ color: "var(--color-accent)" }}>{APP_CONFIG.appNameVi}</h1></div>
         <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
           {APP_CONFIG.version}
         </p>
@@ -40,7 +39,7 @@ export function Sidebar({ onNavigate, onOpenNotes }: { onNavigate?: () => void; 
 
       <nav className="p-2">
         <button
-          className="sidebar-menu-item w-full text-left px-3 py-2 rounded-lg mb-1"
+          className="w-full text-left px-3 py-2 rounded-lg mb-1"
           style={{ background: view === "active" && selectedFolderId === null ? "var(--color-surface-alt)" : "transparent" }}
           onClick={() => {
             onOpenNotes?.();
@@ -49,26 +48,26 @@ export function Sidebar({ onNavigate, onOpenNotes }: { onNavigate?: () => void; 
             onNavigate?.();
           }}
         >
-          <Icon name="notes" size={17} /><span>Tất cả ghi chú</span>
+          Tất cả ghi chú
         </button>
         <button
-          className="sidebar-menu-item w-full text-left px-3 py-2 rounded-lg mb-1"
+          className="w-full text-left px-3 py-2 rounded-lg mb-1"
           style={{ color: "var(--color-text-muted)", background: view === "trash" ? "var(--color-surface-alt)" : "transparent" }}
           onClick={() => { onOpenNotes?.(); void showTrash(); onNavigate?.(); }}
         >
-          <Icon name="trash" size={17} /><span>Thùng rác</span>
+          Thùng rác
         </button>
       </nav>
 
-      <div className="sidebar-section-label px-3 pt-2 pb-1 text-xs uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
+      <div className="px-3 pt-2 pb-1 text-xs uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
         Thư mục
       </div>
       <div className="px-2 overflow-y-auto flex-1">
         {rootFolders.map((f) => (
-          <div key={f.id} className="sidebar-folder-row flex items-center rounded-lg mb-1" style={{ background: view === "active" && selectedFolderId === f.id ? "var(--color-surface-alt)" : "transparent" }}>
-            <button className="sidebar-folder-button flex-1 min-w-0 text-left px-3 py-2 truncate" onClick={() => { onOpenNotes?.(); selectFolder(f.id); void showActive(f.id); onNavigate?.(); }}><Icon name="folder" size={16} /> <span>{f.name}</span></button>
-            <button title="Đổi tên thư mục" className="icon-action px-1" aria-label={`Đổi tên thư mục ${f.name}`} onClick={async()=>{const name=window.prompt("Tên thư mục:",f.name)?.trim();if(name)await renameFolder(f.id,name);}}><Icon name="pencil" size={15} /></button>
-            <button title="Xóa thư mục" className="icon-action px-2" aria-label={`Xóa thư mục ${f.name}`} style={{color:"var(--color-error)"}} onClick={async()=>{if(!window.confirm(`Xóa thư mục “${f.name}”? Ghi chú bên trong sẽ được chuyển về Tất cả ghi chú.`))return;await removeFolder(f.id);await showActive();}}><Icon name="trash" size={15} /></button>
+          <div key={f.id} className="flex items-center rounded-lg mb-1" style={{ background: view === "active" && selectedFolderId === f.id ? "var(--color-surface-alt)" : "transparent" }}>
+            <button className="flex-1 min-w-0 text-left px-3 py-2 truncate" onClick={() => { onOpenNotes?.(); selectFolder(f.id); void showActive(f.id); onNavigate?.(); }}>📁 {f.name}</button>
+            <button title="Đổi tên thư mục" className="px-1" onClick={async()=>{const name=window.prompt("Tên thư mục:",f.name)?.trim();if(name)await renameFolder(f.id,name);}}>✎</button>
+            <button title="Xóa thư mục" className="px-2" style={{color:"var(--color-error)"}} onClick={async()=>{if(!window.confirm(`Xóa thư mục “${f.name}”? Ghi chú bên trong sẽ được chuyển về Tất cả ghi chú.`))return;await removeFolder(f.id);await showActive();}}>×</button>
           </div>
         ))}
         <form
@@ -91,24 +90,24 @@ export function Sidebar({ onNavigate, onOpenNotes }: { onNavigate?: () => void; 
             className="min-w-0 flex-1 text-sm bg-transparent border rounded outline-none px-2 py-1.5"
             style={{ borderColor: "var(--color-border)", color: "var(--color-text)" }}
           />
-          <button type="submit" disabled={!newFolderName.trim()} aria-label="Tạo thư mục" className="rounded px-2" style={{background:"var(--color-accent)",color:"var(--color-bg)"}}><Icon name="folder-plus" size={17} /></button>
+          <button type="submit" disabled={!newFolderName.trim()} aria-label="Tạo thư mục" className="rounded px-2" style={{background:"var(--color-accent)",color:"var(--color-bg)"}}>＋</button>
         </form>
         {folderMessage&&<p className="px-2 pt-1 text-xs" style={{color:"var(--color-text-muted)"}}>{folderMessage}</p>}
       </div>
 
       <div className="p-2 border-t relative" style={{ borderColor: "var(--color-border)" }}>
-        <label className="sidebar-menu-item block w-full text-left px-3 py-2 rounded-lg text-sm cursor-pointer" style={{ color: "var(--color-text-muted)" }}>
-          <Icon name="image" size={17} /> <span>Chọn ảnh nền</span>
+        <label className="block w-full text-left px-3 py-2 rounded-lg text-sm cursor-pointer" style={{ color: "var(--color-text-muted)" }}>
+          🖼️ Chọn ảnh nền
           <input type="file" accept="image/*" className="hidden" onChange={async(e)=>{const file=e.target.files?.[0];if(!file)return;try{await setCustomBackground(file);}catch(error){window.alert((error as Error).message);}e.target.value="";}} />
         </label>
-        {backgroundUrl&&<button className="sidebar-menu-item w-full text-left px-3 py-2 rounded-lg text-sm" style={{color:"var(--color-error)"}} onClick={()=>void clearCustomBackground()}><Icon name="refresh" size={17} /> <span>Dùng lại nền mặc định</span></button>}
-        <button className="sidebar-menu-item w-full text-left px-3 py-2 rounded-lg text-sm" style={{color:"var(--color-text-muted)"}} onClick={()=>{window.dispatchEvent(new CustomEvent("hbc-toggle-music"));onNavigate?.();}}><Icon name="music" size={17} /> <span>Tiên Âm Các</span></button>
+        {backgroundUrl&&<button className="w-full text-left px-3 py-2 rounded-lg text-sm" style={{color:"var(--color-error)"}} onClick={()=>void clearCustomBackground()}>↩ Dùng lại nền mặc định</button>}
+        <button className="w-full text-left px-3 py-2 rounded-lg text-sm" style={{color:"var(--color-text-muted)"}} onClick={()=>{window.dispatchEvent(new CustomEvent("hbc-toggle-music"));onNavigate?.();}}>♫ Tiên Âm Các</button>
         <button
-          className="sidebar-menu-item w-full text-left px-3 py-2 rounded-lg text-sm"
+          className="w-full text-left px-3 py-2 rounded-lg text-sm"
           style={{ color: "var(--color-text-muted)" }}
           onClick={() => setShowThemePicker((v) => !v)}
         >
-          <Icon name="palette" size={17} /> <span>Đổi giao diện</span>
+          🎨 Đổi giao diện
         </button>
         {showThemePicker && (
           <div
@@ -129,7 +128,7 @@ export function Sidebar({ onNavigate, onOpenNotes }: { onNavigate?: () => void; 
                 }}
               >
                 <span className="inline-flex items-center gap-2 w-full">
-                  <span className="theme-choice" aria-hidden="true">{themeId === t.id ? <Icon name="check" size={14} /> : <span />}</span>
+                  <span>{themeId === t.id ? "●" : "○"}</span>
                   <span className="flex-1">{t.label}</span>
                   <span className="inline-flex -space-x-1">{t.colors.map((color)=><span key={color} className="w-3.5 h-3.5 rounded-full border" style={{background:color,borderColor:"var(--color-border)"}} />)}</span>
                 </span>

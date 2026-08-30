@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useProjectsStore } from "../../stores/projectsStore";
 import type { ProjectTaskStatus } from "../../types/entities";
-import { Icon } from "../common/Icons";
 
 const COLUMNS: { status: ProjectTaskStatus; label: string }[] = [
   { status: "todo", label: "TODO" },
@@ -38,10 +37,10 @@ export function KanbanBoard() {
         />
         <button
           type="submit"
-          className="px-3 py-2 rounded-lg text-sm font-medium icon-label"
+          className="px-3 py-2 rounded-lg text-sm font-medium"
           style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}
         >
-          <Icon name="plus" size={15} /> Thêm
+          + Thêm
         </button>
       </form>
 

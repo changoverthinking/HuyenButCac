@@ -6,8 +6,6 @@ import type {
 import * as svc from "../features/projects/projectsService";
 import * as bible from "../features/projects/storyBibleService";
 
-let projectListLoadVersion = 0;
-
 interface ProjectsState {
   projects: Project[];
   selectedProjectId: string | null;
@@ -69,17 +67,7 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
   loreEntries: [],
   timelineEvents: [],
 
-  loadProjects: async () => {
-    const version = ++projectListLoadVersion;
-    const projects = await svc.listProjects();
-    if (version !== projectListLoadVersion) return;
-    const selectedProjectId = get().selectedProjectId;
-    if (selectedProjectId && !projects.some((project) => project.id === selectedProjectId)) {
-      set({ projects, selectedProjectId: null, selectedChapterId: null, sections: [], chapters: [], tasks: [], milestones: [], characters: [], locations: [], loreEntries: [], timelineEvents: [] });
-      return;
-    }
-    set({ projects });
-  },
+  loadProjects: async () => set({ projects: await svc.listProjects() }),
 
   selectProject: async (id) => {
     set({ selectedProjectId: id, selectedChapterId: null });
@@ -97,7 +85,6 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
       bible.listLoreEntries(id),
       bible.listTimelineEvents(id),
     ]);
-    if (get().selectedProjectId !== id) return;
     set({ sections, chapters, tasks, milestones, characters, locations, loreEntries, timelineEvents });
   },
 

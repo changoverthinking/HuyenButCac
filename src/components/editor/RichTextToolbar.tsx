@@ -1,5 +1,4 @@
 import type { RefObject } from "react";
-import { Icon } from "../common/Icons";
 
 type Props = {
   editorRef: RefObject<HTMLElement | null>;
@@ -7,7 +6,7 @@ type Props = {
   compact?: boolean;
 };
 
-const buttonClass = "rich-format-button min-w-8 px-2 py-1.5 rounded border text-sm hover:opacity-80";
+const buttonClass = "min-w-8 px-2 py-1.5 rounded border text-sm hover:opacity-80";
 
 export function RichTextToolbar({ editorRef, onFormat, compact = false }: Props) {
   const run = (command: string, value?: string) => {
@@ -18,8 +17,8 @@ export function RichTextToolbar({ editorRef, onFormat, compact = false }: Props)
 
   return (
     <div className={`rich-text-toolbar flex items-center gap-1.5 ${compact ? "px-3 py-2" : "px-4 py-2"}`}>
-      <button type="button" title="Hoàn tác" aria-label="Hoàn tác" className={buttonClass} onMouseDown={(e) => e.preventDefault()} onClick={() => run("undo")}><Icon name="undo" size={16} /></button>
-      <button type="button" title="Làm lại" aria-label="Làm lại" className={buttonClass} onMouseDown={(e) => e.preventDefault()} onClick={() => run("redo")}><Icon name="redo" size={16} /></button>
+      <button type="button" title="Hoàn tác" className={buttonClass} onMouseDown={(e) => e.preventDefault()} onClick={() => run("undo")}>↶</button>
+      <button type="button" title="Làm lại" className={buttonClass} onMouseDown={(e) => e.preventDefault()} onClick={() => run("redo")}>↷</button>
       <select aria-label="Kiểu đoạn" className="px-2 py-1.5 rounded border bg-transparent text-sm" defaultValue="P" onChange={(e) => run("formatBlock", e.target.value)}>
         <option value="P">Đoạn văn</option><option value="H1">Tiêu đề 1</option><option value="H2">Tiêu đề 2</option><option value="H3">Tiêu đề 3</option><option value="BLOCKQUOTE">Trích dẫn</option><option value="PRE">Mã/định dạng sẵn</option>
       </select>
@@ -33,13 +32,13 @@ export function RichTextToolbar({ editorRef, onFormat, compact = false }: Props)
       <button type="button" title="In nghiêng" className={`${buttonClass} italic`} onMouseDown={(e) => e.preventDefault()} onClick={() => run("italic")}>I</button>
       <button type="button" title="Gạch chân" className={`${buttonClass} underline`} onMouseDown={(e) => e.preventDefault()} onClick={() => run("underline")}>U</button>
       <button type="button" title="Gạch ngang" className={`${buttonClass} line-through`} onMouseDown={(e) => e.preventDefault()} onClick={() => run("strikeThrough")}>S</button>
-      <button type="button" title="Căn trái" aria-label="Căn trái" className={buttonClass} onMouseDown={(e) => e.preventDefault()} onClick={() => run("justifyLeft")}><Icon name="align-left" size={16} /></button>
-      <button type="button" title="Căn giữa" aria-label="Căn giữa" className={buttonClass} onMouseDown={(e) => e.preventDefault()} onClick={() => run("justifyCenter")}><Icon name="align-center" size={16} /></button>
-      <button type="button" title="Căn phải" aria-label="Căn phải" className={buttonClass} onMouseDown={(e) => e.preventDefault()} onClick={() => run("justifyRight")}><Icon name="align-right" size={16} /></button>
-      <button type="button" title="Danh sách chấm" aria-label="Danh sách chấm" className={buttonClass} onMouseDown={(e) => e.preventDefault()} onClick={() => run("insertUnorderedList")}><Icon name="list-bullet" size={16} /></button>
-      <button type="button" title="Danh sách số" aria-label="Danh sách số" className={buttonClass} onMouseDown={(e) => e.preventDefault()} onClick={() => run("insertOrderedList")}><Icon name="list-number" size={16} /></button>
+      <button type="button" title="Căn trái" className={buttonClass} onMouseDown={(e) => e.preventDefault()} onClick={() => run("justifyLeft")}>≡</button>
+      <button type="button" title="Căn giữa" className={buttonClass} onMouseDown={(e) => e.preventDefault()} onClick={() => run("justifyCenter")}>≡</button>
+      <button type="button" title="Căn phải" className={buttonClass} onMouseDown={(e) => e.preventDefault()} onClick={() => run("justifyRight")}>≡</button>
+      <button type="button" title="Danh sách chấm" className={buttonClass} onMouseDown={(e) => e.preventDefault()} onClick={() => run("insertUnorderedList")}>• List</button>
+      <button type="button" title="Danh sách số" className={buttonClass} onMouseDown={(e) => e.preventDefault()} onClick={() => run("insertOrderedList")}>1. List</button>
       <label title="Màu chữ" className="h-8 px-2 rounded border flex items-center gap-1 text-sm cursor-pointer">A <input aria-label="Màu chữ" type="color" className="w-5 h-5" onChange={(e) => run("foreColor", e.target.value)} /></label>
-      <button type="button" title="Xóa định dạng" aria-label="Xóa định dạng" className={buttonClass} onMouseDown={(e) => e.preventDefault()} onClick={() => run("removeFormat")}><Icon name="clear-format" size={16} /></button>
+      <button type="button" title="Xóa định dạng" className={buttonClass} onMouseDown={(e) => e.preventDefault()} onClick={() => run("removeFormat")}>Xóa kiểu</button>
     </div>
   );
 }

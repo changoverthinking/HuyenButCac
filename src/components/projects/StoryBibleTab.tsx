@@ -3,7 +3,6 @@ import { useProjectsStore } from "../../stores/projectsStore";
 import { exportContextPackMarkdown } from "../../features/projects/projectsService";
 import { STORY_LOCATION_KIND_LABEL } from "../../features/projects/storyBibleService";
 import type { StoryLocationKind } from "../../types/entities";
-import { Icon } from "../common/Icons";
 
 const LOCATION_KIND_LABEL: Record<StoryLocationKind, string> = STORY_LOCATION_KIND_LABEL;
 
@@ -61,8 +60,8 @@ function CharactersPanel() {
           className="min-w-[12rem] flex-1 px-3 py-2 rounded-lg border text-sm outline-none"
           style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)" }}
         />
-        <button type="submit" className="px-3 py-2 rounded-lg text-sm font-medium icon-label" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}>
-          <Icon name="plus" size={15} /> Nhân vật
+        <button type="submit" className="px-3 py-2 rounded-lg text-sm font-medium" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}>
+          + Nhân vật
         </button>
       </form>
 
@@ -165,8 +164,8 @@ function WorldPanel() {
             <option key={k} value={k}>{label}</option>
           ))}
         </select>
-        <button type="submit" className="px-3 py-2 rounded-lg text-sm font-medium icon-label" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}>
-          <Icon name="plus" size={15} /> Thêm
+        <button type="submit" className="px-3 py-2 rounded-lg text-sm font-medium" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}>
+          + Thêm
         </button>
       </form>
 
@@ -378,26 +377,26 @@ export function StoryBibleTab({ projectId, projectTitle }: { projectId: string; 
   const [sub, setSub] = useState<"characters" | "world" | "lore" | "timeline">("characters");
 
   return (
-    <div className="story-bible-view p-4">
-      <div className="story-bible-tabs flex items-center justify-between gap-2 mb-3 flex-wrap">
+    <div className="p-4">
+      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
         <div className="codex-subtabs">
           {[
-            { id: "characters", label: "Nhân vật", icon: "user" as const },
-            { id: "world", label: "Thế giới", icon: "whiteboard" as const },
-            { id: "lore", label: "Từ điển", icon: "scroll" as const },
-            { id: "timeline", label: "Dòng thời gian", icon: "clock" as const },
+            { id: "characters", label: "Nhân vật" },
+            { id: "world", label: "Thế giới" },
+            { id: "lore", label: "Từ điển" },
+            { id: "timeline", label: "Dòng thời gian" },
           ].map((t) => (
             <button
               key={t.id}
               onClick={() => setSub(t.id as typeof sub)}
               className={`codex-subtab ${sub === t.id ? "is-active" : ""}`}
             >
-              <Icon name={t.icon} size={15} /> {t.label}
+              {t.label}
             </button>
           ))}
         </div>
         <button
-          className="story-export-button text-xs px-3 py-1.5 rounded"
+          className="text-xs px-3 py-1.5 rounded"
           style={{ background: "var(--color-surface-alt)", color: "var(--color-text)" }}
           onClick={async () => {
             const md = await exportContextPackMarkdown(projectId);
@@ -411,7 +410,7 @@ export function StoryBibleTab({ projectId, projectTitle }: { projectId: string; 
           }}
           title="Xuất Thư Viện Truyện + tóm tắt chương để dán vào AI, giúp AI không quên mạch truyện"
         >
-          <Icon name="export" size={15} /> Xuất gói ngữ cảnh AI
+          ⇩ Xuất gói ngữ cảnh AI
         </button>
       </div>
       <div className="scroll-divider">THƯ VIỆN TRUYỆN</div>

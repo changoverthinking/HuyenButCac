@@ -5,7 +5,6 @@ import {
   listWhiteboards, removeBoardObjectConnections, renameWhiteboard, updateBoardObject,
 } from "../../features/whiteboard/whiteboardService";
 import { addStroke, deleteStroke, listStrokes, smoothPoints, strokeDash, strokePath, updateStroke } from "../../features/canvas/strokesService";
-import { Icon } from "../common/Icons";
 
 type Point={x:number;y:number};
 
@@ -24,8 +23,7 @@ export function WhiteboardView() {
   const [strokeDashStyle,setStrokeDashStyle]=useState<CanvasStroke["dash"]>("solid");
   const [strokeArrow,setStrokeArrow]=useState<CanvasStroke["arrow"]>("none");
   const [smooth,setSmooth]=useState(true);
-  const reloadToken = useRef(0);
-  const drag = useRef<{ id: string; pointerId: number; startClientX: number; startClientY: number; startX: number; startY: number } | null>(null);
+  const drag = useRef<{ id: string; startClientX: number; startClientY: number; startX: number; startY: number } | null>(null);
   const canvasPan=useRef<{pointerId:number;start:Point;pan:Point}|null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{distance:number;zoom:number;pan:Point;center:Point}|null>(null);
@@ -54,28 +52,19 @@ export function WhiteboardView() {
   };
 
   const reload = async (id = active) => {
-    const token = ++reloadToken.current;
-    let items = await listWhiteboards();
-    if (!items.length) items = [await createWhiteboard()];
-    const nextId = id && items.some((item) => item.id === id) ? id : items[0]?.id ?? null;
-    if (token !== reloadToken.current) return;
-    setBoards(items);
-    if (!nextId) {
-      setActive(null);
-      setObjects([]);
-      setStrokes([]);
-      return;
-    }
-    setActive(nextId);
-    const [nextObjects, nextStrokes] = await Promise.all([getBoardObjects(nextId), listStrokes("whiteboard", nextId)]);
-    if (token !== reloadToken.current) return;
-    setObjects(nextObjects);
-    setStrokes(nextStrokes);
-    setSelected((current) => current && nextObjects.some((item) => item.id === current) ? current : null);
-    setSelectedStroke((current) => current && nextStrokes.some((item) => item.id === current) ? current : null);
+    setBoards(await listWhiteboards());
+    if (id) {setObjects(await getBoardObjects(id));setStrokes(await listStrokes("whiteboard",id));}
   };
 
-  useEffect(() => { void reload(); }, []);
+  useEffect(() => {
+    void listWhiteboards().then(async (items) => {
+      const next = items.length ? items : [await createWhiteboard()];
+      setBoards(next);
+      setActive(next[0].id);
+      setObjects(await getBoardObjects(next[0].id));
+      setStrokes(await listStrokes("whiteboard",next[0].id));
+    });
+  }, []);
 
   const add = async (kind: WhiteboardObjectKind) => {
     if (!active) return;
@@ -94,10 +83,10 @@ export function WhiteboardView() {
   const finishDrawing=async()=>{const current=drawing.current;drawing.current=null;if(!active||!current||current.points.length<2)return;const points=smooth?smoothPoints(current.points):current.points;const created=await addStroke("whiteboard",{ownerId:active,points,color:"#4fd1c5",width:strokeWidth,dash:strokeDashStyle,arrow:strokeArrow,smoothed:smooth,locked:false});setStrokes(items=>[...items.filter(item=>item.id!=="__preview"),created]);};
 
   return (
-    <div className="whiteboard-view h-full flex flex-col">
+    <div className="h-full flex flex-col">
       <header className="whiteboard-toolbar shrink-0 border-b" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
         <div className="flex gap-2 p-2 min-w-0">
-        <button className="shrink-0 icon-label" onClick={async () => { const board = await createWhiteboard(); setActive(board.id); await reload(board.id); }}><Icon name="plus" size={15} /> Bảng <span className="hidden sm:inline">({boards.length})</span></button>
+        <button className="shrink-0" onClick={async () => { const board = await createWhiteboard(); setActive(board.id); await reload(board.id); }}>＋ Bảng <span className="hidden sm:inline">({boards.length})</span></button>
         <select
           aria-label="Chọn bảng trắng"
           value={active ?? ""}
@@ -107,24 +96,24 @@ export function WhiteboardView() {
         >
           {boards.map((board) => <option key={board.id} value={board.id}>{board.title}</option>)}
         </select>
-        <button className="shrink-0 icon-label" aria-label="Đổi tên bảng" onClick={async()=>{if(!active)return;const current=boards.find((board)=>board.id===active);const title=window.prompt("Tên bảng trắng:",current?.title??"")?.trim();if(!title)return;await renameWhiteboard(active,title);await reload(active);}}><Icon name="pencil" size={15} /><span className="hidden md:inline">Đổi tên</span></button>
-        <button className="shrink-0 icon-label" aria-label="Xóa bảng" style={{ color: "var(--color-error)" }} onClick={removeActiveBoard}><Icon name="trash" size={15} /><span className="hidden md:inline">Xóa bảng</span></button>
+        <button className="shrink-0" aria-label="Đổi tên bảng" onClick={async()=>{if(!active)return;const current=boards.find((board)=>board.id===active);const title=window.prompt("Tên bảng trắng:",current?.title??"")?.trim();if(!title)return;await renameWhiteboard(active,title);await reload(active);}}>✎<span className="hidden md:inline"> Đổi tên</span></button>
+        <button className="shrink-0" aria-label="Xóa bảng" style={{ color: "var(--color-error)" }} onClick={removeActiveBoard}>⌫<span className="hidden md:inline"> Xóa bảng</span></button>
         </div>
         <div className="flex items-center gap-2 px-2 pb-2 overflow-x-auto">
         {([{"kind":"note","label":"Ghi chú"},{"kind":"text","label":"Chữ"},{"kind":"rectangle","label":"Chữ nhật"},{"kind":"ellipse","label":"Elip"}] as {kind:WhiteboardObjectKind;label:string}[]).map(({kind,label}) => (
-          <button key={kind} className="shrink-0 px-3 py-1.5 rounded icon-label" style={{ background: "var(--color-surface-alt)" }} onClick={() => void add(kind)}><Icon name="plus" size={15} /> {label}</button>
+          <button key={kind} className="shrink-0 px-3 py-1.5 rounded" style={{ background: "var(--color-surface-alt)" }} onClick={() => void add(kind)}>＋ {label}</button>
         ))}
         <button disabled={!selected || objects.find(item=>item.id===selected)?.locked} onClick={async () => {
           if (!selected) return;
           await deleteBoardObject(selected); setSelected(null); await reload();
-        }}><span className="icon-label"><Icon name="trash" size={15} /> Xóa</span></button>
-        <button className="shrink-0 rounded px-3 py-1.5 icon-label" style={{background:drawMode?"var(--color-accent)":"var(--color-surface-alt)",color:drawMode?"var(--color-bg)":"var(--color-text)"}} onClick={()=>{setDrawMode(value=>!value);setSelectedStroke(null);}}><Icon name="pencil" size={15} /> Bút chì</button>
+        }}>Xóa</button>
+        <button className="shrink-0 rounded px-3 py-1.5" style={{background:drawMode?"var(--color-accent)":"var(--color-surface-alt)",color:drawMode?"var(--color-bg)":"var(--color-text)"}} onClick={()=>{setDrawMode(value=>!value);setSelectedStroke(null);}}>✎ Bút chì</button>
         {drawMode&&<><select aria-label="Kiểu nét" value={strokeDashStyle} onChange={event=>setStrokeDashStyle(event.target.value as CanvasStroke["dash"])} className="shrink-0 rounded px-2" style={{background:"var(--color-surface)"}}><option value="solid">Liền</option><option value="dashed">Đứt</option><option value="dotted">Chấm</option></select><select aria-label="Mũi tên" value={strokeArrow} onChange={event=>setStrokeArrow(event.target.value as CanvasStroke["arrow"])} className="shrink-0 rounded px-2" style={{background:"var(--color-surface)"}}><option value="none">Không mũi tên</option><option value="end">Mũi tên cuối</option><option value="both">Hai đầu</option></select><label className="shrink-0">Nét {strokeWidth}<input aria-label="Độ dày nét" type="range" min="1" max="12" value={strokeWidth} onChange={event=>setStrokeWidth(Number(event.target.value))}/></label><label className="shrink-0"><input type="checkbox" checked={smooth} onChange={event=>setSmooth(event.target.checked)}/> Mượt</label></>}
-        {(selected||selectedStroke)&&<button className="shrink-0 icon-label" onClick={async()=>{if(selectedStroke){const item=strokes.find(stroke=>stroke.id===selectedStroke);if(!item)return;await updateStroke("whiteboard",item.id,{locked:!item.locked});setStrokes(items=>items.map(stroke=>stroke.id===item.id?{...stroke,locked:!stroke.locked}:stroke));}else if(selected){const item=objects.find(object=>object.id===selected);if(!item)return;await updateBoardObject(item.id,{locked:!item.locked});setObjects(items=>items.map(object=>object.id===item.id?{...object,locked:!object.locked}:object));}}}>{(selectedStroke?strokes.find(item=>item.id===selectedStroke)?.locked:objects.find(item=>item.id===selected)?.locked)?<><Icon name="unlock" size={15} /> Mở khóa</>:<><Icon name="lock" size={15} /> Khóa</>}</button>}
-        {selectedStroke&&<button disabled={strokes.find(item=>item.id===selectedStroke)?.locked} className="shrink-0 icon-label" style={{color:"var(--color-error)"}} onClick={async()=>{await deleteStroke("whiteboard",selectedStroke);setStrokes(items=>items.filter(item=>item.id!==selectedStroke));setSelectedStroke(null);}}><Icon name="trash" size={15} /> Xóa nét</button>}
-        <button disabled={!selected} className="shrink-0 rounded px-3 py-1.5 icon-label" style={{background:linkSource?"var(--color-accent)":"var(--color-surface-alt)",color:linkSource?"var(--color-bg)":"var(--color-text)"}} onClick={()=>setLinkSource(current=>current?null:selected)}><Icon name="link" size={15} /> {linkSource?"Chạm hình đích":"Nối"}</button>
-        <button disabled={!selected} className="shrink-0 icon-label" onClick={async()=>{if(!selected)return;await removeBoardObjectConnections(selected);setLinkSource(null);await reload();}}><Icon name="unlink" size={15} /> Bỏ nối</button>
-        <div className="ml-auto flex shrink-0 items-center gap-1"><button aria-label="Thu nhỏ" onClick={()=>zoomAt(zoom-.15,{x:200,y:160})}><Icon name="zoom-out" size={16} /></button><button title="Đặt lại góc nhìn" onClick={resetView}>{Math.round(zoom * 100)}%</button><button aria-label="Phóng to" onClick={()=>zoomAt(zoom+.15,{x:200,y:160})}><Icon name="zoom-in" size={16} /></button></div>
+        {(selected||selectedStroke)&&<button className="shrink-0" onClick={async()=>{if(selectedStroke){const item=strokes.find(stroke=>stroke.id===selectedStroke);if(!item)return;await updateStroke("whiteboard",item.id,{locked:!item.locked});setStrokes(items=>items.map(stroke=>stroke.id===item.id?{...stroke,locked:!stroke.locked}:stroke));}else if(selected){const item=objects.find(object=>object.id===selected);if(!item)return;await updateBoardObject(item.id,{locked:!item.locked});setObjects(items=>items.map(object=>object.id===item.id?{...object,locked:!object.locked}:object));}}}>{(selectedStroke?strokes.find(item=>item.id===selectedStroke)?.locked:objects.find(item=>item.id===selected)?.locked)?"🔓 Mở khóa":"🔒 Khóa"}</button>}
+        {selectedStroke&&<button disabled={strokes.find(item=>item.id===selectedStroke)?.locked} className="shrink-0" style={{color:"var(--color-error)"}} onClick={async()=>{await deleteStroke("whiteboard",selectedStroke);setStrokes(items=>items.filter(item=>item.id!==selectedStroke));setSelectedStroke(null);}}>Xóa nét</button>}
+        <button disabled={!selected} className="shrink-0 rounded px-3 py-1.5" style={{background:linkSource?"var(--color-accent)":"var(--color-surface-alt)",color:linkSource?"var(--color-bg)":"var(--color-text)"}} onClick={()=>setLinkSource(current=>current?null:selected)}>⇢ {linkSource?"Chạm hình đích":"Nối"}</button>
+        <button disabled={!selected} className="shrink-0" onClick={async()=>{if(!selected)return;await removeBoardObjectConnections(selected);setLinkSource(null);await reload();}}>Bỏ nối</button>
+        <div className="ml-auto flex shrink-0 items-center gap-1"><button onClick={()=>zoomAt(zoom-.15,{x:200,y:160})}>−</button><button title="Đặt lại góc nhìn" onClick={resetView}>{Math.round(zoom * 100)}%</button><button onClick={()=>zoomAt(zoom+.15,{x:200,y:160})}>＋</button></div>
         </div>
       </header>
       <div
@@ -147,7 +136,7 @@ export function WhiteboardView() {
           if(strokeDrag.current?.pointerId===event.pointerId){const current=strokeDrag.current;const point=worldPoint(event,event.currentTarget);const dx=point.x-current.start.x,dy=point.y-current.start.y;setStrokes(items=>items.map(item=>item.id===current.id?{...item,points:current.points.map(entry=>({x:entry.x+dx,y:entry.y+dy}))}:item));return;}
           const current = drag.current;
           if(!current&&canvasPan.current?.pointerId===event.pointerId){const start=canvasPan.current;setPan({x:start.pan.x+event.clientX-start.start.x,y:start.pan.y+event.clientY-start.start.y});return;}
-          if (!current || current.pointerId !== event.pointerId) return;
+          if (!current) return;
           setObjects((items) => items.map((item) => item.id === current.id ? {
             ...item,
             x: current.startX + (event.clientX - current.startClientX) / zoom,
@@ -157,14 +146,11 @@ export function WhiteboardView() {
         onPointerUp={(event) => {
           pointers.current.delete(event.pointerId);if(pointers.current.size<2)pinch.current=null;if(canvasPan.current?.pointerId===event.pointerId)canvasPan.current=null;
           if(drawing.current?.pointerId===event.pointerId)void finishDrawing();
-          if(strokeDrag.current?.pointerId===event.pointerId){const current=strokeDrag.current;const point=worldPoint(event,event.currentTarget);const dx=point.x-current.start.x,dy=point.y-current.start.y;const points=current.points.map(entry=>({x:entry.x+dx,y:entry.y+dy}));void updateStroke("whiteboard",current.id,{points});setStrokes(items=>items.map(item=>item.id===current.id?{...item,points}:item));strokeDrag.current=null;}
+          if(strokeDrag.current?.pointerId===event.pointerId){const item=strokes.find(entry=>entry.id===strokeDrag.current?.id);if(item)void updateStroke("whiteboard",item.id,{points:item.points});strokeDrag.current=null;}
           const current = drag.current;
-          if (current?.pointerId === event.pointerId) {
-            const x = current.startX + (event.clientX - current.startClientX) / zoom;
-            const y = current.startY + (event.clientY - current.startClientY) / zoom;
-            void updateBoardObject(current.id, { x, y });
-            drag.current = null;
-          }
+          const item = objects.find((entry) => entry.id === current?.id);
+          if (item) void updateBoardObject(item.id, { x: item.x, y: item.y });
+          drag.current = null;
         }}
         onPointerCancel={(event) => { pointers.current.delete(event.pointerId);pinch.current=null;drawing.current=null;strokeDrag.current=null;setStrokes(items=>items.filter(item=>item.id!=="__preview"));canvasPan.current=null;drag.current = null; }}
       >
@@ -178,13 +164,11 @@ export function WhiteboardView() {
             <div
               key={item.id}
               onPointerDown={(event) => {
-                // Pointer của chính đối tượng đã được ghi vào canvas trước khi
-                // event bubble tới đây; chỉ chặn khi thực sự có thao tác đa chạm.
-                if (pointers.current.size > 1) return;
+                if (pointers.current.size > 0) return;
                 if(linkSource){event.preventDefault();event.stopPropagation();void selectObject(item.id);return;}
                 if(item.locked){event.preventDefault();event.stopPropagation();setSelected(item.id);return;}
                 setSelected(item.id);
-                drag.current = { id: item.id, pointerId: event.pointerId, startClientX: event.clientX, startClientY: event.clientY, startX: item.x, startY: item.y };
+                drag.current = { id: item.id, startClientX: event.clientX, startClientY: event.clientY, startX: item.x, startY: item.y };
                 event.currentTarget.setPointerCapture(event.pointerId);
               }}
               className="absolute shadow-md pointer-events-auto"
@@ -203,7 +187,7 @@ export function WhiteboardView() {
                 className="h-9 px-2 flex items-center cursor-move select-none text-xs font-semibold"
                 style={{background:"color-mix(in srgb, var(--color-bg) 18%, transparent)",borderRadius:item.kind==="ellipse"?"50% 50% 0 0":"9px 9px 0 0"}}
               >
-                <span className="icon-label"><Icon name="move" size={14} /> Kéo</span> <span className="ml-auto opacity-60">{(item.connectedToIds??[]).length?<Icon name="link" size={13} />:null}</span>
+                ⠿ Kéo <span className="ml-auto opacity-60">{(item.connectedToIds??[]).length?"⇢":""}</span>
               </div>
               <textarea
                 aria-label="Nội dung đối tượng"
