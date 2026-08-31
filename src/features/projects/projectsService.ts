@@ -9,6 +9,7 @@ import type {
   ProjectKind,
 } from "../../types/entities";
 import { exportStoryBibleMarkdown } from "./storyBibleService";
+import { sanitizeRichHtml } from "../security/htmlSanitizer";
 
 function now() {
   return Date.now();
@@ -48,28 +49,49 @@ export async function updateProject(
 }
 
 export async function softDeleteProject(id: string): Promise<void> {
-  const deletedAt=now();
-  await db.transaction("rw",[
+  const deletedAt = now();
+  await db.transaction("rw", [
     db.projects, db.projectSections, db.projectChapters, db.projectTasks, db.projectMilestones,
     db.storyCharacters, db.storyLocations, db.storyLoreEntries, db.storyTimelineEvents,
-  ],async()=>{
+    db.mindMaps, db.mindMapNodes,
+  ], async () => {
     await db.projects.update(id, { deletedAt, updatedAt: deletedAt });
-    const sections=await db.projectSections.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
-    const chapters=await db.projectChapters.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
-    const tasks=await db.projectTasks.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
-    const milestones=await db.projectMilestones.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
-    const characters=await db.storyCharacters.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
-    const locations=await db.storyLocations.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
-    const loreEntries=await db.storyLoreEntries.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
-    const timelineEvents=await db.storyTimelineEvents.where("projectId").equals(id).filter((item)=>item.deletedAt===null).toArray();
-    if(sections.length)await db.projectSections.bulkPut(sections.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
-    if(chapters.length)await db.projectChapters.bulkPut(chapters.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
-    if(tasks.length)await db.projectTasks.bulkPut(tasks.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
-    if(milestones.length)await db.projectMilestones.bulkPut(milestones.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
-    if(characters.length)await db.storyCharacters.bulkPut(characters.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
-    if(locations.length)await db.storyLocations.bulkPut(locations.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
-    if(loreEntries.length)await db.storyLoreEntries.bulkPut(loreEntries.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
-    if(timelineEvents.length)await db.storyTimelineEvents.bulkPut(timelineEvents.map((item)=>({...item,deletedAt,updatedAt:deletedAt})));
+    const sections = await db.projectSections.where("projectId").equals(id).filter((item) => item.deletedAt === null).toArray();
+    const chapters = await db.projectChapters.where("projectId").equals(id).filter((item) => item.deletedAt === null).toArray();
+    const tasks = await db.projectTasks.where("projectId").equals(id).filter((item) => item.deletedAt === null).toArray();
+    const milestones = await db.projectMilestones.where("projectId").equals(id).filter((item) => item.deletedAt === null).toArray();
+    const characters = await db.storyCharacters.where("projectId").equals(id).filter((item) => item.deletedAt === null).toArray();
+    const locations = await db.storyLocations.where("projectId").equals(id).filter((item) => item.deletedAt === null).toArray();
+    const loreEntries = await db.storyLoreEntries.where("projectId").equals(id).filter((item) => item.deletedAt === null).toArray();
+    const timelineEvents = await db.storyTimelineEvents.where("projectId").equals(id).filter((item) => item.deletedAt === null).toArray();
+    const maps = await db.mindMaps.where("projectId").equals(id).filter((item) => item.deletedAt === null).toArray();
+
+    if (sections.length) await db.projectSections.bulkPut(sections.map((item) => ({ ...item, deletedAt, updatedAt: deletedAt })));
+    if (chapters.length) await db.projectChapters.bulkPut(chapters.map((item) => ({ ...item, deletedAt, updatedAt: deletedAt })));
+    if (tasks.length) await db.projectTasks.bulkPut(tasks.map((item) => ({ ...item, deletedAt, updatedAt: deletedAt })));
+    if (milestones.length) await db.projectMilestones.bulkPut(milestones.map((item) => ({ ...item, deletedAt, updatedAt: deletedAt })));
+    if (characters.length) await db.storyCharacters.bulkPut(characters.map((item) => ({ ...item, deletedAt, updatedAt: deletedAt })));
+    if (locations.length) await db.storyLocations.bulkPut(locations.map((item) => ({ ...item, deletedAt, updatedAt: deletedAt })));
+    if (loreEntries.length) await db.storyLoreEntries.bulkPut(loreEntries.map((item) => ({ ...item, deletedAt, updatedAt: deletedAt })));
+    if (timelineEvents.length) await db.storyTimelineEvents.bulkPut(timelineEvents.map((item) => ({ ...item, deletedAt, updatedAt: deletedAt })));
+
+    // Không xóa sơ đồ người dùng đã vẽ. Tách mọi map gắn project và gỡ link chết ở TẤT CẢ map,
+    // kể cả một map tự do khác có node trỏ tới project/section/chapter này.
+    if (maps.length) {
+      await db.mindMaps.bulkPut(maps.map((item) => ({ ...item, projectId: null, updatedAt: deletedAt })));
+    }
+    const sectionIds = new Set(sections.map((item) => item.id));
+    const chapterIds = new Set(chapters.map((item) => item.id));
+    const linkedNodes = await db.mindMapNodes.filter((node) =>
+      node.deletedAt === null && (
+        (node.linkType === "project" && node.linkId === id) ||
+        (node.linkType === "section" && Boolean(node.linkId && sectionIds.has(node.linkId))) ||
+        (node.linkType === "chapter" && Boolean(node.linkId && chapterIds.has(node.linkId)))
+      ),
+    ).toArray();
+    if (linkedNodes.length) {
+      await db.mindMapNodes.bulkPut(linkedNodes.map((node) => ({ ...node, linkType: null, linkId: null, updatedAt: deletedAt })));
+    }
   });
 }
 
@@ -97,7 +119,26 @@ export async function renameSection(id: string, title: string): Promise<void> {
 }
 
 export async function softDeleteSection(id: string): Promise<void> {
-  await db.projectSections.update(id, { deletedAt: now(), updatedAt: now() });
+  const deletedAt = now();
+  await db.transaction("rw", db.projectSections, db.projectChapters, db.mindMapNodes, async () => {
+    const section = await db.projectSections.get(id);
+    if (!section) return;
+    await db.projectSections.update(id, { deletedAt, updatedAt: deletedAt });
+
+    // Chương không bị mất theo phần: chuyển chúng ra cấp dự án và giữ thứ tự ổn định.
+    const chapters = await db.projectChapters.filter((chapter) => chapter.deletedAt === null && chapter.sectionId === id).toArray();
+    const rootChapters = await db.projectChapters.filter((chapter) => chapter.deletedAt === null && chapter.projectId === section.projectId && chapter.sectionId === null).toArray();
+    let nextOrder = rootChapters.reduce((max, chapter) => Math.max(max, chapter.order), -1) + 1;
+    if (chapters.length) {
+      const moved = chapters.sort((a, b) => a.order - b.order).map((chapter) => ({
+        ...chapter, sectionId: null, order: nextOrder++, updatedAt: deletedAt,
+      }));
+      await db.projectChapters.bulkPut(moved);
+    }
+
+    const linkedNodes = await db.mindMapNodes.filter((node) => node.deletedAt === null && node.linkType === "section" && node.linkId === id).toArray();
+    if (linkedNodes.length) await db.mindMapNodes.bulkPut(linkedNodes.map((node) => ({ ...node, linkType: null, linkId: null, updatedAt: deletedAt })));
+  });
 }
 
 // ---------- Chapter ----------
@@ -142,7 +183,9 @@ export async function updateChapter(
 ): Promise<void> {
   const update: Partial<ProjectChapter> = { ...patch, updatedAt: now() };
   if (patch.contentHtml !== undefined) {
-    const text = htmlToText(patch.contentHtml);
+    const sanitizedHtml = sanitizeRichHtml(patch.contentHtml);
+    update.contentHtml = sanitizedHtml;
+    const text = htmlToText(sanitizedHtml);
     update.contentText = text;
     update.wordCount = countWords(text);
   }
@@ -151,11 +194,15 @@ export async function updateChapter(
 
 export async function softDeleteChapter(id: string): Promise<void> {
   const deletedAt = now();
-  await db.transaction("rw", db.projectChapters, db.storyTimelineEvents, async () => {
+  await db.transaction("rw", db.projectChapters, db.storyTimelineEvents, db.mindMapNodes, async () => {
     await db.projectChapters.update(id, { deletedAt, updatedAt: deletedAt });
     const linkedEvents = await db.storyTimelineEvents.where("chapterId").equals(id).filter((item) => item.deletedAt === null).toArray();
     if (linkedEvents.length) {
       await db.storyTimelineEvents.bulkPut(linkedEvents.map((item) => ({ ...item, chapterId: null, updatedAt: deletedAt })));
+    }
+    const linkedNodes = await db.mindMapNodes.filter((node) => node.deletedAt === null && node.linkType === "chapter" && node.linkId === id).toArray();
+    if (linkedNodes.length) {
+      await db.mindMapNodes.bulkPut(linkedNodes.map((node) => ({ ...node, linkType: null, linkId: null, updatedAt: deletedAt })));
     }
   });
 }

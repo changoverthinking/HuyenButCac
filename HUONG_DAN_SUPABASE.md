@@ -1,45 +1,70 @@
-# Bật đăng ký, đăng nhập và đồng bộ
+# Bật đăng ký, đăng nhập và đồng bộ — Huyền Bút Các 0.12.2
 
-## 1. Tạo máy chủ miễn phí
+## 1. Tạo/cập nhật Supabase
 
-1. Vào https://supabase.com và tạo một project.
-2. Project mới: mở **SQL Editor**, dán toàn bộ nội dung `supabase/schema.sql`, rồi bấm **Run**.
-3. Nếu đã dùng Checkpoint 11/11.1: chỉ chạy `supabase/migration_checkpoint_12_e2ee.sql`.
+### Project Supabase mới
+
+1. Vào Supabase và tạo project.
+2. Mở **SQL Editor**.
+3. Dán toàn bộ `supabase/schema.sql` và bấm **Run**.
 4. Mở **Authentication → URL Configuration**.
-5. Đặt **Site URL** là URL GitHub Pages của Huyền Bút Các và thêm URL này vào **Redirect URLs**.
+5. Đặt **Site URL** là URL GitHub Pages của Huyền Bút Các và thêm chính URL đó vào **Redirect URLs**.
 
-## 2. Lấy cấu hình công khai
+### Project đã dùng bản cũ
+
+Chạy theo thứ tự:
+
+1. `supabase/migration_checkpoint_12_e2ee.sql` nếu project chưa có `vault_profiles`/RLS E2EE.
+2. Chạy **bản mới nhất** của `supabase/migration_checkpoint_14_2_reset_vault.sql` để cài RPC đặt lại Kho nguyên tử. Hãy chạy lại file này cả khi bạn đã từng chạy migration 14.2 cũ, vì signature RPC đã được nâng cấp.
+
+Các câu lệnh đều được viết theo kiểu có thể chạy lại an toàn ở mức schema/policy cần thiết.
+
+## 2. Lấy cấu hình public
 
 Trong **Project Settings → API**, lấy:
 
 - Project URL
-- `anon` / publishable key
+- `anon` key hoặc publishable key dành cho client
 
-Đây là khóa công khai dành cho trình duyệt. Không dùng `service_role` và không đưa khóa quản trị lên GitHub.
+Không dùng `service_role` trong frontend.
 
-## 3. Thêm vào GitHub Actions
+## 3. Cấu hình GitHub Actions
 
-Trong repository, mở **Settings → Secrets and variables → Actions → Variables**, tạo:
+Repository → **Settings → Secrets and variables → Actions → Variables**, tạo:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
-Workflow build phải truyền hai biến này vào bước `npm run build`. Nếu build trực tiếp trên máy, sao chép `.env.example` thành `.env.local` rồi thay giá trị thật.
+Workflow `.github/workflows/deploy.yml` sẽ kiểm tra hai biến này trước khi build.
 
-## 4. Kiểm tra
+## 4. Chạy local
 
-1. Deploy lại GitHub Pages.
-2. Bấm biểu tượng tài khoản ở góc trên.
-3. Đăng ký bằng email và xác minh email.
-4. Tạo **Mật khẩu Kho bảo mật** dài ít nhất 12 ký tự và cất ở trình quản lý mật khẩu.
-5. Tạo một ghi chú, bấm **Đồng bộ ngay**.
-6. Trên thiết bị thứ hai, đăng nhập cùng tài khoản, nhập đúng Mật khẩu Kho rồi đồng bộ.
+Project yêu cầu **Node >= 22.22.2**.
 
-Nội dung được mã hóa AES-256-GCM trên thiết bị trước khi tải lên. Mật khẩu Kho không được gửi lên Supabase hay GitHub. Nếu quên mật khẩu này, dữ liệu mã hóa không thể khôi phục.
+```bash
+cp .env.example .env.local
+npm ci
+npm run test
+npm run build
+npm run dev
+```
 
-## An toàn khi đưa lên GitHub
+Điền URL/key public thật vào `.env.local`. File `.env.local` đã được `.gitignore` chặn.
 
-- `.env.local` đã bị `.gitignore` chặn.
-- Chỉ dùng publishable/anon key trong `VITE_SUPABASE_ANON_KEY`.
-- Không bao giờ đặt `service_role`, secret key hoặc mật khẩu database vào GitHub Variables, source code hay ZIP.
-- Mật khẩu Kho chỉ nhập trong ứng dụng, không đặt trong bất kỳ tệp cấu hình nào.
+## 5. Kiểm tra đăng nhập và đồng bộ
+
+1. Deploy GitHub Pages.
+2. Bấm **Tài khoản**.
+3. Đăng ký và xác minh email.
+4. Tạo **Mật khẩu Kho bảo mật** ít nhất 12 ký tự.
+5. Tạo/sửa một ghi chú, bấm **Đồng bộ ngay**.
+6. Trên thiết bị thứ hai, đăng nhập cùng tài khoản, mở Kho bằng cùng mật khẩu rồi đồng bộ.
+7. Thử đăng xuất và đăng nhập tài khoản khác: dữ liệu local của hai tài khoản phải nằm ở hai workspace khác nhau.
+
+## 6. An toàn khi đưa source lên GitHub
+
+- `.env`, `.env.local`, `node_modules`, `dist`, log và file IDE đã được `.gitignore` chặn.
+- Chỉ dùng publishable/anon key ở frontend.
+- Không bao giờ commit `service_role`, database password, access token riêng hoặc mật khẩu Kho.
+- MP3 và ảnh nền không được upload bởi sync service.
+- Payload dữ liệu đồng bộ được mã hóa AES-256-GCM trên client trước khi ghi vào `sync_records`.

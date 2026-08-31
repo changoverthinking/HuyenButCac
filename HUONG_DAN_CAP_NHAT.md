@@ -1,53 +1,43 @@
-# Hướng dẫn cập nhật Huyền Bút Các lên GitHub
+# Hướng dẫn cập nhật Huyền Bút Các 0.12.2 lên GitHub
 
-## Cách dễ nhất: tải đè toàn bộ mã nguồn
+## Upload đúng cấu trúc
 
-1. Giải nén gói `Huyen_But_Cac_Checkpoint_14_1_Login_UX.zip` trên máy tính.
-2. Mở repo: <https://github.com/changoverthinking/HuyenButCac>
-3. Ở tab **Code**, bấm **Add file** → **Upload files**.
-4. Mở thư mục vừa giải nén, chọn **toàn bộ nội dung bên trong thư mục** (không chọn chính thư mục bọc ngoài), rồi kéo vào vùng upload của GitHub.
-5. Chờ GitHub tải xong. Các tệp trùng tên sẽ được cập nhật đúng đường dẫn.
-6. Ở ô commit, nhập: `Update Checkpoint 14.1 - login UX and password manager`
-7. Chọn **Commit directly to the main branch**, rồi bấm **Commit changes**.
-8. Mở tab **Actions**. Chọn lần chạy **Deploy Huyền Bút Các** mới nhất và chờ cả `build` lẫn `deploy` chuyển màu xanh.
-9. Mở <https://changoverthinking.github.io/HuyenButCac/> rồi bấm **Cập nhật ngay** nếu ứng dụng hỏi. Nếu vẫn thấy bản cũ, đóng hẳn ứng dụng/tab rồi mở lại; trên Windows có thể bấm `Ctrl+F5`.
+1. Giải nén file ZIP bản 0.12.2.
+2. Mở thư mục `HuyenButCac-main` bên trong.
+3. Upload **toàn bộ nội dung bên trong thư mục này** lên thư mục gốc repository `changoverthinking/HuyenButCac`.
+4. Đảm bảo các đường dẫn quan trọng vẫn đúng:
+   - `.github/workflows/deploy.yml`
+   - `src/App.tsx`
+   - `src/components/...`
+   - `src/features/...`
+   - `src/database/db.ts`
+   - `supabase/schema.sql`
+   - `package.json`
+5. Không upload `node_modules` hoặc `dist`.
+6. Commit gợi ý: `Release 0.12.2 - stable sync and account workspaces`.
+7. Mở tab **Actions** và kiểm tra workflow **Deploy Huyền Bút Các**. Cả `build` và `deploy` phải xanh.
+
+## Supabase
+
+- Project mới: chạy toàn bộ `supabase/schema.sql`.
+- Project cũ: xem `HUONG_DAN_SUPABASE.md`; nếu chưa có chức năng reset Kho, chạy thêm `supabase/migration_checkpoint_14_2_reset_vault.sql`.
+- GitHub Actions Variables phải có `VITE_SUPABASE_URL` và `VITE_SUPABASE_ANON_KEY`.
 
 ## Kiểm tra sau cập nhật
 
-- Thanh bên phải hiển thị phiên bản `0.12.1-checkpoint14.1-login-ux`. Nếu vẫn thấy phiên bản cũ, GitHub Pages vẫn đang dùng bản cũ.
-- Bấm **Tài khoản**, đăng ký và xác minh email. Tạo ghi chú trên thiết bị thứ nhất, bấm **Đồng bộ ngay**, rồi đăng nhập cùng tài khoản trên thiết bị thứ hai.
-- Nếu đăng nhập báo email chưa xác minh, bấm **Gửi lại email xác minh**, kiểm tra Hộp thư đến/Thư rác rồi mở liên kết xác nhận.
-- Khi đăng nhập trên thiết bị khác, phải nhập chính xác cùng email đã đăng ký; dùng nút `◎/◉` để hiện/ẩn mật khẩu.
-- Bật **Ghi nhớ đăng nhập trên thiết bị này** để giữ email và phiên đăng nhập. Khi Chrome/Safari hỏi lưu mật khẩu, chọn **Lưu** để Password Manager bảo vệ mật khẩu.
-- Trong **Dự án**, tạo dự án loại **Tiểu thuyết / Truyện dài** rồi mở **Thư Viện Truyện**; thử thêm Nhân vật, Thế giới, Thuật ngữ và Dòng thời gian.
-- Tạo tóm tắt chương, đặt mục tiêu số từ, hạn Milestone và thử **Xuất gói ngữ cảnh AI**.
-- Sau khi đồng bộ, mở cùng dự án trên thiết bị thứ hai và xác nhận cả bốn mục Thư Viện Truyện xuất hiện đầy đủ.
-- Mở **Đổi giao diện**, thử các theme mới và xác nhận trình nhạc đổi đồng bộ màu nền, viền, ngọc và ánh sáng.
-- Trên điện thoại không còn bong bóng nhạc che vùng làm việc. Mở trình nhạc bằng `☰` → **Tiên Âm Các**; chạm dấu `⌄` để đóng.
-- Tạo ghi chú, gõ nhanh cả tiêu đề và nội dung, chờ “Đã lưu”, tải lại trang: cả hai vẫn còn.
-- Chuyển ghi chú vào Thùng rác: thấy nút **Khôi phục** và **Xóa vĩnh viễn**.
-- Trong Sơ đồ: giữ và kéo dấu `⠿` ở mé trái của từng ô để đặt ô ở vị trí mong muốn; chạm phần chữ để sửa tên. Nút trung tâm không thể xóa.
-- Trong Sơ đồ: chọn dự án ở ô **Liên kết dự án…** rồi bấm **Tạo/đồng bộ cây**. App tự tạo cây Dự án → Phần → Chương. Chọn một ô và bấm **Đọc chi tiết** để mở đúng nội dung trong Dự án.
-- Sau khi thêm/đổi tên/chuyển phần của chương, quay lại Sơ đồ và bấm **Tạo/đồng bộ cây** một lần để cập nhật cây mà không tạo bản trùng.
-- Nút `＋` nổi ở góc dưới bên phải vùng Sơ đồ dùng để thêm nhánh thủ công vào ô đang chọn.
-- Nút `☰` nằm trên thanh đầu điện thoại ở mọi tab. Trong menu `☰`, mục **Tiên Âm Các** nằm ngay phía trên **Đổi giao diện**.
-- Trong Sơ đồ hoặc Bảng trắng: bấm **Bút chì**, chọn kiểu nét, mũi tên, độ dày và **Làm mượt**, sau đó kéo ngón tay trên vùng trống để vẽ. Tắt Bút chì, chạm nét để chọn và kéo di chuyển.
-- Chọn nét/hình rồi bấm **Khóa** để tránh di chuyển hoặc xóa nhầm; muốn sửa lại phải bấm **Mở khóa**.
-- Trong Sơ đồ và Bảng trắng: có nút đổi tên và xóa toàn bộ mục đang mở.
-- Trong Bảng trắng: kéo bằng vùng `⋮⋮ Kéo`; bấm vùng chữ vẫn chọn được đối tượng.
-- Trong Ghi chú và Viết chương: thử đậm/nghiêng, font, cỡ chữ, màu chữ, căn lề và undo/redo.
-- Icon mới xuất hiện sau khi trình duyệt/PWA nhận bản cập nhật; nếu icon cũ còn được hệ điều hành cache, gỡ biểu tượng khỏi màn hình chính rồi cài lại.
-- Mở `☰` → **Tiên Âm Các**, thêm vài tệp MP3, thử phát/tạm dừng, tua, trước/sau, ngẫu nhiên và lặp; đóng/mở lại app để kiểm tra bài vẫn còn.
-- Trong menu Ghi chú, chọn **Chọn ảnh nền**, đóng/mở lại app để kiểm tra ảnh vẫn được giữ; thử **Dùng lại nền mặc định**.
-- Trên điện thoại: trong Ghi chú có nút `☰` để mở thư mục, Thùng rác và đổi giao diện.
-- Xoay điện thoại dọc/ngang: thanh điều hướng, Sơ đồ và Bảng trắng phải tự co lại, không che nội dung.
-- Trong Sơ đồ và Bảng trắng, đặt hai ngón tay lên vùng vẽ rồi chụm/mở để thu nhỏ hoặc phóng to từ 35% đến 250%.
-- Kéo vùng trống để di chuyển toàn bộ góc nhìn; bấm số phần trăm để trở về 100% và góc ban đầu.
-- Trong Bảng trắng: chọn hình nguồn → bấm **Nối** → chạm hình đích. Dùng **Bỏ nối** để xóa các đường liên quan.
+- Phiên bản hiển thị: `0.12.2-stable-sync-workspaces`.
+- Tài khoản A tạo/sửa ghi chú → logout → tài khoản B không được nhìn thấy dữ liệu local của A.
+- Đăng nhập lại A: dữ liệu local A vẫn còn.
+- Gõ liên tục trong ghi chú/chương trong lúc auto-sync: nội dung mới không được đổi ngược về bản cũ.
+- Xóa vĩnh viễn một note: note biến mất khỏi thùng rác và tombstone không còn title/content/tag/ciphertext.
+- Xóa Section: chapter trong Section chuyển về cấp Project, không mất.
+- Xóa Project: Mind Map đã vẽ vẫn còn nhưng link tới Project/Section/Chapter đã xóa được gỡ.
+- Tạo thư mục con bằng nút `＋` bên cạnh thư mục cha.
+- Khóa một ghi chú bằng mật khẩu, tải lại trang: nội dung phải bị che; nhập đúng mật khẩu mới mở được.
+- Mở Tiên Âm Các và phát nhạc; thao tác play/pause/next/previous vẫn hoạt động.
 
-## Lưu ý
+## Dữ liệu bản cũ
 
-- Không tải thư mục `node_modules` hoặc `dist` lên GitHub; gói này đã loại chúng ra.
-- Không cần sửa lại GitHub Pages. Workflow `.github/workflows/deploy.yml` sẽ tự build và deploy sau mỗi commit vào `main`.
-- Tệp `deploy.yml` nằm ở thư mục gốc repo (nếu còn) không được GitHub Actions sử dụng; có thể xóa sau khi bản mới chạy xanh. Workflow đúng nằm trong `.github/workflows/deploy.yml`.
-- Việc cập nhật mã nguồn không xóa ghi chú đang lưu trong trình duyệt. Khi đăng nhập lần đầu, dữ liệu cục bộ và dữ liệu tài khoản được hợp nhất theo thời điểm sửa gần nhất. MP3 và ảnh nền riêng vẫn nằm trên từng thiết bị.
+Phiên bản 0.12.2 giữ database cũ `huyen-but-cac` và thực hiện migration **copy một lần** vào workspace phù hợp. Bản cũ không bị `clear()` khi chuyển tài khoản.
+
+Nếu phiên bản cũ đã từng đồng bộ với một user, marker user cũ được dùng để tránh copy dữ liệu đó nhầm sang tài khoản khác. Dữ liệu khách không có owner được chuyển vào workspace đang hoạt động ở lần migration đầu tiên.

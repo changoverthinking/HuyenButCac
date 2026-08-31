@@ -5,6 +5,7 @@ import { authErrorMessage, normalizeAuthEmail } from "../../features/auth/authMe
 import { clearAuthRedirectParams, getAuthRedirectUrl, isPasswordRecoveryUrl } from "../../features/auth/authFlow";
 import { getLastSync, syncNow, type SyncStatus } from "../../features/sync/syncService";
 import { getVaultState, isVaultUnlocked, lockVault, resetVault, setupVault, unlockVault } from "../../features/crypto/vaultService";
+import { getActiveWorkspaceUserId } from "../../database/db";
 
 type AccountTab = "profile" | "security" | "sync";
 
@@ -34,6 +35,7 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
 
   async function runSync(activeSession = session) {
     if (!activeSession) return;
+    if (getActiveWorkspaceUserId() !== activeSession.user.id) { setStatus("idle"); return; }
     if (!isVaultUnlocked(activeSession.user.id)) { setStatus("idle"); return; }
     setStatus("syncing");
     try {
@@ -75,9 +77,11 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
     const timer = window.setInterval(() => { if (navigator.onLine && isVaultUnlocked(session.user.id)) void runSync(session); }, 45_000);
     const visible = () => { if (document.visibilityState === "visible" && navigator.onLine && isVaultUnlocked(session.user.id)) void runSync(session); };
     const online = () => { if (isVaultUnlocked(session.user.id)) void runSync(session); };
+    const workspaceChanged = () => { if (getActiveWorkspaceUserId() === session.user.id && navigator.onLine && isVaultUnlocked(session.user.id)) void runSync(session); };
     document.addEventListener("visibilitychange", visible);
     window.addEventListener("online", online);
-    return () => { cancelled=true; window.clearInterval(timer); document.removeEventListener("visibilitychange", visible); window.removeEventListener("online", online); };
+    window.addEventListener("hbc-workspace-changed", workspaceChanged);
+    return () => { cancelled=true; window.clearInterval(timer); document.removeEventListener("visibilitychange", visible); window.removeEventListener("online", online); window.removeEventListener("hbc-workspace-changed", workspaceChanged); };
   }, [session]);
 
   async function submitVault(event: React.FormEvent) {
@@ -215,7 +219,7 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
           {accountTab === "profile" && <div className="space-y-3">
             <div className="account-profile-card"><div className="account-avatar">{session.user.email?.slice(0,1).toUpperCase() ?? "道"}</div><div className="min-w-0"><div className="text-xs opacity-65">Tài khoản đang đăng nhập</div><div className="font-semibold break-all">{session.user.email}</div></div></div>
             <dl className="account-details"><div><dt>Xác minh email</dt><dd>{session.user.email_confirmed_at ? "Đã xác minh" : "Chưa xác minh"}</dd></div><div><dt>Ngày tạo</dt><dd>{new Date(session.user.created_at).toLocaleDateString("vi-VN")}</dd></div><div><dt>Kho bảo mật</dt><dd>{vaultState === "unlocked" ? "Đang mở" : vaultState === "setup" ? "Chưa thiết lập" : vaultState === "loading" ? "Đang kiểm tra" : "Đang khóa"}</dd></div></dl>
-            <p className="text-xs opacity-65">Đăng xuất không xóa ghi chú đang lưu trên thiết bị này.</p>
+            <p className="text-xs opacity-65">Đăng xuất không xóa workspace của tài khoản này trên thiết bị; dữ liệu được ẩn khỏi tài khoản khác.</p>
             <button disabled={busy} className="w-full rounded-xl border px-4 py-2" style={{borderColor:"var(--color-border)"}} onClick={()=>void signOutSafely()}>{busy?"Đang đăng xuất…":"Đăng xuất"}</button>
           </div>}
           {accountTab === "security" && <div className="space-y-4">
@@ -254,8 +258,8 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
             <button type="button" className="absolute inset-y-0 right-0 grid w-12 place-items-center text-lg opacity-70" aria-label={showPassword?"Ẩn mật khẩu":"Hiện mật khẩu"} title={showPassword?"Ẩn mật khẩu":"Hiện mật khẩu"} onClick={()=>setShowPassword(value=>!value)}>{showPassword?"◉":"◎"}</button>
           </div>}
           {mode!=="forgot" && <div>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={rememberLogin} onChange={e=>setRememberLogin(e.target.checked)} /> Ghi nhớ đăng nhập trên thiết bị này</label>
-            <p className="mt-1 text-xs opacity-60">Ứng dụng chỉ ghi nhớ email và phiên đăng nhập; mật khẩu được Chrome/Safari Password Manager bảo vệ.</p>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={rememberLogin} onChange={e=>setRememberLogin(e.target.checked)} /> Ghi nhớ email đăng nhập</label>
+            <p className="mt-1 text-xs opacity-60">Tùy chọn này chỉ lưu email để điền nhanh. Phiên Supabase được duy trì cho tới khi bạn đăng xuất; ứng dụng không tự lưu mật khẩu.</p>
           </div>}
           <button disabled={busy} className="account-primary w-full" type="submit">{busy?"Đang xử lý…":!cloudConfigured?"Kiểm tra cấu hình Supabase":mode==="login"?"Đăng nhập":mode==="register"?"Tạo tài khoản":"Gửi email khôi phục"}</button>
         </form>

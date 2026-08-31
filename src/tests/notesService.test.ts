@@ -10,6 +10,9 @@ import {
   listTrashedNotes,
   searchNotes,
   stripDiacritics,
+  lockNote,
+  unlockNote,
+  closeLockedNote,
 } from "../features/notes/notesService";
 
 beforeEach(async () => {
@@ -52,7 +55,42 @@ describe("notesService — CRUD cơ bản", () => {
     await hardDeleteNote(note.id);
     const fromDb = await db.notes.get(note.id);
     expect(fromDb?.archived).toBe(true); // tombstone đồng bộ, không hiện cho người dùng
+    expect(fromDb?.title).toBe("");
+    expect(fromDb?.contentHtml).toBe("");
+    expect(fromDb?.contentText).toBe("");
+    expect(fromDb?.tags).toEqual([]);
+    expect(fromDb?.lockPayload).toBeNull();
+    expect(fromDb?.lockSalt).toBeNull();
     expect((await listTrashedNotes()).find((item) => item.id === note.id)).toBeUndefined();
+  });
+});
+
+
+describe("notesService — khóa ghi chú", () => {
+  it("khóa xóa plaintext khỏi IndexedDB và chỉ mở khi có đúng mật khẩu", async () => {
+    const note = await createNote({ title: "Bí mật Trúc Lý" });
+    await updateNote(note.id, { contentHtml: "<p>Nội dung tuyệt mật</p>", tags: ["riêng tư"] });
+    await lockNote(note.id, "mat-khau-rieng-123");
+
+    const raw = await db.notes.get(note.id);
+    expect(raw?.locked).toBe(true);
+    expect(raw?.title).toBe("🔒 Ghi chú đã khóa");
+    expect(raw?.contentHtml).toBe("");
+    expect(raw?.contentText).toBe("");
+    expect(raw?.tags).toEqual([]);
+    expect(raw?.lockPayload?.ciphertext).toBeTruthy();
+    expect(JSON.stringify(raw)).not.toContain("Nội dung tuyệt mật");
+    expect(JSON.stringify(raw)).not.toContain("Bí mật Trúc Lý");
+
+    await expect(unlockNote(note.id, "sai-mat-khau")).rejects.toThrow("Mật khẩu ghi chú không đúng");
+    await unlockNote(note.id, "mat-khau-rieng-123");
+    const [opened] = await listActiveNotes();
+    expect(opened.title).toBe("Bí mật Trúc Lý");
+    expect(opened.contentText).toContain("Nội dung tuyệt mật");
+
+    closeLockedNote(note.id);
+    const [closed] = await listActiveNotes();
+    expect(closed.title).toBe("🔒 Ghi chú đã khóa");
   });
 });
 

@@ -18,7 +18,7 @@ Chỉ đánh dấu STABLE khi: hoạt động thật, lưu được, reload khô
 | Hạng mục | Trạng thái | Ghi chú |
 |---|---|---|
 | Tạo/sửa/xóa ghi chú, autosave debounce | STABLE | gộp patch tiêu đề+nội dung, debounce 400ms |
-| Cây thư mục nhiều cấp, kéo thả | IMPLEMENTING | tạo/xóa/di chuyển folder hoạt động; kéo thả UI TODO |
+| Cây thư mục nhiều cấp, kéo thả | IMPLEMENTING | cây nhiều cấp + tạo thư mục con + API move hoạt động; kéo-thả UI TODO |
 | Ghim / yêu thích / thẻ (tag) | STABLE | |
 | Thùng rác + khôi phục (soft delete) | STABLE | có xóa vĩnh viễn và xác nhận |
 | Tìm kiếm full-text (tiêu đề + nội dung, có/không dấu) | STABLE | dùng bỏ dấu tiếng Việt thủ công, index Dexie |
@@ -26,7 +26,7 @@ Chỉ đánh dấu STABLE khi: hoạt động thật, lưu được, reload khô
 | Bảng trong ghi chú | TODO | |
 | Chèn ảnh | TODO | |
 | Mẫu ghi chú (template) | TODO | |
-| Khóa ghi chú bằng PIN + mã hóa AES-GCM thật | TODO | ưu tiên giai đoạn 7 |
+| Khóa ghi chú bằng mật khẩu + AES-GCM thật | TESTING | PBKDF2 + AES-256-GCM; ciphertext lưu IndexedDB, key chỉ ở RAM |
 | Undo/redo trong editor | STABLE | dùng lịch sử chỉnh sửa của trình duyệt |
 
 ## 2. Viết dự án (Giai đoạn 4 — checkpoint 2)
@@ -67,14 +67,14 @@ Chỉ đánh dấu STABLE khi: hoạt động thật, lưu được, reload khô
 ## 5. Bảo mật (Giai đoạn 7)
 | Hạng mục | Trạng thái |
 |---|---|
-| Web Crypto AES-GCM + Argon2id/PBKDF2 | TODO |
+| Web Crypto AES-GCM + PBKDF2 | TESTING | dùng cho Kho đồng bộ và khóa ghi chú |
 | PIN/biometric adapter | TODO |
 | Threat model | STABLE (tài liệu) — xem THREAT_MODEL.md |
 
 ## 6. Đồng bộ / Cộng tác (Giai đoạn 8)
 | Hạng mục | Trạng thái |
 |---|---|
-| SyncProvider interface (Local/EncryptedCloud) | TODO |
+| Đồng bộ Supabase E2EE | TESTING | local-first, snapshot/fingerprint chống race, workspace theo tài khoản |
 | Realtime collaboration (Yjs) | TODO |
 
 ## 7. Hoàn thiện (Giai đoạn 9)
@@ -96,4 +96,4 @@ Chỉ đánh dấu STABLE khi: hoạt động thật, lưu được, reload khô
 | Đồng bộ MP3/ảnh nền giữa thiết bị | TODO | hiện chỉ lưu trên thiết bị đã tải lên |
 
 ---
-**Giới hạn hiện tại:** các chức năng nền tảng của Ghi chú, Viết dự án, Mind map và Bảng trắng đã có. Các hạng mục nâng cao ghi TODO trong bảng, đặc biệt mã hóa thật, đồng bộ và cộng tác, chưa được triển khai.
+**Giới hạn hiện tại:** mã hóa và đồng bộ E2EE đã có implementation và regression test source, nhưng vẫn cần CI/QA trên GitHub Pages và iPhone thật trước khi nâng trạng thái TESTING → STABLE. Cộng tác realtime vẫn chưa triển khai.

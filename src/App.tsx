@@ -9,8 +9,13 @@ import { MusicPlayer } from "./components/music/MusicPlayer";
 import { Sidebar } from "./components/common/Sidebar";
 import { useProjectsStore } from "./stores/projectsStore";
 import { useNotesStore } from "./stores/notesStore";
+import { useFoldersStore } from "./stores/foldersStore";
 import { AccountPanel } from "./components/auth/AccountPanel";
 import { APP_CONFIG } from "./app/appConfig";
+import { supabase } from "./features/auth/supabase";
+import { getActiveWorkspaceUserId, switchWorkspace } from "./database/db";
+import { clearAllNoteUnlockSessions } from "./features/notes/notesService";
+import { lockVault } from "./features/crypto/vaultService";
 
 type Mode = "notes" | "projects" | "mindmap" | "whiteboard";
 
@@ -138,13 +143,63 @@ export default function App() {
   const [railCollapsed, setRailCollapsed] = useState(false);
   const [online, setOnline] = useState(() => typeof navigator === "undefined" || navigator.onLine);
   const [syncRevision, setSyncRevision] = useState(0);
+  const [workspaceReady, setWorkspaceReady] = useState(false);
+  const [workspaceError, setWorkspaceError] = useState("");
   const loadProjects = useProjectsStore((state) => state.loadProjects);
   const selectProject = useProjectsStore((state) => state.selectProject);
   const selectChapter = useProjectsStore((state) => state.selectChapter);
   const setSearchQuery = useNotesStore((state) => state.setSearchQuery);
 
   useEffect(() => {
-    void loadTheme();
+    let disposed = false;
+    let switchSequence = 0;
+    let unsubscribeAuth: (() => void) | undefined;
+
+    const resetStores = () => {
+      useNotesStore.setState({
+        notes: [], trashedNotes: [], selectedNoteId: null, searchQuery: "", searchResults: [],
+        loading: false, activeFolderId: undefined, view: "active",
+      });
+      useFoldersStore.setState({ folders: [], selectedFolderId: null });
+      useProjectsStore.setState({
+        projects: [], selectedProjectId: null, sections: [], chapters: [], tasks: [], milestones: [],
+        selectedChapterId: null, characters: [], locations: [], loreEntries: [], timelineEvents: [],
+      });
+    };
+
+    const activate = async (userId: string | null) => {
+      const sequence = ++switchSequence;
+      setWorkspaceReady(false);
+      setWorkspaceError("");
+      try {
+        if (getActiveWorkspaceUserId() !== userId) {
+          clearAllNoteUnlockSessions();
+          lockVault();
+        }
+        await switchWorkspace(userId);
+        if (disposed || sequence !== switchSequence) return;
+        resetStores();
+        await loadTheme();
+        if (disposed || sequence !== switchSequence) return;
+        setFocusedSectionId(null);
+        setSyncRevision((value) => value + 1);
+        setWorkspaceReady(true);
+      } catch (error) {
+        if (disposed || sequence !== switchSequence) return;
+        setWorkspaceError(error instanceof Error ? error.message : "Không thể mở không gian dữ liệu.");
+      }
+    };
+
+    if (!supabase) {
+      void activate(null);
+    } else {
+      void supabase.auth.getSession().then(({ data }) => activate(data.session?.user.id ?? null));
+      const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+        void activate(nextSession?.user.id ?? null);
+      });
+      unsubscribeAuth = () => data.subscription.unsubscribe();
+    }
+
     const refresh = () => setSyncRevision((value) => value + 1);
     const handleOnline = () => setOnline(true);
     const handleOffline = () => setOnline(false);
@@ -152,11 +207,35 @@ export default function App() {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     return () => {
+      disposed = true;
+      unsubscribeAuth?.();
       window.removeEventListener("hbc-sync-complete", refresh);
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
   }, [loadTheme]);
+
+  if (!workspaceReady) {
+    return (
+      <div className="grid h-screen w-screen place-items-center p-6" style={{ background: "var(--color-bg)", color: "var(--color-text)" }}>
+        <div className="max-w-md text-center">
+          <div className="brand-sigil mx-auto mb-3">玄</div>
+          {workspaceError ? (
+            <>
+              <div className="font-semibold">Không thể mở không gian dữ liệu</div>
+              <div className="mt-2 text-sm opacity-70">{workspaceError}</div>
+              <button type="button" className="mt-4 rounded-xl border px-4 py-2" style={{ borderColor: "var(--color-border)" }} onClick={() => window.location.reload()}>Thử mở lại</button>
+            </>
+          ) : (
+            <>
+              <div className="font-semibold">Đang mở không gian dữ liệu…</div>
+              <div className="mt-1 text-sm opacity-60">Đang tách dữ liệu theo tài khoản để bảo vệ ghi chú trên thiết bị này.</div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const activeMeta = MODE_TABS.find((tab) => tab.id === mode) ?? MODE_TABS[0];
   const openAccount = () => setAccountOpen(true);

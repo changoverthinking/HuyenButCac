@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MusicTrack } from "../../types/entities";
 import { addMusicFiles, deleteMusicTrack, listMusicTracks, renameMusicTrack } from "../../features/media/mediaService";
 import { cycleRepeatMode, nextTrackIndex, normalizeVolume, type RepeatMode } from "../../features/media/musicLogic";
@@ -44,20 +44,20 @@ export function MusicPlayer() {
   useEffect(()=>{localStorage.setItem("hbc-music-shuffle",String(shuffle));},[shuffle]);
   useEffect(()=>{localStorage.setItem("hbc-music-volume",String(volume));},[volume]);
 
-  const chooseNext=(direction:1|-1,fromEnded=false)=>{
+  const chooseNext=useCallback((direction:1|-1,fromEnded=false)=>{
     if(!tracks.length)return;
     const currentIndex=tracks.findIndex((track)=>track.id===currentId);
     const index=nextTrackIndex({length:tracks.length,currentIndex,direction,shuffle,repeat,fromEnded});
     if(index===null){setPlaying(false);return;}
     if(fromEnded&&repeat==="one"){const audio=audioRef.current;if(audio){audio.currentTime=0;void audio.play();}return;}
     setCurrentId(tracks[index].id);setPlaying(true);
-  };
+  },[tracks,currentId,shuffle,repeat]);
 
-  const togglePlay=async()=>{
+  const togglePlay=useCallback(async()=>{
     const audio=audioRef.current;if(!audio||!current)return;
     if(audio.paused){try{await audio.play();setPlaying(true);}catch{setMessage("Trình duyệt chưa cho phép phát nhạc. Hãy bấm lại nút phát.");}}
     else{audio.pause();setPlaying(false);}
-  };
+  },[current]);
 
   const playTrack=(id:string)=>{
     if(id===currentId){void audioRef.current?.play();setPlaying(true);}
@@ -72,7 +72,7 @@ export function MusicPlayer() {
     navigator.mediaSession.setActionHandler("previoustrack",()=>chooseNext(-1));
     navigator.mediaSession.setActionHandler("nexttrack",()=>chooseNext(1));
     return()=>{navigator.mediaSession.setActionHandler("play",null);navigator.mediaSession.setActionHandler("pause",null);navigator.mediaSession.setActionHandler("previoustrack",null);navigator.mediaSession.setActionHandler("nexttrack",null);};
-  });
+  },[current,chooseNext,togglePlay]);
 
   return (
     <section className={`music-player immortal-music z-40 ${expanded?"is-open":"is-collapsed"}`} style={{borderColor:"var(--color-border)",background:"var(--color-surface)"}}>
@@ -82,7 +82,7 @@ export function MusicPlayer() {
         <div className="music-library immortal-panel flex flex-col shadow-2xl">
           <div className="flex items-center justify-between p-3 border-b" style={{borderColor:"var(--color-border)"}}>
             <div><div className="immortal-title font-semibold"><span>◆</span> Tiên Âm Các <span>◆</span></div><div className="text-xs" style={{color:"var(--color-text-muted)"}}>{tracks.length} khúc · {(totalSize/1024/1024).toFixed(1)} MB lưu trên thiết bị</div></div>
-            <div className="flex items-center gap-2"><label className="px-3 py-2 rounded text-sm cursor-pointer" style={{background:"var(--color-accent)",color:"var(--color-bg)"}}>＋ MP3<input type="file" accept="audio/mpeg,.mp3" multiple className="hidden" onChange={async(e)=>{const files=Array.from(e.target.files??[]);if(!files.length)return;try{await addMusicFiles(files);await reload();setMessage(`Đã lưu ${files.length} bài trên thiết bị.`);}catch(error){setMessage((error as Error).message);}e.target.value="";}} /></label><button className="grid w-9 h-9 place-items-center rounded-full" aria-label="Đóng Tiên Âm Các" title="Đóng Tiên Âm Các" style={{background:"var(--color-surface-alt)"}} onClick={()=>setExpanded(false)}>←</button></div>
+            <div className="flex items-center gap-2"><label className="px-3 py-2 rounded text-sm cursor-pointer" style={{background:"var(--color-accent)",color:"var(--color-bg)"}}>＋ MP3<input type="file" accept="audio/mpeg,.mp3" multiple className="hidden" onChange={async(e: React.ChangeEvent<HTMLInputElement>)=>{const input=e.currentTarget;const files=Array.from(input.files??[]);if(!files.length)return;try{await addMusicFiles(files);await reload();setMessage(`Đã lưu ${files.length} bài trên thiết bị.`);}catch(error){setMessage((error as Error).message);}input.value="";}} /></label><button className="grid w-9 h-9 place-items-center rounded-full" aria-label="Đóng Tiên Âm Các" title="Đóng Tiên Âm Các" style={{background:"var(--color-surface-alt)"}} onClick={()=>setExpanded(false)}>←</button></div>
           </div>
           {message&&<div className="px-3 py-2 text-xs" style={{color:"var(--color-warning)"}}>{message}</div>}
           <div className="overflow-y-auto p-2">

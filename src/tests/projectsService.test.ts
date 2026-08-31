@@ -15,8 +15,10 @@ import {
   exportContextPackMarkdown,
   listProjects,
   softDeleteProject,
+  softDeleteSection,
 } from "../features/projects/projectsService";
 import { createCharacter, createLocation, createLoreEntry, createTimelineEvent, updateTimelineEvent } from "../features/projects/storyBibleService";
+import { addMindMapNode, createMindMap } from "../features/mind-map/mindMapService";
 
 beforeEach(async () => {
   await db.projects.clear();
@@ -28,6 +30,9 @@ beforeEach(async () => {
   await db.storyLocations.clear();
   await db.storyLoreEntries.clear();
   await db.storyTimelineEvents.clear();
+  await db.mindMaps.clear();
+  await db.mindMapNodes.clear();
+  await db.mindMapEdges.clear();
 });
 
 describe("projectsService — dự án và chương", () => {
@@ -110,6 +115,33 @@ describe("projectsService — dự án và chương", () => {
     await updateTimelineEvent(event.id, { chapterId: chapter.id });
     await softDeleteChapter(chapter.id);
     expect((await db.storyTimelineEvents.get(event.id))?.chapterId).toBeNull();
+  });
+
+
+
+  it("xóa Section chuyển chương ra cấp Project thay vì làm chương mồ côi", async () => {
+    const project = await createProject({ title: "Dự án", kind: "novel" });
+    const section = await createSection(project.id, "Quyển 1");
+    const chapter = await createChapter({ projectId: project.id, sectionId: section.id, title: "Chương 1" });
+    await softDeleteSection(section.id);
+    const moved = await db.projectChapters.get(chapter.id);
+    expect(moved?.deletedAt).toBeNull();
+    expect(moved?.sectionId).toBeNull();
+  });
+
+  it("xóa Project gỡ link chết kể cả node nằm trong một sơ đồ tự do khác", async () => {
+    const project = await createProject({ title: "Dự án", kind: "novel" });
+    const section = await createSection(project.id, "Quyển 1");
+    const chapter = await createChapter({ projectId: project.id, sectionId: section.id, title: "Chương 1" });
+    const { map, root } = await createMindMap("Sơ đồ tự do", null);
+    await addMindMapNode(map.id, root.id, "Link dự án", 100, 100, { linkType: "project", linkId: project.id });
+    await addMindMapNode(map.id, root.id, "Link phần", 150, 150, { linkType: "section", linkId: section.id });
+    await addMindMapNode(map.id, root.id, "Link chương", 200, 200, { linkType: "chapter", linkId: chapter.id });
+
+    await softDeleteProject(project.id);
+    const linked = await db.mindMapNodes.where("mapId").equals(map.id).toArray();
+    expect(linked.filter((node) => [project.id, section.id, chapter.id].includes(node.linkId ?? ""))).toHaveLength(0);
+    expect((await db.mindMaps.get(map.id))?.deletedAt).toBeNull();
   });
 
   it("cập nhật tóm tắt chương (synopsis) không ảnh hưởng wordCount", async () => {

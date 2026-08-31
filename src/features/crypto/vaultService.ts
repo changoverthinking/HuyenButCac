@@ -87,15 +87,25 @@ export async function unlockVault(user: User, passphrase: string) {
 export async function resetVault(user: User, newPassphrase: string) {
   if (!supabase) throw new Error("Chưa cấu hình máy chủ");
   if (!navigator.onLine) throw new Error("Cần kết nối mạng để đặt lại Kho bảo mật");
-  lockVault(user.id);
-  const { error } = await supabase.rpc("reset_my_vault");
+  if (newPassphrase.length < 12) throw new Error("Mật khẩu Kho mới cần ít nhất 12 ký tự.");
+
+  // Chuẩn bị khóa/verifier trước khi đụng dữ liệu cloud. RPC phía server thực hiện xóa
+  // sync cũ + thay vault profile trong MỘT transaction PostgreSQL; nếu insert profile
+  // mới thất bại thì phần delete cũng rollback, tránh trạng thái Kho bị xóa nửa chừng.
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const key = await deriveVaultKey(newPassphrase, salt);
+  const verifier = await encryptJson(key, { marker: "huyen-but-cac-vault", userId: user.id }, `vault:${user.id}`);
+  const { error } = await supabase.rpc("reset_my_vault", {
+    new_salt: toBase64(salt),
+    new_verifier: verifier,
+  });
   if (error) {
     if (error.message.toLowerCase().includes("function") || error.message.toLowerCase().includes("schema cache")) {
-      throw new Error("Máy chủ chưa cài chức năng đặt lại Kho. Hãy chạy migration_checkpoint_14_2_reset_vault.sql trong Supabase.");
+      throw new Error("Máy chủ chưa cài bản mới của chức năng đặt lại Kho. Hãy chạy migration_checkpoint_14_2_reset_vault.sql trong Supabase.");
     }
     throw error;
   }
-  await setupVault(user, newPassphrase);
+  keys.set(user.id, key);
 }
 
 function requireKey(userId: string) {

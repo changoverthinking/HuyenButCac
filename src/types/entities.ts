@@ -14,15 +14,25 @@ export interface Folder extends BaseEntity {
   order: number;
 }
 
+export interface NoteLockEnvelope {
+  v: 1;
+  alg: "AES-256-GCM";
+  iv: string;
+  ciphertext: string;
+}
+
 export interface Note extends BaseEntity {
   title: string;
   contentHtml: string; // rich-text HTML (sanitize khi render)
-  contentText: string; // plaintext để search
+  contentText: string; // plaintext để search khi ghi chú không khóa / đang mở trong RAM
   folderId: string | null;
   tags: string[];
   pinned: boolean;
   favorite: boolean;
-  locked: boolean; // đánh dấu ý định khóa; mã hóa thật TODO giai đoạn 7
+  locked: boolean;
+  /** Khi locked=true, title/content/tags thật nằm trong ciphertext; DB chỉ giữ bản hiển thị đã che. */
+  lockSalt?: string | null;
+  lockPayload?: NoteLockEnvelope | null;
   archived: boolean;
 }
 

@@ -1,9 +1,10 @@
 import { useNotesStore } from "../../stores/notesStore";
 import type { Note } from "../../types/entities";
+import { sanitizeRichHtml } from "../../features/security/htmlSanitizer";
 
 function excerpt(html: string): string {
   const div = document.createElement("div");
-  div.innerHTML = html;
+  div.innerHTML = sanitizeRichHtml(html);
   const text = div.textContent ?? "";
   return text.slice(0, 80);
 }

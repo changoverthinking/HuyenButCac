@@ -4,6 +4,35 @@ import { useFoldersStore } from "../../stores/foldersStore";
 import { Sidebar } from "../common/Sidebar";
 import { NoteList } from "../common/NoteList";
 import { NoteEditor } from "../editor/NoteEditor";
+import { isNoteUnlocked } from "../../features/notes/notesService";
+import type { Note } from "../../types/entities";
+
+
+function LockedNoteGate({ note }: { note: Note }) {
+  const unlockNote = useNotesStore((s) => s.unlockNote);
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <div className="grid h-full place-items-center p-6">
+      <form className="w-full max-w-sm rounded-2xl border p-5" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }} onSubmit={async (event) => {
+        event.preventDefault();
+        setBusy(true); setMessage("");
+        try { await unlockNote(note.id, password); setPassword(""); }
+        catch (error) { setMessage((error as Error).message || "Không thể mở ghi chú."); }
+        finally { setBusy(false); }
+      }}>
+        <div className="text-center text-3xl">🔒</div>
+        <h2 className="mt-2 text-center text-lg font-semibold">Ghi chú đã khóa</h2>
+        <p className="mt-1 text-center text-sm opacity-65">Nội dung đang được mã hóa AES-256-GCM trong IndexedDB. Mật khẩu không được lưu trên thiết bị.</p>
+        <input className="mt-4 w-full rounded-lg border px-3 py-2" style={{ borderColor: "var(--color-border)", background: "var(--color-surface-alt)" }} type="password" autoComplete="off" minLength={8} required placeholder="Mật khẩu ghi chú" value={password} onChange={(event) => setPassword(event.target.value)} />
+        <button disabled={busy} className="mt-3 w-full rounded-lg px-3 py-2 font-medium" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }} type="submit">{busy ? "Đang mở…" : "Mở khóa ghi chú"}</button>
+        {message && <p className="mt-3 text-sm" style={{ color: "var(--color-error)" }}>{message}</p>}
+      </form>
+    </div>
+  );
+}
 
 export function NotesModeView() {
   const loadNotes = useNotesStore((s) => s.loadNotes);
@@ -82,7 +111,9 @@ export function NotesModeView() {
             >
               ← Danh sách
             </button>
-            <NoteEditor key={selectedNote.id} note={selectedNote} />
+            {selectedNote.locked && !isNoteUnlocked(selectedNote.id)
+              ? <LockedNoteGate note={selectedNote} />
+              : <NoteEditor key={`${selectedNote.id}-${selectedNote.locked ? "unlocked" : "plain"}`} note={selectedNote} />}
           </div>
         ) : (
           <div className="h-full flex items-center justify-center" style={{ color: "var(--color-text-muted)" }}>

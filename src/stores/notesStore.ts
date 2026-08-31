@@ -20,6 +20,10 @@ interface NotesState {
   deleteNote: (id: string) => Promise<void>;
   restoreNote: (id: string) => Promise<void>;
   hardDeleteNote: (id: string) => Promise<void>;
+  lockNote: (id: string, password: string) => Promise<void>;
+  unlockNote: (id: string, password: string) => Promise<void>;
+  closeLockedNote: (id: string) => Promise<void>;
+  removeNoteLock: (id: string) => Promise<void>;
   setSearchQuery: (q: string) => Promise<void>;
   showActive: (folderId?: string | null) => Promise<void>;
   showTrash: () => Promise<void>;
@@ -79,6 +83,31 @@ export const useNotesStore = create<NotesState>((set, get) => ({
   hardDeleteNote: async (id) => {
     await notesService.hardDeleteNote(id);
     await get().loadTrash();
+  },
+
+
+  lockNote: async (id, password) => {
+    await notesService.lockNote(id, password);
+    await get().loadNotes(get().activeFolderId);
+    const query = get().searchQuery;
+    if (query.trim()) set({ searchResults: await notesService.searchNotes(query) });
+  },
+
+  unlockNote: async (id, password) => {
+    await notesService.unlockNote(id, password);
+    await get().loadNotes(get().activeFolderId);
+    const query = get().searchQuery;
+    if (query.trim()) set({ searchResults: await notesService.searchNotes(query) });
+  },
+
+  closeLockedNote: async (id) => {
+    notesService.closeLockedNote(id);
+    await get().loadNotes(get().activeFolderId);
+  },
+
+  removeNoteLock: async (id) => {
+    await notesService.removeNoteLock(id);
+    await get().loadNotes(get().activeFolderId);
   },
 
   setSearchQuery: async (q) => {

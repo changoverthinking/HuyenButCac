@@ -1,40 +1,72 @@
-# ARCHITECTURE — Huyền Bút Các
+# ARCHITECTURE — Huyền Bút Các 0.12.2
 
 ## Nguyên tắc
-- **Local-first tuyệt đối**: mọi dữ liệu người dùng nằm trong IndexedDB (Dexie) trên thiết bị. App chạy đầy đủ offline.
-- **GitHub Pages = static host only**: chỉ HTML/CSS/JS/asset/service worker. Không có backend, không có bí mật nào được đóng gói vào frontend.
-- **Đồng bộ là opt-in**: mặc định `LocalOnlyProvider`. Nếu người dùng bật đồng bộ, dữ liệu được mã hóa trên thiết bị trước khi rời thiết bị (chưa triển khai ở checkpoint này — xem FEATURE_MATRIX).
+
+- **Local-first**: thao tác người dùng ghi vào IndexedDB trước; app vẫn dùng được khi offline.
+- **Tách workspace theo tài khoản**: guest và mỗi Supabase `user.id` dùng database IndexedDB riêng. Đổi tài khoản không clear DB cũ.
+- **GitHub Pages = static host**: frontend không chứa `service_role` hoặc database password.
+- **Đồng bộ E2EE**: payload sync được AES-256-GCM mã hóa trên client bằng khóa Kho bảo mật trước khi gửi Supabase.
+- **Ghi chú khóa riêng**: title/content/tag được mã hóa at-rest bằng mật khẩu ghi chú; key chỉ nằm trong RAM khi mở.
 
 ## Sơ đồ tầng
+
+```text
+UI (React)
+   │
+Zustand stores (cache UI, không phải nguồn sự thật)
+   │
+features/*Service.ts (nghiệp vụ, validation, sanitize)
+   │
+Dexie workspace DB (nguồn sự thật local)
+   │
+   ├─ guest workspace
+   └─ user workspace theo Supabase user.id
+          │
+          └─ syncService -> WebCrypto AES-GCM -> Supabase sync_records
 ```
-UI (React components)
-   │
-Stores (Zustand) ── state phái sinh, không phải nguồn sự thật
-   │
-Features/*/service.ts ── logic nghiệp vụ, validation
-   │
-database/db.ts (Dexie) ── nguồn sự thật, IndexedDB
-   │
-   └─ (tương lai) services/sync/* ── SyncProvider interface, mã hóa trước khi upload
-```
 
-## Vì sao Zustand không phải nguồn sự thật
-Store chỉ cache dữ liệu đã đọc từ Dexie để UI render nhanh. Mọi ghi (create/update/delete) đi qua service → Dexie trước, sau đó service cập nhật store. Nếu reload trang, store rebuild từ Dexie — đảm bảo "reload không mất dữ liệu" theo đúng tiêu chí STABLE ở mục 18.
+## Workspace local
 
-## Schema versioning
-`src/database/db.ts` định nghĩa `schemaVersion` cho từng entity và dùng Dexie `.version(n).stores(...)`. Khi đổi schema, luôn thêm `.version(n+1)` mới với `.upgrade()`, không sửa version cũ.
+`src/database/db.ts` export một live binding `db`. `switchWorkspace(userId)` đóng instance hiện tại và mở database:
 
-## Vị trí mã hóa (khi triển khai ở giai đoạn 7)
-`src/features/encryption/` sẽ chứa: dẫn xuất khóa (Argon2id/PBKDF2), AES-GCM encrypt/decrypt, quản lý khóa trong bộ nhớ (không persist), và hook khóa notes trước khi ghi xuống Dexie nếu note được đánh dấu "locked".
+- `huyen-but-cac-workspace-guest`
+- `huyen-but-cac-workspace-<userId>`
 
-## SyncProvider (interface, chưa có implementation thật ở checkpoint này)
-```ts
-interface SyncProvider {
-  push(ops: SyncOperation[]): Promise<void>;
-  pull(since: string): Promise<SyncOperation[]>;
-  resolveConflict(local: Entity, remote: Entity): Entity;
-}
-```
-`LocalOnlyProvider` là no-op. `EncryptedCloudProvider` (TODO) sẽ mã hóa ciphertext trước khi gọi adapter Supabase/Firebase.
+Database cũ `huyen-but-cac` được **copy một lần** sang workspace phù hợp khi nâng cấp. Database cũ không bị clear trong quá trình migration.
 
-## Không có phần nào trong checkpoint hiện tại tuyên bố "đã mã hóa" hoặc "đã đồng bộ" — cả hai đều chưa triển khai thật, đúng quy tắc mục 20.
+App bootstrap Supabase session trước khi render nội dung workspace, tránh hiển thị thoáng dữ liệu của tài khoản trước.
+
+## Đồng bộ
+
+`src/features/sync/syncService.ts`:
+
+1. Chỉ chạy khi workspace hiện tại khớp `user.id` và Kho đã mở.
+2. Pull record của chính user (RLS + `.eq(user_id)`).
+3. Không ghi đè record local có `syncState=local|pending`.
+4. Chụp snapshot local.
+5. Mã hóa snapshot rồi upload.
+6. Chỉ đánh dấu `synced` nếu fingerprint record hiện tại vẫn giống snapshot đã upload.
+
+Cách này ngăn trường hợp người dùng gõ thêm trong lúc request mạng đang chạy nhưng bản gõ mới bị đánh dấu nhầm là đã upload.
+
+## Ghi nội bộ Dexie
+
+Ghi do cloud/migration dùng marker trên **Dexie transaction hiện tại**, không dùng boolean toàn cục. Vì vậy ghi của người dùng chạy song song không bị nhầm thành ghi nội bộ.
+
+## Xóa và tombstone
+
+Soft-delete giữ dữ liệu để khôi phục. Hard-delete note xóa sạch title/content/tag/ciphertext và giữ tombstone tối thiểu (`id`, timestamps/metadata cần thiết) để thao tác xóa truyền sang thiết bị khác.
+
+Project/Section/Chapter khi xóa sẽ gỡ liên kết Mind Map/Timeline không còn hợp lệ thay vì xóa sơ đồ người dùng đã vẽ.
+
+## HTML rich-text
+
+HTML được sanitize khi lưu và trước khi gán `innerHTML`. Script, iframe, SVG, handler `on*`, URL nguy hiểm và CSS tải tài nguyên bị loại bỏ.
+
+## Bảo vệ khi đổi tài khoản giữa lúc sync
+
+Mỗi `syncNow()` chụp cả `user.id` và đúng instance `HuyenButDB` đang hoạt động. Trước/sau các bước mạng và trước transaction ghi, `assertWorkspaceActive()` kiểm tra lại user/workspace. Nếu người dùng logout hoặc chuyển tài khoản giữa chừng, phiên sync cũ ném lỗi an toàn và dừng; nó không bao giờ tiếp tục bằng live binding `db` của workspace mới.
+
+## Autosave tuần tự
+
+`NoteEditor` và `FocusWriter` đưa các lần save vào một Promise queue. Một lần save cũ không thể hoàn thành sau một lần save mới rồi ghi đè dữ liệu mới. `pagehide`/`visibilitychange` cũng gọi flush, và nút thoát Focus Writer chờ flush hoàn tất trước khi đổi màn hình.

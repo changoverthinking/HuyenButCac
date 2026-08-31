@@ -44,7 +44,9 @@ create policy "users create own vault profile" on public.vault_profiles for inse
 drop policy if exists "users delete own vault profile" on public.vault_profiles;
 create policy "users delete own vault profile" on public.vault_profiles for delete to authenticated using ((select auth.uid()) = user_id);
 
-create or replace function public.reset_my_vault()
+drop function if exists public.reset_my_vault();
+drop function if exists public.reset_my_vault(text, jsonb);
+create function public.reset_my_vault(new_salt text, new_verifier jsonb)
 returns void
 language plpgsql
 security invoker
@@ -52,9 +54,11 @@ set search_path = public
 as $$
 begin
   if auth.uid() is null then raise exception 'Not authenticated'; end if;
+  if coalesce(length(new_salt), 0) < 8 or new_verifier is null then raise exception 'Invalid vault profile'; end if;
   delete from public.sync_records where user_id = auth.uid();
   delete from public.vault_profiles where user_id = auth.uid();
+  insert into public.vault_profiles(user_id, salt, verifier) values (auth.uid(), new_salt, new_verifier);
 end;
 $$;
-revoke all on function public.reset_my_vault() from public, anon;
-grant execute on function public.reset_my_vault() to authenticated;
+revoke all on function public.reset_my_vault(text, jsonb) from public, anon;
+grant execute on function public.reset_my_vault(text, jsonb) to authenticated;

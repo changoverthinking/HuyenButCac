@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useFoldersStore } from "../../stores/foldersStore";
 import { useNotesStore } from "../../stores/notesStore";
 import { useThemeStore, THEME_LIST } from "../../stores/themeStore";
 import { APP_CONFIG } from "../../app/appConfig";
+import type { Folder } from "../../types/entities";
 
 export function Sidebar({ onNavigate, onOpenNotes }: { onNavigate?: () => void; onOpenNotes?:()=>void }) {
   const folders = useFoldersStore((s) => s.folders);
@@ -23,7 +24,54 @@ export function Sidebar({ onNavigate, onOpenNotes }: { onNavigate?: () => void; 
   const setCustomBackground = useThemeStore((s) => s.setCustomBackground);
   const clearCustomBackground = useThemeStore((s) => s.clearCustomBackground);
 
-  const rootFolders = folders.filter((f) => f.parentId === null);
+  const childrenOf = (parentId: string | null) => folders
+    .filter((folder) => folder.parentId === parentId)
+    .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+
+  const openFolder = (folderId: string) => {
+    onOpenNotes?.();
+    selectFolder(folderId);
+    void showActive(folderId);
+    onNavigate?.();
+  };
+
+  const addChildFolder = async (parent: Folder) => {
+    const name = window.prompt(`Tạo thư mục con trong “${parent.name}”:`)?.trim();
+    if (!name) return;
+    try {
+      await createFolder(name, parent.id);
+      setFolderMessage(`Đã tạo thư mục con “${name}”.`);
+    } catch (error) {
+      setFolderMessage((error as Error).message || "Không thể tạo thư mục con.");
+    }
+  };
+
+  const renderFolder = (folder: Folder, depth = 0): ReactNode => {
+    const children = childrenOf(folder.id);
+    return (
+      <div key={folder.id}>
+        <div
+          className="flex items-center rounded-lg mb-1"
+          style={{
+            background: view === "active" && selectedFolderId === folder.id ? "var(--color-surface-alt)" : "transparent",
+            paddingLeft: `${Math.min(depth, 5) * 0.65}rem`,
+          }}
+        >
+          <button
+            className="flex-1 min-w-0 text-left px-2 py-2 truncate"
+            title={folder.name}
+            onClick={() => openFolder(folder.id)}
+          >
+            {depth > 0 ? "└ " : ""}📁 {folder.name}
+          </button>
+          <button title="Tạo thư mục con" aria-label={`Tạo thư mục con trong ${folder.name}`} className="px-1" onClick={() => void addChildFolder(folder)}>＋</button>
+          <button title="Đổi tên thư mục" className="px-1" onClick={async()=>{const name=window.prompt("Tên thư mục:",folder.name)?.trim();if(name)await renameFolder(folder.id,name);}}>✎</button>
+          <button title="Xóa thư mục" className="px-2" style={{color:"var(--color-error)"}} onClick={async()=>{if(!window.confirm(`Xóa thư mục “${folder.name}” và các thư mục con? Ghi chú bên trong sẽ được chuyển về Tất cả ghi chú.`))return;await removeFolder(folder.id);await showActive();}}>×</button>
+        </div>
+        {children.map((child) => renderFolder(child, depth + 1))}
+      </div>
+    );
+  };
 
   return (
     <aside
@@ -63,13 +111,7 @@ export function Sidebar({ onNavigate, onOpenNotes }: { onNavigate?: () => void; 
         Thư mục
       </div>
       <div className="px-2 overflow-y-auto flex-1">
-        {rootFolders.map((f) => (
-          <div key={f.id} className="flex items-center rounded-lg mb-1" style={{ background: view === "active" && selectedFolderId === f.id ? "var(--color-surface-alt)" : "transparent" }}>
-            <button className="flex-1 min-w-0 text-left px-3 py-2 truncate" onClick={() => { onOpenNotes?.(); selectFolder(f.id); void showActive(f.id); onNavigate?.(); }}>📁 {f.name}</button>
-            <button title="Đổi tên thư mục" className="px-1" onClick={async()=>{const name=window.prompt("Tên thư mục:",f.name)?.trim();if(name)await renameFolder(f.id,name);}}>✎</button>
-            <button title="Xóa thư mục" className="px-2" style={{color:"var(--color-error)"}} onClick={async()=>{if(!window.confirm(`Xóa thư mục “${f.name}”? Ghi chú bên trong sẽ được chuyển về Tất cả ghi chú.`))return;await removeFolder(f.id);await showActive();}}>×</button>
-          </div>
-        ))}
+        {childrenOf(null).map((folder) => renderFolder(folder))}
         <form
           className="flex gap-1 px-1 mt-1"
           onSubmit={async (e) => {
@@ -123,7 +165,7 @@ export function Sidebar({ onNavigate, onOpenNotes }: { onNavigate?: () => void; 
                   color: "var(--color-text)",
                 }}
                 onClick={() => {
-                  setTheme(t.id);
+                  void setTheme(t.id);
                   setShowThemePicker(false);
                 }}
               >
