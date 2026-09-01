@@ -34,32 +34,48 @@ afterEach(() => {
 
 async function renderPlayer() {
   root = createRoot(container);
-  await act(async () => { root?.render(<MusicPlayer />); });
+  await act(async () => {
+    root?.render(<MusicPlayer />);
+  });
 }
 
 describe("MusicPlayer — mở và đóng Tiên Âm Các", () => {
-  it("mở từ nút nổi rồi đóng lại bằng nút đóng desktop", async () => {
+  it("không còn nút nhạc nổi; vẫn mở từ menu và đóng bằng nút desktop", async () => {
     await renderPlayer();
 
-    const bubble = container.querySelector<HTMLButtonElement>('button[aria-label="Mở Tiên Âm Các"]');
-    expect(bubble).not.toBeNull();
+    // Theo yêu cầu UI mới, nút nổi "Mở Tiên Âm Các" đã bị loại bỏ hoàn toàn.
+    expect(container.querySelector('button[aria-label="Mở Tiên Âm Các"]')).toBeNull();
     expect(container.querySelector('button[aria-label="Đóng Tiên Âm Các"]')).toBeNull();
 
-    await act(async () => { bubble?.click(); });
+    // Sidebar/menu phát sự kiện này để mở Tiên Âm Các.
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent("hbc-toggle-music"));
+    });
     expect(container.querySelector('button[aria-label="Đóng Tiên Âm Các"]')).not.toBeNull();
-    expect(container.querySelector('button[aria-label="Mở Tiên Âm Các"]')).toBeNull();
 
-    await act(async () => { container.querySelector<HTMLButtonElement>('button[aria-label="Đóng Tiên Âm Các"]')?.click(); });
-    expect(container.querySelector('button[aria-label="Mở Tiên Âm Các"]')).not.toBeNull();
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>('button[aria-label="Đóng Tiên Âm Các"]')
+        ?.click();
+    });
+
+    expect(container.querySelector('button[aria-label="Đóng Tiên Âm Các"]')).toBeNull();
+    expect(container.querySelector('button[aria-label="Mở Tiên Âm Các"]')).toBeNull();
   });
 
   it("đồng bộ với nút Tiên Âm Các ở sidebar và phím Escape", async () => {
     await renderPlayer();
 
-    await act(async () => { window.dispatchEvent(new CustomEvent("hbc-toggle-music")); });
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent("hbc-toggle-music"));
+    });
     expect(container.querySelector('button[aria-label="Đóng Tiên Âm Các"]')).not.toBeNull();
 
-    await act(async () => { window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })); });
-    expect(container.querySelector('button[aria-label="Mở Tiên Âm Các"]')).not.toBeNull();
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    });
+
+    expect(container.querySelector('button[aria-label="Đóng Tiên Âm Các"]')).toBeNull();
+    expect(container.querySelector('button[aria-label="Mở Tiên Âm Các"]')).toBeNull();
   });
 });
