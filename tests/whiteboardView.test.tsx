@@ -1,9 +1,9 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { db } from "../database/db";
-import { createWhiteboard, listWhiteboards } from "../features/whiteboard/whiteboardService";
-import { WhiteboardView } from "../components/whiteboard/WhiteboardView";
+import { db } from "../src/database/db";
+import { createWhiteboard, listWhiteboards } from "../src/features/whiteboard/whiteboardService";
+import { WhiteboardView } from "../src/components/whiteboard/WhiteboardView";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
