@@ -194,12 +194,29 @@ export function WhiteboardView() {
         onPointerCancel={(event) => { pointers.current.delete(event.pointerId);pinch.current=null;drawing.current=null;strokeDrag.current=null;setStrokes(items=>items.filter(item=>item.id!=="__preview"));canvasPan.current=null;drag.current = null; }}
       >
         {!active && (
-          <div className="absolute inset-0 z-20 grid place-items-center p-6">
+          <div
+            data-whiteboard-empty-state
+            className="absolute inset-0 z-20 grid place-items-center p-6"
+            onPointerDown={(event) => {
+              // Empty-state nằm bên trong canvas. Không cho pointerdown nổi lên canvas,
+              // nếu không canvas có thể setPointerCapture() và nuốt click của nút tạo bảng.
+              event.stopPropagation();
+            }}
+          >
             <div className="max-w-sm rounded-2xl border p-6 text-center shadow-sm" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
               <div className="text-3xl" aria-hidden="true">◇</div>
               <h3 className="mt-2 font-semibold">Chưa có bảng trắng</h3>
               <p className="mt-1 text-sm" style={{ color: "var(--color-text-muted)" }}>Bảng cuối cùng đã được xóa. Tạo bảng mới khi bạn cần, ứng dụng sẽ không tự tạo lại nữa.</p>
-              <button type="button" className="mt-4 rounded px-4 py-2" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }} onClick={() => void createBoard()}>＋ Tạo bảng trắng</button>
+              <button
+                type="button"
+                aria-label="Tạo bảng trắng từ trạng thái trống"
+                className="mt-4 rounded px-4 py-2"
+                style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => void createBoard()}
+              >
+                ＋ Tạo bảng trắng
+              </button>
             </div>
           </div>
         )}
