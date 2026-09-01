@@ -6,6 +6,7 @@ import { clearAuthRedirectParams, getAuthRedirectUrl, isPasswordRecoveryUrl } fr
 import { getLastSync, syncNow, type SyncStatus } from "../../features/sync/syncService";
 import { getVaultState, isVaultUnlocked, lockVault, resetVault, setupVault, unlockVault } from "../../features/crypto/vaultService";
 import { getActiveWorkspaceUserId } from "../../database/db";
+import { unregisterPushSubscription } from "../../features/calendar/notificationService";
 
 type AccountTab = "profile" | "security" | "sync";
 
@@ -189,6 +190,7 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
       if (navigator.onLine && isVaultUnlocked(session.user.id)) {
         try { await syncNow(session.user); } catch { setMessage("Không thể đồng bộ lần cuối, nhưng dữ liệu trên thiết bị vẫn được giữ nguyên."); }
       }
+      try { await unregisterPushSubscription(); } catch { /* Đăng xuất vẫn tiếp tục; endpoint chết sẽ được server tự dọn khi Push trả 404/410. */ }
       const { error } = await supabase.auth.signOut({ scope: "local" });
       if (error) throw error;
       lockVault(session.user.id); setVaultState("loading");

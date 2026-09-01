@@ -9,7 +9,7 @@ export const SYNC_TABLES = [
   "notes", "folders", "tags", "themePreferences", "projects", "projectSections",
   "projectChapters", "projectTasks", "projectMilestones", "mindMaps", "mindMapNodes",
   "mindMapEdges", "whiteboards", "whiteboardObjects", "mindMapStrokes", "whiteboardStrokes",
-  "storyCharacters", "storyLocations", "storyLoreEntries", "storyTimelineEvents",
+  "storyCharacters", "storyLocations", "storyLoreEntries", "storyTimelineEvents", "calendarEvents",
 ] as const;
 
 type SyncTableName = typeof SYNC_TABLES[number];

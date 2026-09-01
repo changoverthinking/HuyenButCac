@@ -5,7 +5,7 @@ export const APP_CONFIG = {
   appNameEn: "Mystic Notes",
   appId: "com.huyenbut.notes",
   repository: "HuyenButCac",
-  version: "0.13.0-van-nien-calendar",
+  version: "0.14.0-calendar-reminders",
 };
 
 export const NAME_CANDIDATES: { name: string; meaning: string }[] = [

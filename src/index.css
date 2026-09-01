@@ -979,3 +979,122 @@ button:focus-visible, input:focus-visible, select:focus-visible, [contenteditabl
   .van-nien-day-event { display: none; }
   .van-nien-canchi-list strong { font-size: .64rem; }
 }
+
+/* ===== Lịch Vạn Niên 0.14 — lịch hẹn, nhắc hạn, PWA ===== */
+.van-nien-hero-actions { position: relative; z-index: 1; margin-left: auto; margin-right: 5.6rem; display: flex; align-items: center; gap: .55rem; }
+.van-nien-add-event { border: 1px solid color-mix(in srgb, var(--color-accent) 55%, var(--music-metal)); border-radius: .7rem; padding: .58rem .78rem; color: var(--color-accent); background: color-mix(in srgb, var(--color-surface) 78%, transparent); font-size: .68rem; font-weight: 800; box-shadow: inset 0 0 16px color-mix(in srgb, var(--color-accent) 8%, transparent); }
+.van-nien-add-event:hover { background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface)); }
+.van-nien-notify-chip { display: flex; align-items: center; gap: .32rem; min-height: 34px; padding: 0 .58rem; border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent); border-radius: 999px; color: var(--color-text-muted); background: color-mix(in srgb, var(--color-bg) 42%, transparent); }
+.van-nien-notify-chip > span { font-size: .62rem; }
+.van-nien-notify-chip small { font-size: .5rem; font-weight: 700; white-space: nowrap; }
+.van-nien-notify-chip.is-on { color: var(--color-accent); border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border)); }
+.van-nien-reminder-banner { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin: -.35rem 0 .75rem; padding: .65rem .8rem; border: 1px solid color-mix(in srgb, var(--color-accent) 24%, var(--color-border)); border-radius: .78rem; background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 7%, var(--color-surface)), color-mix(in srgb, var(--music-metal) 4%, var(--color-surface))); }
+.van-nien-reminder-banner > div { min-width: 0; display: flex; flex-direction: column; gap: .12rem; }
+.van-nien-reminder-banner strong { font-size: .68rem; }
+.van-nien-reminder-banner span { color: var(--color-text-muted); font-size: .55rem; line-height: 1.45; }
+.van-nien-reminder-banner > button { flex: none; border: 1px solid color-mix(in srgb, var(--color-accent) 55%, var(--color-border)); border-radius: .58rem; padding: .45rem .66rem; color: var(--color-accent); background: color-mix(in srgb, var(--color-surface-alt) 80%, transparent); font-size: .58rem; font-weight: 800; }
+.van-nien-reminder-ready { flex: none; color: var(--color-accent) !important; font-weight: 800; }
+.van-nien-day.has-user-event { box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--color-accent) 72%, var(--music-metal)); }
+.van-nien-day.has-user-event .van-nien-day-event { color: var(--color-accent); }
+.legend-dot.is-user-event { background: var(--color-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 15%, transparent); }
+
+.van-nien-user-events { overflow: hidden; border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent); border-radius: .85rem; background: color-mix(in srgb, var(--color-surface) 92%, transparent); box-shadow: 0 12px 30px color-mix(in srgb, #000 12%, transparent); }
+.van-nien-user-events > header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .68rem .78rem; border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent); }
+.van-nien-user-events > header > div { display: flex; flex-direction: column; }
+.van-nien-user-events > header span { color: var(--color-accent); font-size: .45rem; font-weight: 850; letter-spacing: .15em; }
+.van-nien-user-events > header strong { margin-top: .1rem; font-size: .67rem; }
+.van-nien-user-events > header button { border: 1px solid color-mix(in srgb, var(--color-accent) 38%, var(--color-border)); border-radius: .52rem; padding: .36rem .52rem; color: var(--color-accent); background: transparent; font-size: .55rem; font-weight: 800; }
+.van-nien-user-event-list { max-height: 310px; overflow: auto; padding: .45rem; display: grid; gap: .38rem; scrollbar-width: thin; }
+.van-nien-user-event-list > p { margin: 0; padding: .75rem; color: var(--color-text-muted); font-size: .58rem; text-align: center; }
+.van-nien-user-event-list article { position: relative; display: grid; grid-template-columns: 1fr auto; align-items: stretch; overflow: hidden; border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent); border-left-width: 3px; border-radius: .62rem; background: color-mix(in srgb, var(--color-surface-alt) 62%, transparent); }
+.van-nien-user-event-list article.event-jade { border-left-color: #5aa98e; }
+.van-nien-user-event-list article.event-gold { border-left-color: #caa052; }
+.van-nien-user-event-list article.event-crimson { border-left-color: #c45a58; }
+.van-nien-user-event-list article.event-azure { border-left-color: #5b92c8; }
+.van-nien-user-event-list article.event-violet { border-left-color: #9670bd; }
+.van-nien-event-main { min-width: 0; display: grid; grid-template-columns: 3.3rem minmax(0, 1fr); align-items: start; gap: .55rem; padding: .56rem .62rem; border: 0; color: var(--color-text); text-align: left; background: transparent; }
+.van-nien-event-main:hover { background: color-mix(in srgb, var(--color-accent) 6%, transparent); }
+.van-nien-event-main time { color: var(--color-accent); font-family: var(--hbc-font-display); font-size: .58rem; font-weight: 800; }
+.van-nien-event-main > span { min-width: 0; display: flex; flex-direction: column; gap: .08rem; }
+.van-nien-event-main strong { overflow: hidden; font-size: .62rem; text-overflow: ellipsis; white-space: nowrap; }
+.van-nien-event-main small { overflow: hidden; color: var(--color-text-muted); font-size: .5rem; text-overflow: ellipsis; white-space: nowrap; }
+.van-nien-event-main em { color: color-mix(in srgb, var(--music-metal) 78%, var(--color-text-muted)); font-size: .46rem; font-style: normal; }
+.van-nien-event-delete { width: 2rem; border: 0; border-left: 1px solid color-mix(in srgb, var(--color-border) 58%, transparent); color: var(--color-text-muted); background: transparent; font-size: .9rem; }
+.van-nien-event-delete:hover { color: #d96c62; background: color-mix(in srgb, #b42318 8%, transparent); }
+
+.van-nien-event-modal { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 1rem; }
+.van-nien-event-modal-backdrop { position: absolute; inset: 0; width: 100%; border: 0; background: rgba(3, 8, 10, .66); backdrop-filter: blur(5px); }
+.van-nien-event-editor { position: relative; z-index: 1; width: min(560px, 100%); max-height: min(760px, calc(100vh - 2rem)); overflow: auto; padding: .9rem; border: 1px solid color-mix(in srgb, var(--music-metal) 34%, var(--color-border)); border-radius: 1rem; color: var(--color-text); background: linear-gradient(145deg, color-mix(in srgb, var(--color-surface) 98%, #071015), color-mix(in srgb, var(--color-surface-alt) 96%, #111)); box-shadow: 0 28px 85px rgba(0,0,0,.42), inset 0 0 34px color-mix(in srgb, var(--color-accent) 4%, transparent); }
+.van-nien-event-editor > header { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin: -.2rem -.15rem .75rem; padding: .2rem .15rem .65rem; border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent); }
+.van-nien-event-editor > header div { display: flex; flex-direction: column; }
+.van-nien-event-editor > header span { color: var(--music-metal); font-size: .48rem; font-weight: 850; letter-spacing: .18em; }
+.van-nien-event-editor > header strong { margin-top: .12rem; font-family: var(--hbc-font-display); font-size: .88rem; }
+.van-nien-event-editor > header button { width: 2rem; height: 2rem; border: 1px solid var(--color-border); border-radius: 50%; color: var(--color-text-muted); background: transparent; font-size: 1rem; }
+.van-nien-event-editor label { display: flex; flex-direction: column; gap: .28rem; margin-bottom: .62rem; }
+.van-nien-event-editor label > span { color: var(--color-text-muted); font-size: .52rem; font-weight: 750; }
+.van-nien-event-editor input:not([type="checkbox"]), .van-nien-event-editor textarea, .van-nien-event-editor select { width: 100%; border: 1px solid color-mix(in srgb, var(--color-border) 90%, transparent); border-radius: .6rem; padding: .56rem .62rem; color: var(--color-text); background: color-mix(in srgb, var(--color-bg) 55%, var(--color-surface)); font-size: .66rem; outline: none; }
+.van-nien-event-editor textarea { resize: vertical; min-height: 86px; }
+.van-nien-event-editor input:focus, .van-nien-event-editor textarea:focus, .van-nien-event-editor select:focus { border-color: color-mix(in srgb, var(--color-accent) 62%, var(--music-metal)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 9%, transparent); }
+.van-nien-editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; }
+.van-nien-event-editor .van-nien-check { flex-direction: row; align-items: center; gap: .45rem; padding: .45rem .52rem; border: 1px dashed color-mix(in srgb, var(--color-border) 80%, transparent); border-radius: .55rem; }
+.van-nien-event-editor .van-nien-check input { width: 1rem; height: 1rem; accent-color: var(--color-accent); }
+.van-nien-event-editor .van-nien-check span { color: var(--color-text); }
+.van-nien-inline-notify { width: 100%; margin-bottom: .6rem; border: 1px solid color-mix(in srgb, var(--color-accent) 35%, var(--color-border)); border-radius: .58rem; padding: .5rem; color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 6%, transparent); font-size: .56rem; font-weight: 750; }
+.van-nien-editor-message { margin: 0 0 .6rem; padding: .52rem .6rem; border-radius: .55rem; color: #d9b17b; background: color-mix(in srgb, #b76b2e 9%, var(--color-surface-alt)); font-size: .56rem; line-height: 1.45; }
+.van-nien-event-editor > footer { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: .45rem; margin-top: .2rem; padding-top: .7rem; border-top: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent); }
+.van-nien-event-editor > footer button { border: 1px solid var(--color-border); border-radius: .58rem; padding: .5rem .68rem; color: var(--color-text); background: transparent; font-size: .57rem; font-weight: 750; }
+.van-nien-event-editor > footer button.is-primary { color: var(--color-accent); border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border)); background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface-alt)); }
+.van-nien-event-editor > footer button.is-danger { color: #d46a61; border-color: color-mix(in srgb, #b42318 38%, var(--color-border)); }
+
+@media (max-width: 720px) {
+  .van-nien-hero-actions { margin-right: 4rem; gap: .35rem; }
+  .van-nien-notify-chip { display: none; }
+  .van-nien-add-event { padding: .45rem .55rem; font-size: .55rem; }
+  .van-nien-reminder-banner { align-items: flex-start; margin-top: 0; }
+  .van-nien-reminder-banner > button,.van-nien-reminder-ready { margin-top: .05rem; }
+  .van-nien-day-event { max-width: 100%; }
+  .van-nien-user-event-list { max-height: none; }
+  .van-nien-event-editor { max-height: calc(100dvh - 1rem); padding: .72rem; border-radius: .82rem; }
+}
+@media (max-width: 480px) {
+  .van-nien-hero-actions { margin-right: 3.4rem; }
+  .van-nien-reminder-banner { flex-direction: column; }
+  .van-nien-reminder-banner > button { width: 100%; }
+  .van-nien-editor-grid { grid-template-columns: 1fr; gap: 0; }
+  .van-nien-event-editor > footer { grid-template-columns: 1fr 1fr; }
+  .van-nien-event-editor > footer span { display: none; }
+  .van-nien-event-editor > footer button { width: 100%; }
+}
+.van-nien-shortcuts-card { padding: .7rem .78rem; border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent); border-radius: .85rem; background: linear-gradient(135deg, color-mix(in srgb, var(--music-metal) 5%, var(--color-surface)), var(--color-surface)); }
+.van-nien-shortcuts-card > header { display: flex; flex-direction: column; margin-bottom: .55rem; }
+.van-nien-shortcuts-card > header span { color: var(--music-metal); font-size: .45rem; font-weight: 850; letter-spacing: .15em; }
+.van-nien-shortcuts-card > header strong { margin-top: .1rem; font-size: .67rem; }
+.van-nien-shortcuts-card > div { display: flex; align-items: center; gap: .65rem; }
+.van-nien-shortcut-icon { width: 2.7rem; height: 2.7rem; flex: none; display: grid; place-items: center; border: 1px solid color-mix(in srgb, var(--music-metal) 42%, var(--color-border)); border-radius: .7rem; color: var(--music-metal); font-family: "Yu Mincho", "KaiTi", var(--hbc-font-display); font-size: 1.25rem; background: color-mix(in srgb, var(--color-surface-alt) 76%, transparent); }
+.van-nien-shortcuts-card p { min-width: 0; margin: 0; display: flex; flex-direction: column; gap: .12rem; }
+.van-nien-shortcuts-card p strong { font-size: .6rem; }
+.van-nien-shortcuts-card p small,.van-nien-shortcuts-card > small { color: var(--color-text-muted); font-size: .49rem; line-height: 1.45; }
+.van-nien-shortcuts-card > small { display: block; margin-top: .55rem; padding-top: .5rem; border-top: 1px dashed color-mix(in srgb, var(--color-border) 65%, transparent); }
+
+.van-nien-notification-message {
+  margin: -0.35rem 0 1rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 34%, transparent);
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
+  color: var(--color-text);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.van-nien-install-button {
+  width: 100%;
+  margin: 0.7rem 0 0.25rem;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
+  border-radius: 0.85rem;
+  padding: 0.7rem 0.9rem;
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+  color: var(--color-text);
+  font-weight: 700;
+}
+.van-nien-install-button:hover { background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface)); }

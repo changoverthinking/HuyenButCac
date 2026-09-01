@@ -33,3 +33,9 @@ Các mốc hồi quy đi kèm test:
 - 17/02/2026 → 01/01/2026 âm · Tết Nguyên Đán · Nhâm Tuất · Canh Dần · Bính Ngọ.
 - 01/09/1990 → 13/07/1990 âm.
 - 01/10/2002 → 25/08/2002 âm.
+
+## Lịch hẹn cá nhân từ 0.14.0
+
+Ngoài ngày lễ hệ thống, người dùng có thể tạo lịch hẹn/ghi chú trên từng ngày, chọn giờ và thời gian nhắc. Event cá nhân được đồng bộ E2EE cùng workspace khi mở Kho bảo mật.
+
+Thông báo local, Web Push khi app đóng, PWA shortcut và hướng dẫn Supabase nằm tại `docs/CALENDAR_NOTIFICATIONS.md`.

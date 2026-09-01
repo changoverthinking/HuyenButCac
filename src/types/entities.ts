@@ -149,6 +149,28 @@ export interface StoryTimelineEvent extends BaseEntity {
   order: number; // thứ tự trong dòng thời gian truyện (không nhất thiết theo thời gian thực)
 }
 
+
+export type CalendarEventColor = "jade" | "gold" | "crimson" | "azure" | "violet";
+
+export interface CalendarEvent extends BaseEntity {
+  title: string;
+  note: string;
+  /** Thời điểm diễn ra theo epoch ms trên thiết bị; UI hiển thị theo múi giờ địa phương. */
+  startsAt: number;
+  /** Thời điểm cần nhắc; null = không nhắc. */
+  remindAt: number | null;
+  allDay: boolean;
+  color: CalendarEventColor;
+}
+
+/** Biên nhận nhắc cục bộ theo từng thiết bị. Không đồng bộ lên cloud. */
+export interface CalendarNotificationReceipt {
+  id: string; // `${deviceId}:${eventId}:${remindAt}`
+  eventId: string;
+  remindAt: number;
+  notifiedAt: number;
+}
+
 export interface ThemePreference extends BaseEntity {
   themeId: ThemeId;
   followSystem: boolean;

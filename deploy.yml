@@ -33,15 +33,18 @@ jobs:
         run: |
           test -n "$VITE_SUPABASE_URL" || { echo "Thiếu GitHub Variable: VITE_SUPABASE_URL"; exit 1; }
           test -n "$VITE_SUPABASE_ANON_KEY" || { echo "Thiếu GitHub Variable: VITE_SUPABASE_ANON_KEY"; exit 1; }
+          if [ -z "$VITE_WEB_PUSH_VAPID_PUBLIC_KEY" ]; then echo "::warning::Thiếu VITE_WEB_PUSH_VAPID_PUBLIC_KEY — lịch vẫn chạy nhưng Web Push khi app đóng sẽ chưa hoạt động."; fi
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_WEB_PUSH_VAPID_PUBLIC_KEY: ${{ vars.VITE_WEB_PUSH_VAPID_PUBLIC_KEY }}
 
       - name: Typecheck + build
         run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_WEB_PUSH_VAPID_PUBLIC_KEY: ${{ vars.VITE_WEB_PUSH_VAPID_PUBLIC_KEY }}
 
       - name: Vitest
         run: npm run test

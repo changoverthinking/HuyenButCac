@@ -14,4 +14,7 @@ describe("story codex sync coverage", () => {
       "storyCharacters", "storyLocations", "storyLoreEntries", "storyTimelineEvents",
     ]));
   });
+  it("đồng bộ lịch hẹn cá nhân", () => {
+    expect(SYNC_TABLES).toContain("calendarEvents");
+  });
 });

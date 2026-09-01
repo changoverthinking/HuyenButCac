@@ -17,8 +17,16 @@ import { supabase } from "./features/auth/supabase";
 import { getActiveWorkspaceUserId, switchWorkspace } from "./database/db";
 import { clearAllNoteUnlockSessions } from "./features/notes/notesService";
 import { lockVault } from "./features/crypto/vaultService";
+import { registerPushSubscription, startCalendarReminderRuntime } from "./features/calendar/notificationService";
+import { reconcileCalendarReminderJobs } from "./features/calendar/calendarEventsService";
 
 type Mode = "notes" | "projects" | "mindmap" | "whiteboard" | "calendar";
+
+function initialMode(): Mode {
+  if (typeof window === "undefined") return "notes";
+  const candidate = new URLSearchParams(window.location.search).get("mode");
+  return candidate === "projects" || candidate === "mindmap" || candidate === "whiteboard" || candidate === "calendar" ? candidate : "notes";
+}
 
 const MODE_TABS: { id: Mode; label: string; kicker: string; icon: string }[] = [
   { id: "notes", label: "Ghi chú", kicker: "TRÚC GIẢN", icon: "▤" },
@@ -144,7 +152,7 @@ function AppTopbar({ mode, online, onAccount, onSearch }: { mode: Mode; online: 
 
 export default function App() {
   const loadTheme = useThemeStore((state) => state.load);
-  const [mode, setMode] = useState<Mode>("notes");
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [focusedSectionId, setFocusedSectionId] = useState<string | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -224,6 +232,21 @@ export default function App() {
     };
   }, [loadTheme]);
 
+  useEffect(() => {
+    if (!workspaceReady) return;
+    const stop = startCalendarReminderRuntime();
+    void reconcileCalendarReminderJobs();
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") void registerPushSubscription().catch(() => undefined);
+    const reconcile = () => { void reconcileCalendarReminderJobs(); if (typeof Notification !== "undefined" && Notification.permission === "granted") void registerPushSubscription().catch(() => undefined); };
+    window.addEventListener("online", reconcile);
+    window.addEventListener("hbc-workspace-changed", reconcile);
+    return () => {
+      stop();
+      window.removeEventListener("online", reconcile);
+      window.removeEventListener("hbc-workspace-changed", reconcile);
+    };
+  }, [workspaceReady, syncRevision]);
+
   if (!workspaceReady) {
     return (
       <div className="grid h-screen w-screen place-items-center p-6" style={{ background: "var(--color-bg)", color: "var(--color-text)" }}>
@@ -251,6 +274,10 @@ export default function App() {
   const navigate = (nextMode: Mode) => {
     setMode(nextMode);
     setMobileMenuOpen(false);
+    const url = new URL(window.location.href);
+    url.searchParams.set("mode", nextMode);
+    if (nextMode !== "calendar") { url.searchParams.delete("event"); url.searchParams.delete("calendar"); }
+    window.history.replaceState({}, "", url);
   };
   const searchNotes = (query: string) => {
     void setSearchQuery(query);

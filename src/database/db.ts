@@ -10,7 +10,7 @@ import type {
   ProjectTask,
   ProjectMilestone,
   MindMap, MindMapNode, MindMapEdge, Whiteboard, WhiteboardObject, MusicTrack, CustomBackground, CanvasStroke,
-  StoryCharacter, StoryLocation, StoryLoreEntry, StoryTimelineEvent,
+  StoryCharacter, StoryLocation, StoryLoreEntry, StoryTimelineEvent, CalendarEvent, CalendarNotificationReceipt,
 } from "../types/entities";
 
 const LEGACY_DB_NAME = "huyen-but-cac";
@@ -72,6 +72,8 @@ export class HuyenButDB extends Dexie {
   storyLocations!: Table<StoryLocation, string>;
   storyLoreEntries!: Table<StoryLoreEntry, string>;
   storyTimelineEvents!: Table<StoryTimelineEvent, string>;
+  calendarEvents!: Table<CalendarEvent, string>;
+  calendarNotificationReceipts!: Table<CalendarNotificationReceipt, string>;
 
   constructor(databaseName = LEGACY_DB_NAME) {
     super(databaseName);
@@ -150,10 +152,29 @@ export class HuyenButDB extends Dexie {
       });
     });
 
+    // v7: Lịch cá nhân + biên nhận thông báo cục bộ theo từng thiết bị.
+    this.version(7).stores({
+      notes: "id, folderId, pinned, favorite, archived, locked, deletedAt, updatedAt, *tags",
+      folders: "id, parentId, deletedAt, order", tags: "id, name, deletedAt", themePreferences: "id",
+      projects: "id, status, kind, archived, deletedAt, updatedAt",
+      projectSections: "id, projectId, order, deletedAt", projectChapters: "id, projectId, sectionId, order, deletedAt",
+      projectTasks: "id, projectId, status, order, deletedAt", projectMilestones: "id, projectId, done, deletedAt",
+      mindMaps: "id, projectId, deletedAt, updatedAt", mindMapNodes: "id, mapId, parentId, linkId, deletedAt", mindMapEdges: "id, mapId, sourceId, targetId, deletedAt",
+      whiteboards: "id, deletedAt, updatedAt", whiteboardObjects: "id, boardId, kind, deletedAt",
+      musicTracks: "id, deletedAt, createdAt", customBackgrounds: "id, deletedAt, updatedAt",
+      mindMapStrokes: "id, ownerId, deletedAt, updatedAt", whiteboardStrokes: "id, ownerId, deletedAt, updatedAt",
+      storyCharacters: "id, projectId, order, deletedAt",
+      storyLocations: "id, projectId, kind, order, deletedAt",
+      storyLoreEntries: "id, projectId, order, deletedAt",
+      storyTimelineEvents: "id, projectId, chapterId, order, deletedAt",
+      calendarEvents: "id, startsAt, remindAt, deletedAt, updatedAt",
+      calendarNotificationReceipts: "id, eventId, remindAt, notifiedAt",
+    });
+
     // Mọi thay đổi do người dùng đều thành pending. Ghi cloud/migration đánh dấu transaction nội bộ.
     this.on("ready", () => {
       for (const table of this.tables) {
-        if (table.name === "musicTracks" || table.name === "customBackgrounds") continue;
+        if (table.name === "musicTracks" || table.name === "customBackgrounds" || table.name === "calendarNotificationReceipts") continue;
         table.hook("creating", (_key, value) => {
           if (!isInternalSyncWrite()) value.syncState = "pending";
         });
