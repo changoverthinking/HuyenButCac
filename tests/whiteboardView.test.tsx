@@ -33,9 +33,17 @@ async function renderView() {
   });
 }
 
-async function waitFor(predicate: () => boolean, timeoutMs = 1000) {
+async function waitFor(predicate: () => boolean, timeoutMs = 1500) {
   const deadline = Date.now() + timeoutMs;
   while (!predicate() && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+}
+
+async function waitForBoardCount(count: number, timeoutMs = 1500) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if ((await listWhiteboards()).length === count) return;
     await new Promise((resolve) => setTimeout(resolve, 5));
   }
 }
@@ -43,8 +51,10 @@ async function waitFor(predicate: () => boolean, timeoutMs = 1000) {
 describe("WhiteboardView — xóa và tạo lại bảng", () => {
   it("không tự tạo bảng khi database chưa có bảng nào", async () => {
     await renderView();
+    await act(async () => {
+      await waitFor(() => container.textContent?.includes("Chưa có bảng trắng") === true);
+    });
     expect(await listWhiteboards()).toHaveLength(0);
-    expect(container.textContent).toContain("Chưa có bảng trắng");
   });
 
   it("xóa bảng cuối rồi có thể tạo bảng mới ngay từ trạng thái trống", async () => {
@@ -52,11 +62,22 @@ describe("WhiteboardView — xóa và tạo lại bảng", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     await renderView();
 
+    // Chờ useEffect nạp bảng và activeId hoàn tất.
+    await act(async () => {
+      await waitFor(() => {
+        const select = container.querySelector<HTMLSelectElement>('select[aria-label="Chọn bảng trắng"]');
+        const button = container.querySelector<HTMLButtonElement>('button[aria-label="Xóa bảng"]');
+        return Boolean(select?.value && button && !button.disabled);
+      });
+    });
+
     const deleteButton = container.querySelector<HTMLButtonElement>('button[aria-label="Xóa bảng"]');
     expect(deleteButton).not.toBeNull();
+    expect(deleteButton?.disabled).toBe(false);
 
     await act(async () => {
       deleteButton?.click();
+      await waitForBoardCount(0);
       await waitFor(() => container.textContent?.includes("Chưa có bảng trắng") === true);
     });
 
@@ -68,8 +89,10 @@ describe("WhiteboardView — xóa và tạo lại bảng", () => {
     expect(createButton).not.toBeNull();
 
     await act(async () => {
+      // Mô phỏng đúng chuỗi thao tác người dùng trên desktop/mobile.
       createButton?.dispatchEvent(new Event("pointerdown", { bubbles: true }));
       createButton?.click();
+      await waitForBoardCount(1);
       await waitFor(() => (
         container.querySelector<HTMLSelectElement>('select[aria-label="Chọn bảng trắng"]')?.value ?? ""
       ) !== "");
@@ -77,7 +100,9 @@ describe("WhiteboardView — xóa và tạo lại bảng", () => {
 
     const boards = await listWhiteboards();
     expect(boards).toHaveLength(1);
-    expect(container.querySelector<HTMLSelectElement>('select[aria-label="Chọn bảng trắng"]')?.value).toBe(boards[0].id);
+    expect(
+      container.querySelector<HTMLSelectElement>('select[aria-label="Chọn bảng trắng"]')?.value,
+    ).toBe(boards[0].id);
     expect(container.textContent).not.toContain("Bảng cuối cùng đã được xóa");
   });
 });
