@@ -48,7 +48,9 @@ export function libraryDatabaseNameForWorkspace(userId: string | null) {
 }
 
 function currentDb() {
-  const name = libraryDatabaseNameForWorkspace(getActiveWorkspaceUserId());
+  const name = libraryDatabaseNameForWorkspace(
+    getActiveWorkspaceUserId() ?? null
+  );
   let database = instances.get(name);
   if (!database) {
     database = new HuyenButLibraryDB(name);
