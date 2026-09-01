@@ -28,7 +28,9 @@ afterEach(() => {
 
 async function renderMindMap() {
   root = createRoot(container);
-  await act(async () => { root?.render(<MindMapView onOpenProject={() => undefined} />); });
+  await act(async () => {
+    root?.render(<MindMapView onOpenProject={() => undefined} />);
+  });
 }
 
 describe("MindMapView — nút Ô tự do trên toolbar", () => {
@@ -38,24 +40,31 @@ describe("MindMapView — nút Ô tự do trên toolbar", () => {
     expect(container.querySelector('button[aria-label="Tạo ô tự do"]')).not.toBeNull();
     expect(container.querySelector(".canvas-add-fab")).toBeNull();
 
-    await act(async () => { container.querySelector<HTMLButtonElement>('button[aria-label="Tùy chỉnh nút tạo ô tự do"]')?.click(); });
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('button[aria-label="Tùy chỉnh nút tạo ô tự do"]')?.click();
+    });
     expect(container.querySelector('button[aria-label="Dùng icon Tâm điểm"]')).not.toBeNull();
 
-    await act(async () => { container.querySelector<HTMLButtonElement>('button[aria-label="Dùng icon Tâm điểm"]')?.click(); });
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('button[aria-label="Dùng icon Tâm điểm"]')?.click();
+    });
     expect(localStorage.getItem("hbc-mindmap-free-node-action-icon")).toBe("target");
     expect(container.querySelector<HTMLButtonElement>('button[aria-label="Tạo ô tự do"]')?.querySelector("circle")).not.toBeNull();
 
-    await act(async () => { container.querySelector<HTMLButtonElement>('button[aria-label="Ẩn icon tạo ô tự do"]')?.click(); });
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('button[aria-label="Ẩn icon tạo ô tự do"]')?.click();
+    });
     expect(container.querySelector('button[aria-label="Tạo ô tự do"]')).toBeNull();
     expect(container.querySelector('button[aria-label="Khôi phục nút tạo ô tự do"]')).not.toBeNull();
     expect(localStorage.getItem("hbc-mindmap-free-node-action-visible")).toBe("hidden");
 
-    await act(async () => { container.querySelector<HTMLButtonElement>('button[aria-label="Khôi phục nút tạo ô tự do"]')?.click(); });
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('button[aria-label="Khôi phục nút tạo ô tự do"]')?.click();
+    });
     expect(container.querySelector('button[aria-label="Tạo ô tự do"]')).not.toBeNull();
     expect(localStorage.getItem("hbc-mindmap-free-node-action-visible")).toBeNull();
   });
 });
-
 
 describe("MindMapView — xóa sơ đồ cuối", () => {
   it("không tự tạo lại sơ đồ sau khi xóa sơ đồ cuối cùng", async () => {
@@ -67,7 +76,13 @@ describe("MindMapView — xóa sơ đồ cuối", () => {
 
     await act(async () => {
       deleteButton?.click();
-      await Promise.resolve();
+
+      const deadline = Date.now() + 1000;
+      while ((await listMindMaps()).length !== 0 && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
     });
 
     expect(await listMindMaps()).toHaveLength(0);
