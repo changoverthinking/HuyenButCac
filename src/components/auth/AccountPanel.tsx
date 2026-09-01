@@ -2,7 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { cloudConfigured, missingCloudSettings, supabase } from "../../features/auth/supabase";
 import { authErrorMessage, normalizeAuthEmail } from "../../features/auth/authMessages";
-import { clearAuthRedirectParams, getAuthRedirectUrl, isPasswordRecoveryUrl } from "../../features/auth/authFlow";
+import {
+  clearAuthRedirectParams,
+  getAuthCallbackError,
+  getAuthRedirectUrl,
+  getPasswordRecoveryRedirectUrl,
+  hasAuthCallbackError,
+  isPasswordRecoveryUrl,
+} from "../../features/auth/authFlow";
 import { getLastSync, syncNow, type SyncStatus } from "../../features/sync/syncService";
 import { getVaultState, isVaultUnlocked, lockVault, resetVault, setupVault, unlockVault } from "../../features/crypto/vaultService";
 import { getActiveWorkspaceUserId } from "../../database/db";
@@ -22,7 +29,8 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<SyncStatus>(navigator.onLine ? "idle" : "offline");
   const [lastSync, setLastSync] = useState(0);
-  const [recovering, setRecovering] = useState(false);
+  const [recovering, setRecovering] = useState(() => isPasswordRecoveryUrl());
+  const [recoveryChecking, setRecoveryChecking] = useState(() => isPasswordRecoveryUrl());
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [accountTab, setAccountTab] = useState<AccountTab>("profile");
   const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
@@ -51,12 +59,41 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
 
   useEffect(() => {
     if (!supabase) return;
-    if (isPasswordRecoveryUrl()) { setRecovering(true); onRecoveryRequired?.(); }
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const recoveryUrl = isPasswordRecoveryUrl();
+    if (recoveryUrl) {
+      setRecovering(true);
+      setRecoveryChecking(true);
+      setPassword("");
+      setPasswordConfirm("");
+      onRecoveryRequired?.();
+    }
+
+    let disposed = false;
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (disposed) return;
+      setSession(data.session);
+      if (recoveryUrl) {
+        setRecoveryChecking(false);
+        if (error) setMessage(authErrorMessage(error.message));
+        else if (!data.session && hasAuthCallbackError()) {
+          setMessage(authErrorMessage(getAuthCallbackError() || "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn."));
+        } else if (!data.session) {
+          setMessage("Liên kết đặt lại mật khẩu không còn phiên xác thực. Hãy quay lại Đăng nhập → Quên mật khẩu và gửi một email mới.");
+        }
+      }
+    });
+
     const { data } = supabase.auth.onAuthStateChange((event, next) => {
       const previousUserId = sessionRef.current?.user.id;
       setSession(next);
-      if (event === "PASSWORD_RECOVERY") { setRecovering(true); setPassword(""); setPasswordConfirm(""); onRecoveryRequired?.(); }
+      if (event === "PASSWORD_RECOVERY") {
+        setRecovering(true);
+        setRecoveryChecking(false);
+        setMessage("");
+        setPassword("");
+        setPasswordConfirm("");
+        onRecoveryRequired?.();
+      }
       if (event === "SIGNED_OUT") {
         lockVault(previousUserId);
         setVaultState("loading"); setStatus("idle"); setLastSync(0);
@@ -67,7 +104,7 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
     const offline = () => setStatus("offline");
     window.addEventListener("online", online);
     window.addEventListener("offline", offline);
-    return () => { data.subscription.unsubscribe(); window.removeEventListener("online", online); window.removeEventListener("offline", offline); };
+    return () => { disposed = true; data.subscription.unsubscribe(); window.removeEventListener("online", online); window.removeEventListener("offline", offline); };
   }, [onRecoveryRequired]);
 
   useEffect(() => {
@@ -134,7 +171,7 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
         setNeedsEmailConfirmation(true);
         setMessage("Đã tạo tài khoản. Hãy mở email xác minh rồi đăng nhập.");
       } else if (mode === "forgot") {
-        const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo: getAuthRedirectUrl() });
+        const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo: getPasswordRecoveryRedirectUrl() });
         if (error) throw error;
         setMessage("Đã gửi liên kết đặt lại mật khẩu vào email.");
       } else {
@@ -174,13 +211,26 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
   async function updatePassword(event: React.FormEvent) {
     event.preventDefault();
     if (!supabase) return;
+    if (recoveryChecking) { setMessage("Đang xác nhận liên kết khôi phục. Hãy chờ một chút rồi thử lại."); return; }
+    if (!session) { setMessage("Phiên đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Hãy gửi lại email khôi phục mới."); return; }
     if (password.length < 8) { setMessage("Mật khẩu mới cần ít nhất 8 ký tự."); return; }
     if (password !== passwordConfirm) { setMessage("Hai mật khẩu mới chưa giống nhau."); return; }
     setBusy(true); setMessage("");
-    const { error } = await supabase.auth.updateUser({ password });
-    setBusy(false);
-    if (error) setMessage(authErrorMessage(error.message));
-    else { setRecovering(false); setPassword(""); setPasswordConfirm(""); clearAuthRedirectParams(); setAccountTab("profile"); setMessage("Đã đổi mật khẩu thành công. Bạn đang đăng nhập bằng mật khẩu mới."); }
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      setRecovering(false);
+      setRecoveryChecking(false);
+      setPassword("");
+      setPasswordConfirm("");
+      clearAuthRedirectParams();
+      setAccountTab("profile");
+      setMessage("Đã đặt lại mật khẩu thành công. Bạn có thể tiếp tục dùng tài khoản với mật khẩu mới.");
+    } catch (error) {
+      setMessage(authErrorMessage(error instanceof Error ? error.message : "Không thể đặt lại mật khẩu"));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function signOutSafely() {
@@ -210,11 +260,12 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
         <p className="mt-2 text-sm">Hãy lưu đúng hai biến theo <b>HUONG_DAN_SUPABASE.md</b>, rồi chạy lại workflow Deploy.</p>
       </div>}
       {recovering ? <form className="space-y-3" onSubmit={updatePassword}>
-          <div className="rounded-xl p-3" style={{background:"var(--color-surface-alt)"}}><div className="font-semibold">Đặt lại mật khẩu</div><p className="mt-1 text-sm opacity-70">Liên kết khôi phục đã được xác nhận. Hãy tạo mật khẩu mới.</p></div>
+          <div className="rounded-xl p-3" style={{background:"var(--color-surface-alt)"}}><div className="font-semibold">Đặt lại mật khẩu</div><p className="mt-1 text-sm opacity-70">{recoveryChecking ? "Đang xác nhận liên kết khôi phục…" : session ? "Liên kết khôi phục đã được xác nhận. Hãy tạo mật khẩu mới." : "Liên kết đã hết hạn hoặc không hợp lệ. Hãy yêu cầu email khôi phục mới."}</p></div>
           <input required minLength={8} type={showPassword?"text":"password"} autoComplete="new-password" placeholder="Mật khẩu mới (ít nhất 8 ký tự)" value={password} onChange={e=>setPassword(e.target.value)} />
           <input required minLength={8} type={showPassword?"text":"password"} autoComplete="new-password" placeholder="Nhập lại mật khẩu mới" value={passwordConfirm} onChange={e=>setPasswordConfirm(e.target.value)} />
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={showPassword} onChange={e=>setShowPassword(e.target.checked)} /> Hiện mật khẩu</label>
-          <button disabled={busy} className="account-primary w-full" type="submit">{busy?"Đang lưu…":"Đổi mật khẩu"}</button>
+          <button disabled={busy || recoveryChecking || !session} className="account-primary w-full" type="submit">{busy?"Đang lưu…":recoveryChecking?"Đang xác nhận…":"Đổi mật khẩu"}</button>
+          {!recoveryChecking && !session && <button type="button" className="w-full rounded-xl border px-4 py-2" style={{borderColor:"var(--color-border)"}} onClick={()=>{setRecovering(false);setMode("forgot");setMessage("");clearAuthRedirectParams();}}>Gửi lại email khôi phục</button>}
         </form>
       : session ? <div className="space-y-4">
           <div className="account-tabs" role="tablist" aria-label="Quản lý tài khoản">{([["profile","Thông tin"],["security","Bảo mật"],["sync","Đồng bộ"]] as const).map(([tab,label])=><button key={tab} role="tab" aria-selected={accountTab===tab} className={accountTab===tab?"is-active":""} onClick={()=>{setAccountTab(tab);setMessage("");}}>{label}</button>)}</div>

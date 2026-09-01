@@ -14,6 +14,7 @@ import { useFoldersStore } from "./stores/foldersStore";
 import { AccountPanel } from "./components/auth/AccountPanel";
 import { APP_CONFIG } from "./app/appConfig";
 import { supabase } from "./features/auth/supabase";
+import { isPasswordRecoveryUrl } from "./features/auth/authFlow";
 import { getActiveWorkspaceUserId, switchWorkspace } from "./database/db";
 import { clearAllNoteUnlockSessions } from "./features/notes/notesService";
 import { lockVault } from "./features/crypto/vaultService";
@@ -155,7 +156,7 @@ export default function App() {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [focusedSectionId, setFocusedSectionId] = useState<string | null>(null);
-  const [accountOpen, setAccountOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(() => isPasswordRecoveryUrl());
   const openRecovery = useCallback(() => setAccountOpen(true), []);
   const [railCollapsed, setRailCollapsed] = useState(false);
   const [online, setOnline] = useState(() => typeof navigator === "undefined" || navigator.onLine);

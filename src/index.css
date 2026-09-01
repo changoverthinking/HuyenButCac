@@ -1098,3 +1098,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, [contenteditabl
   font-weight: 700;
 }
 .van-nien-install-button:hover { background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface)); }
+
+/* v0.14.1: Tiên Âm Các chỉ mở từ menu; không hiển thị nút nhạc nổi che nội dung. */
+.music-bubble { display: none !important; }

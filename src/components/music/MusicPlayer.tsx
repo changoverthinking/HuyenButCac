@@ -77,7 +77,6 @@ export function MusicPlayer() {
   return (
     <section className={`music-player immortal-music z-40 ${expanded?"is-open":"is-collapsed"}`} style={{borderColor:"var(--color-border)",background:"var(--color-surface)"}}>
       <audio ref={audioRef} onTimeUpdate={(e)=>setCurrentTime(e.currentTarget.currentTime)} onLoadedMetadata={(e)=>setDuration(e.currentTarget.duration)} onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onEnded={()=>chooseNext(1,true)} />
-      {!expanded&&<button className="music-bubble jade-orb" aria-label="Mở Tiên Âm Các" title="Mở Tiên Âm Các" onClick={()=>setExpanded(true)}>♫</button>}
       {expanded&&(
         <div className="music-library immortal-panel flex flex-col shadow-2xl">
           <div className="flex items-center justify-between p-3 border-b" style={{borderColor:"var(--color-border)"}}>

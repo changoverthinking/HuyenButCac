@@ -1,8 +1,8 @@
-# Hướng dẫn cập nhật Huyền Bút Các 0.14.0 lên GitHub
+# Hướng dẫn cập nhật Huyền Bút Các 0.14.1 lên GitHub
 
 ## 1. Upload đúng cấu trúc
 
-1. Giải nén ZIP bản 0.14.0.
+1. Giải nén ZIP bản 0.14.1.
 2. Mở thư mục `HuyenButCac-main`.
 3. Upload **toàn bộ nội dung bên trong** lên root repository `changoverthinking/HuyenButCac`.
 4. Không upload `node_modules`, `dist`, `.env.local`, service-role key, VAPID private key hoặc dữ liệu người dùng.
@@ -15,7 +15,7 @@
    - `supabase/functions/process-calendar-reminders/index.ts`
    - `supabase/setup_reminder_cron.sql`
    - `supabase/config.toml`
-6. Commit gợi ý: `Release 0.14.0 - calendar events and cross-device reminders`.
+6. Commit gợi ý: `Release 0.14.1 - auth recovery fix and remove floating music button`.
 7. GitHub Actions → workflow `Deploy Huyền Bút Các`: build và deploy phải xanh.
 
 ## 2. Supabase bắt buộc cho thông báo khi app đóng
@@ -67,9 +67,9 @@ Tóm tắt:
 
 Nếu chưa làm bước backend này, lịch hẹn vẫn lưu/đồng bộ và Notification vẫn chạy khi app đang hoạt động, nhưng **không thể bảo đảm đánh thức một app đã đóng**.
 
-## 5. Kiểm tra giao diện 0.14.0
+## 5. Kiểm tra giao diện 0.14.1
 
-- Phiên bản hiển thị: `0.14.0-calendar-reminders`.
+- Phiên bản hiển thị: `0.14.1-auth-recovery-fix`.
 - `Vạn niên` vẫn có Dương lịch + Âm lịch + Can Chi + Tết.
 - Mỗi ngày có thể bấm `＋ Thêm` / `＋ Đặt lịch`.
 - Form gồm tiêu đề, ghi chú, ngày, giờ, cả ngày, thời gian nhắc, màu dấu.
@@ -77,6 +77,8 @@ Nếu chưa làm bước backend này, lịch hẹn vẫn lưu/đồng bộ và 
 - Bên phải/dưới có `LỊCH CỦA TÔI`, sửa/xóa được.
 - Có banner `Nhắc lịch trên điện thoại & máy tính` và nút `Bật thông báo`.
 - Có thẻ `TIỆN ÍCH NHANH` mô tả PWA shortcuts.
+- Mobile không còn nút nhạc nổi che nội dung; mở `Tiên Âm Các` từ menu.
+- Kiểm tra `Tài khoản → Quên mật khẩu?`: email recovery phải mở thẳng màn hình đặt mật khẩu mới.
 
 ## 6. Test đa thiết bị
 

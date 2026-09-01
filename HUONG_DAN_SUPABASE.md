@@ -1,4 +1,4 @@
-# Bật đăng ký, đăng nhập và đồng bộ — Huyền Bút Các 0.12.2
+# Bật đăng ký, đăng nhập và đồng bộ — Huyền Bút Các 0.14.1
 
 ## 1. Tạo/cập nhật Supabase
 
@@ -8,7 +8,8 @@
 2. Mở **SQL Editor**.
 3. Dán toàn bộ `supabase/schema.sql` và bấm **Run**.
 4. Mở **Authentication → URL Configuration**.
-5. Đặt **Site URL** là URL GitHub Pages của Huyền Bút Các và thêm chính URL đó vào **Redirect URLs**.
+5. Đặt **Site URL** là URL GitHub Pages của Huyền Bút Các và thêm URL ứng dụng vào **Redirect URLs**.
+6. Với repository mặc định, hãy bảo đảm redirect cho phép `https://changoverthinking.github.io/HuyenButCac/`. Luồng Quên mật khẩu sẽ quay về cùng đường dẫn với marker `?auth=recovery`; không đổi redirect sang trang gốc `changoverthinking.github.io/`.
 
 ### Project đã dùng bản cũ
 
@@ -51,7 +52,18 @@ npm run dev
 
 Điền URL/key public thật vào `.env.local`. File `.env.local` đã được `.gitignore` chặn.
 
-## 5. Kiểm tra đăng nhập và đồng bộ
+## 5. Kiểm tra đăng nhập, quên mật khẩu và đồng bộ
+
+### Kiểm tra Quên mật khẩu
+
+1. Đăng xuất khỏi tài khoản.
+2. Chọn **Quên mật khẩu?** → nhập email → **Gửi email khôi phục**.
+3. Mở email mới nhất và bấm liên kết reset.
+4. App phải tự mở **Tàng Thư Mật Cảnh → Đặt lại mật khẩu**.
+5. Nhập mật khẩu mới hai lần. Sau khi thành công, tham số `code/auth` được xóa khỏi URL.
+6. Nếu link đã hết hạn, app phải báo rõ và hiện **Gửi lại email khôi phục** thay vì cho đổi mật khẩu với phiên rỗng.
+
+### Kiểm tra đồng bộ
 
 1. Deploy GitHub Pages.
 2. Bấm **Tài khoản**.
