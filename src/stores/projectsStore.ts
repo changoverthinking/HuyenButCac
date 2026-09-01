@@ -26,6 +26,8 @@ interface ProjectsState {
   deleteProject: (id: string) => Promise<void>;
 
   createSection: (title: string) => Promise<void>;
+  renameSection: (id: string, title: string) => Promise<void>;
+  deleteSection: (id: string) => Promise<void>;
   createChapter: (title: string, sectionId: string | null) => Promise<void>;
   selectChapter: (id: string | null) => void;
   updateChapter: (id: string, patch: Parameters<typeof svc.updateChapter>[1]) => Promise<void>;
@@ -33,9 +35,11 @@ interface ProjectsState {
 
   createTask: (title: string) => Promise<void>;
   updateTaskStatus: (id: string, status: ProjectTask["status"]) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
 
   createMilestone: (title: string, dueDate: number | null) => Promise<void>;
   toggleMilestone: (id: string, done: boolean) => Promise<void>;
+  deleteMilestone: (id: string) => Promise<void>;
 
   createCharacter: (name: string) => Promise<void>;
   updateCharacter: (id: string, patch: Parameters<typeof bible.updateCharacter>[1]) => Promise<void>;
@@ -113,6 +117,21 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
     set({ sections: await svc.listSections(pid) });
   },
 
+  renameSection: async (id, title) => {
+    const pid = get().selectedProjectId;
+    if (!pid) return;
+    await svc.renameSection(id, title);
+    set({ sections: await svc.listSections(pid) });
+  },
+
+  deleteSection: async (id) => {
+    const pid = get().selectedProjectId;
+    if (!pid) return;
+    await svc.softDeleteSection(id);
+    const [sections, chapters] = await Promise.all([svc.listSections(pid), svc.listChapters(pid)]);
+    set({ sections, chapters });
+  },
+
   createChapter: async (title, sectionId) => {
     const pid = get().selectedProjectId;
     if (!pid) return;
@@ -148,6 +167,12 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
     if (pid) set({ tasks: await svc.listTasks(pid) });
   },
 
+  deleteTask: async (id) => {
+    await svc.softDeleteTask(id);
+    const pid = get().selectedProjectId;
+    if (pid) set({ tasks: await svc.listTasks(pid) });
+  },
+
   createMilestone: async (title, dueDate) => {
     const pid = get().selectedProjectId;
     if (!pid) return;
@@ -157,6 +182,12 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
 
   toggleMilestone: async (id, done) => {
     await svc.toggleMilestone(id, done);
+    const pid = get().selectedProjectId;
+    if (pid) set({ milestones: await svc.listMilestones(pid) });
+  },
+
+  deleteMilestone: async (id) => {
+    await svc.softDeleteMilestone(id);
     const pid = get().selectedProjectId;
     if (pid) set({ milestones: await svc.listMilestones(pid) });
   },

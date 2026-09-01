@@ -14,6 +14,7 @@ export function KanbanBoard() {
   const tasks = useProjectsStore((s) => s.tasks);
   const createTask = useProjectsStore((s) => s.createTask);
   const updateTaskStatus = useProjectsStore((s) => s.updateTaskStatus);
+  const deleteTask = useProjectsStore((s) => s.deleteTask);
   const [newTitle, setNewTitle] = useState("");
 
   return (
@@ -64,18 +65,32 @@ export function KanbanBoard() {
                     style={{ background: "var(--color-surface-alt)", color: "var(--color-text)" }}
                   >
                     <div className="mb-1.5">{t.title}</div>
-                    <select
-                      value={t.status}
-                      onChange={(e) => updateTaskStatus(t.id, e.target.value as ProjectTaskStatus)}
-                      className="w-full text-xs rounded px-1 py-1 border"
-                      style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)" }}
-                    >
-                      {COLUMNS.map((c) => (
-                        <option key={c.status} value={c.status}>
-                          {c.label}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex items-center gap-1.5">
+                      <select
+                        value={t.status}
+                        onChange={(e) => void updateTaskStatus(t.id, e.target.value as ProjectTaskStatus)}
+                        className="min-w-0 flex-1 text-xs rounded px-1 py-1 border"
+                        style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)" }}
+                      >
+                        {COLUMNS.map((c) => (
+                          <option key={c.status} value={c.status}>
+                            {c.label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        aria-label={`Xóa nhiệm vụ ${t.title}`}
+                        title="Xóa nhiệm vụ"
+                        className="shrink-0 rounded px-2 py-1 text-xs"
+                        style={{ color: "var(--color-error)", background: "var(--color-surface)" }}
+                        onClick={() => {
+                          if (window.confirm(`Xóa nhiệm vụ “${t.title}”?`)) void deleteTask(t.id);
+                        }}
+                      >
+                        Xóa
+                      </button>
+                    </div>
                   </div>
                 ))}
             </div>

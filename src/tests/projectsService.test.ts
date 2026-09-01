@@ -9,13 +9,16 @@ import {
   listChapters,
   reorderChapter,
   createTask,
-  updateTaskStatus,
+  updateTaskStatus, softDeleteTask,
   listTasks,
   exportProjectMarkdown,
   exportContextPackMarkdown,
   listProjects,
   softDeleteProject,
   softDeleteSection,
+  createMilestone,
+  listMilestones,
+  softDeleteMilestone,
 } from "../features/projects/projectsService";
 import { createCharacter, createLocation, createLoreEntry, createTimelineEvent, updateTimelineEvent } from "../features/projects/storyBibleService";
 import { addMindMapNode, createMindMap } from "../features/mind-map/mindMapService";
@@ -191,5 +194,24 @@ describe("projectsService — Kanban task", () => {
     await updateTaskStatus(task.id, "doing");
     const tasks = await listTasks(project.id);
     expect(tasks[0].status).toBe("doing");
+  });
+  it("xóa task sẽ loại khỏi Kanban nhưng vẫn giữ tombstone để sync", async () => {
+    const project = await createProject({ title: "Kanban delete", kind: "generic" });
+    const task = await createTask(project.id, "Nhiệm vụ cần xóa");
+    await softDeleteTask(task.id);
+    expect(await listTasks(project.id)).toHaveLength(0);
+    expect((await db.projectTasks.get(task.id))?.deletedAt).not.toBeNull();
+  });
+
+});
+
+
+describe("projectsService — Milestone", () => {
+  it("xóa milestone sẽ loại khỏi danh sách và giữ tombstone", async () => {
+    const project = await createProject({ title: "Milestone delete", kind: "generic" });
+    const milestone = await createMilestone(project.id, "Bản thử nghiệm", Date.now() + 86_400_000);
+    await softDeleteMilestone(milestone.id);
+    expect(await listMilestones(project.id)).toHaveLength(0);
+    expect((await db.projectMilestones.get(milestone.id))?.deletedAt).not.toBeNull();
   });
 });

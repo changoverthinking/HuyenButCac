@@ -124,6 +124,8 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
   const sections = useProjectsStore((s) => s.sections);
   const chapters = useProjectsStore((s) => s.chapters);
   const createSection = useProjectsStore((s) => s.createSection);
+  const renameSection = useProjectsStore((s) => s.renameSection);
+  const deleteSection = useProjectsStore((s) => s.deleteSection);
   const createChapter = useProjectsStore((s) => s.createChapter);
   const selectChapter = useProjectsStore((s) => s.selectChapter);
   const deleteChapter = useProjectsStore((s) => s.deleteChapter);
@@ -194,8 +196,34 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
 
       {sections.map((s) => (
         <div key={s.id} id={`project-section-${s.id}`} className="mb-3 rounded-lg p-2" style={{outline:focusedSectionId===s.id?"2px solid var(--color-focus)":"none"}}>
-          <div className="text-sm font-semibold mb-1" style={{ color: "var(--color-accent)" }}>
-            📖 {s.title}
+          <div className="flex items-center gap-2 mb-1">
+            <div className="min-w-0 flex-1 truncate text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
+              📖 {s.title}
+            </div>
+            <button
+              type="button"
+              className="shrink-0 text-xs"
+              style={{ color: "var(--color-text-muted)" }}
+              onClick={() => {
+                const title = window.prompt("Đổi tên phần:", s.title)?.trim();
+                if (title && title !== s.title) void renameSection(s.id, title);
+              }}
+            >
+              Đổi tên
+            </button>
+            <button
+              type="button"
+              className="shrink-0 text-xs"
+              style={{ color: "var(--color-error)" }}
+              title="Các chương trong phần sẽ được chuyển ra cấp dự án, không bị xóa."
+              onClick={() => {
+                if (window.confirm(`Xóa phần “${s.title}”? Các chương bên trong sẽ được giữ lại và chuyển ra ngoài phần.`)) {
+                  void deleteSection(s.id);
+                }
+              }}
+            >
+              Xóa phần
+            </button>
           </div>
           <ul className="pl-4">
             {chapters
@@ -358,6 +386,7 @@ function MilestonesTab() {
   const milestones = useProjectsStore((s) => s.milestones);
   const createMilestone = useProjectsStore((s) => s.createMilestone);
   const toggleMilestone = useProjectsStore((s) => s.toggleMilestone);
+  const deleteMilestone = useProjectsStore((s) => s.deleteMilestone);
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState("");
 
@@ -409,6 +438,16 @@ function MilestonesTab() {
                 {new Date(m.dueDate).toLocaleDateString("vi-VN")}
               </span>
             )}
+            <button
+              type="button"
+              className="shrink-0 text-xs"
+              style={{ color: "var(--color-error)" }}
+              onClick={() => {
+                if (window.confirm(`Xóa milestone “${m.title}”?`)) void deleteMilestone(m.id);
+              }}
+            >
+              Xóa
+            </button>
           </li>
         ))}
       </ul>

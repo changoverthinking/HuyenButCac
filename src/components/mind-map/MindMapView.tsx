@@ -120,9 +120,8 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
 
   const reload = async (requestedId?: string | null) => {
     const token = ++reloadToken.current;
-    let items = await listMindMaps();
-    if (!items.length) items = [(await createMindMap()).map];
-    const preferred = requestedId ?? activeRef.current ?? readStoredActiveMap();
+    const items = await listMindMaps();
+    const preferred = requestedId !== undefined ? requestedId : activeRef.current ?? readStoredActiveMap();
     const nextId = preferred && items.some((item) => item.id === preferred) ? preferred : items[0]?.id ?? null;
     if (token !== reloadToken.current) return;
     setMaps(items);
@@ -199,10 +198,18 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
     const mapId = activeRef.current;
     if (!mapId || !window.confirm("Xóa sơ đồ này và toàn bộ các nhánh? Hành động này không thể hoàn tác.")) return;
     await deleteMindMap(mapId);
-    let remaining = await listMindMaps();
-    if (!remaining.length) remaining = [(await createMindMap()).map];
+    const remaining = await listMindMaps();
     setSelected(null);
     setSelectedEdge(null);
+    setConnectSourceId(null);
+    if (!remaining.length) {
+      setMaps([]);
+      setActiveMap(null);
+      setNodes([]);
+      setEdges([]);
+      setStrokes([]);
+      return;
+    }
     selectMap(remaining[0].id);
   };
 
@@ -306,7 +313,8 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
     <div className="h-full min-h-0 flex flex-col md:flex-row">
       <div className="md:hidden shrink-0 border-b p-2" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
         <div className="flex gap-2 min-w-0">
-          <select aria-label="Chọn sơ đồ" className="min-w-0 flex-1 rounded border bg-transparent px-2 py-2" style={{ borderColor: "var(--color-border)" }} value={active ?? ""} onChange={(event) => selectMap(event.target.value)}>
+          <select aria-label="Chọn sơ đồ" className="min-w-0 flex-1 rounded border bg-transparent px-2 py-2" style={{ borderColor: "var(--color-border)" }} value={active ?? ""} onChange={(event) => { if (event.target.value) selectMap(event.target.value); }}>
+            {!maps.length && <option value="">Chưa có sơ đồ</option>}
             {maps.map((map) => <option key={map.id} value={map.id}>{map.title}</option>)}
           </select>
           <button aria-label="Tạo sơ đồ" className="mobile-icon-button" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }} onClick={async () => { const created = await createMindMap(); selectMap(created.map.id); }}>＋</button>
@@ -327,17 +335,27 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
       </aside>
 
       <main className="flex-1 min-h-0 min-w-0 relative overflow-hidden" style={{ background: "var(--color-canvas-bg)" }}>
+        {!active && (
+          <div className="absolute inset-0 z-20 grid place-items-center p-6">
+            <div className="max-w-sm rounded-2xl border p-6 text-center shadow-sm" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
+              <div className="text-3xl" aria-hidden="true">◎</div>
+              <h3 className="mt-2 font-semibold">Chưa có sơ đồ</h3>
+              <p className="mt-1 text-sm" style={{ color: "var(--color-text-muted)" }}>Sơ đồ cuối cùng đã được xóa. Tạo sơ đồ mới khi cần; ứng dụng sẽ không tự sinh lại một sơ đồ trống.</p>
+              <button type="button" className="mt-4 rounded px-4 py-2" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }} onClick={async () => { const created = await createMindMap(); selectMap(created.map.id); }}>＋ Tạo sơ đồ</button>
+            </div>
+          </div>
+        )}
         <div className="canvas-toolbars absolute z-10 left-2 right-2 top-2 md:left-3 md:right-3 md:top-3 flex flex-col gap-2 pointer-events-none">
           <div className="flex gap-2 overflow-x-auto pointer-events-auto">
             <button disabled={!selected} onClick={() => void deleteSelectedNode()} className="rounded px-3 py-2" style={{ background: "var(--color-surface)" }}>Xóa ô</button>
             <button disabled={!selectedNode?.linkId} onClick={() => void openLinked()} className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)", color: "var(--color-accent)" }}>Đọc chi tiết</button>
             <button className="shrink-0 rounded px-3 py-2" style={{ background: connectMode ? "var(--color-accent)" : "var(--color-surface-alt)", color: connectMode ? "var(--color-bg)" : "var(--color-text)" }} onClick={toggleConnectMode}>🔗 Nối tự do</button>
             {freeNodeActionVisible ? <>
-              <button aria-label="Tạo ô tự do" title="Tạo ô tự do" className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)" }} onClick={() => void addFreeNode()}>{freeNodeActionIcon === "target" ? <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg> : "＋"}<span className="sr-only">Ô tự do</span></button>
+              <button disabled={!active} aria-label="Tạo ô tự do" title="Tạo ô tự do" className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)" }} onClick={() => void addFreeNode()}>{freeNodeActionIcon === "target" ? <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg> : "＋"}<span className="sr-only">Ô tự do</span></button>
               <button aria-label="Tùy chỉnh nút tạo ô tự do" title="Tùy chỉnh nút tạo ô tự do" className="shrink-0 rounded px-2 py-2" style={{ background: "var(--color-surface)" }} onClick={()=>setCustomizingFreeNodeAction(value=>!value)}>⚙</button>
             </> : <button aria-label="Khôi phục nút tạo ô tự do" className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)" }} onClick={()=>{localStorage.removeItem("hbc-mindmap-free-node-action-visible");setFreeNodeActionVisible(true);}}>Khôi phục ô tự do</button>}
             {customizingFreeNodeAction&&freeNodeActionVisible&&<><button aria-label="Dùng icon Tâm điểm" className="shrink-0 rounded px-3 py-2" style={{background:"var(--color-surface)"}} onClick={()=>{localStorage.setItem("hbc-mindmap-free-node-action-icon","target");setFreeNodeActionIcon("target");}}>◎ Tâm điểm</button><button aria-label="Ẩn icon tạo ô tự do" className="shrink-0 rounded px-3 py-2" style={{background:"var(--color-surface)"}} onClick={()=>{localStorage.setItem("hbc-mindmap-free-node-action-visible","hidden");setFreeNodeActionVisible(false);setCustomizingFreeNodeAction(false);}}>Ẩn</button></>}
-            <button className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)" }} onClick={() => void addBranch()}>＋ Nhánh con</button>
+            <button disabled={!active} className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)" }} onClick={() => void addBranch()}>＋ Nhánh con</button>
             <button aria-label="Thu nhỏ" className="rounded px-2 py-2" style={{ background: "var(--color-surface)" }} onClick={() => zoomAt(zoom - 0.15, { x: 200, y: 160 })}>−</button>
             <button title="Đặt lại góc nhìn" className="rounded px-2 py-2 text-xs" style={{ background: "var(--color-surface)" }} onClick={resetView}>{Math.round(zoom * 100)}%</button>
             <button aria-label="Phóng to" className="rounded px-2 py-2" style={{ background: "var(--color-surface)" }} onClick={() => zoomAt(zoom + 0.15, { x: 200, y: 160 })}>＋</button>

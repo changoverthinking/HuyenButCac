@@ -258,6 +258,11 @@ export async function toggleMilestone(id: string, done: boolean): Promise<void> 
   await db.projectMilestones.update(id, { done, updatedAt: now() });
 }
 
+export async function softDeleteMilestone(id: string): Promise<void> {
+  const deletedAt = now();
+  await db.projectMilestones.update(id, { deletedAt, updatedAt: deletedAt });
+}
+
 export async function listMilestones(projectId: string): Promise<ProjectMilestone[]> {
   const ms = await db.projectMilestones.filter((m) => m.projectId === projectId && m.deletedAt === null).toArray();
   return ms.sort((a, b) => (a.dueDate ?? Infinity) - (b.dueDate ?? Infinity));

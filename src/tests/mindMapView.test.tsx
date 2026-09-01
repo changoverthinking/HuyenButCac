@@ -1,8 +1,8 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "../database/db";
-import { createMindMap } from "../features/mind-map/mindMapService";
+import { createMindMap, listMindMaps } from "../features/mind-map/mindMapService";
 import { MindMapView } from "../components/mind-map/MindMapView";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -20,6 +20,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   if (root) act(() => root?.unmount());
   root = null;
   container.remove();
@@ -52,5 +53,24 @@ describe("MindMapView — nút Ô tự do trên toolbar", () => {
     await act(async () => { container.querySelector<HTMLButtonElement>('button[aria-label="Khôi phục nút tạo ô tự do"]')?.click(); });
     expect(container.querySelector('button[aria-label="Tạo ô tự do"]')).not.toBeNull();
     expect(localStorage.getItem("hbc-mindmap-free-node-action-visible")).toBeNull();
+  });
+});
+
+
+describe("MindMapView — xóa sơ đồ cuối", () => {
+  it("không tự tạo lại sơ đồ sau khi xóa sơ đồ cuối cùng", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    await renderMindMap();
+
+    const deleteButton = container.querySelector<HTMLButtonElement>('button[aria-label="Xóa sơ đồ"]');
+    expect(deleteButton).not.toBeNull();
+
+    await act(async () => {
+      deleteButton?.click();
+      await Promise.resolve();
+    });
+
+    expect(await listMindMaps()).toHaveLength(0);
+    expect(container.textContent).toContain("Chưa có sơ đồ");
   });
 });
