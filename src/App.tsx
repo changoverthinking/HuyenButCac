@@ -6,8 +6,10 @@ import { ProjectsView } from "./components/projects/ProjectsView";
 import { MindMapView } from "./components/mind-map/MindMapView";
 import { WhiteboardView } from "./components/whiteboard/WhiteboardView";
 import { CalendarView } from "./components/calendar/CalendarView";
+import { LibraryView } from "./components/library/LibraryView";
 import { MusicPlayer } from "./components/music/MusicPlayer";
-import { Sidebar } from "./components/common/Sidebar";
+import { ResponsiveSidebar } from "./components/common/ResponsiveSidebar";
+import { Icon, type IconName } from "./components/common/Icons";
 import { useProjectsStore } from "./stores/projectsStore";
 import { useNotesStore } from "./stores/notesStore";
 import { useFoldersStore } from "./stores/foldersStore";
@@ -21,30 +23,24 @@ import { lockVault } from "./features/crypto/vaultService";
 import { registerPushSubscription, startCalendarReminderRuntime } from "./features/calendar/notificationService";
 import { reconcileCalendarReminderJobs } from "./features/calendar/calendarEventsService";
 
-type Mode = "notes" | "projects" | "mindmap" | "whiteboard" | "calendar";
+type Mode = "notes" | "library" | "projects" | "mindmap" | "whiteboard" | "calendar";
 
 function initialMode(): Mode {
   if (typeof window === "undefined") return "notes";
   const candidate = new URLSearchParams(window.location.search).get("mode");
-  return candidate === "projects" || candidate === "mindmap" || candidate === "whiteboard" || candidate === "calendar" ? candidate : "notes";
+  return candidate === "library" || candidate === "projects" || candidate === "mindmap" || candidate === "whiteboard" || candidate === "calendar" ? candidate : "notes";
 }
 
-const MODE_TABS: { id: Mode; label: string; kicker: string; icon: string }[] = [
-  { id: "notes", label: "Ghi chú", kicker: "TRÚC GIẢN", icon: "▤" },
-  { id: "projects", label: "Dự án", kicker: "THƯ VIỆN TRUYỆN", icon: "◈" },
-  { id: "mindmap", label: "Sơ đồ", kicker: "LINH ĐỒ", icon: "◎" },
-  { id: "whiteboard", label: "Bảng trắng", kicker: "BẠCH ĐÀI", icon: "◇" },
-  { id: "calendar", label: "Vạn niên", kicker: "NHẬT NGUYỆT ĐỒ", icon: "曆" },
+const MODE_TABS: { id: Mode; label: string; kicker: string; icon: IconName }[] = [
+  { id: "notes", label: "Ghi chú", kicker: "TRÚC GIẢN", icon: "notes" },
+  { id: "library", label: "Tàng Thư", kicker: "VẠN QUYỂN", icon: "book" },
+  { id: "projects", label: "Dự án", kicker: "THƯ VIỆN TRUYỆN", icon: "projects" },
+  { id: "mindmap", label: "Sơ đồ", kicker: "LINH ĐỒ", icon: "mindmap" },
+  { id: "whiteboard", label: "Bảng trắng", kicker: "BẠCH ĐÀI", icon: "whiteboard" },
+  { id: "calendar", label: "Vạn niên", kicker: "NHẬT NGUYỆT ĐỒ", icon: "clock" },
 ];
 
-function AppRail({
-  mode,
-  setMode,
-  collapsed,
-  setCollapsed,
-  online,
-  onAccount,
-}: {
+function AppRail({ mode, setMode, collapsed, setCollapsed, online, onAccount }: {
   mode: Mode;
   setMode: (mode: Mode) => void;
   collapsed: boolean;
@@ -56,59 +52,33 @@ function AppRail({
     <aside className={`app-rail ${collapsed ? "is-collapsed" : ""}`} aria-label="Điều hướng Huyền Bút Các">
       <div className="app-rail-edge" aria-hidden="true" />
       <div className="app-rail-brand">
-        <span className="app-rail-sigil">✍</span>
-        <span className="app-rail-brand-copy">
-          <strong>Huyền Bút Các</strong>
-          <small>VÂN THƯ ĐÀI</small>
-        </span>
+        <span className="app-rail-sigil"><Icon name="pencil" size={18} /></span>
+        <span className="app-rail-brand-copy"><strong>Huyền Bút Các</strong><small>VÂN THƯ ĐÀI</small></span>
       </div>
-
-      <div className="app-rail-seal" aria-hidden="true">
-        <span>道</span>
-        <small>KHÔNG GIAN SÁNG TÁC</small>
-      </div>
-
+      <div className="app-rail-seal" aria-hidden="true"><span><Icon name="seal" size={22} /></span><small>KHÔNG GIAN SÁNG TÁC</small></div>
       <nav className="app-rail-nav" aria-label="Các khu vực làm việc">
         {MODE_TABS.map((tab) => {
           const active = mode === tab.id;
           return (
-            <button
-              key={tab.id}
-              type="button"
-              className={`app-rail-nav-item ${active ? "is-active" : ""}`}
-              onClick={() => setMode(tab.id)}
-              aria-current={active ? "page" : undefined}
-              aria-label={tab.label}
-              title={collapsed ? tab.label : undefined}
-            >
-              <span className="app-rail-nav-icon" aria-hidden="true">{tab.icon}</span>
-              <span className="app-rail-nav-copy">
-                <span>{tab.label}</span>
-                <small>{tab.kicker}</small>
-              </span>
+            <button key={tab.id} type="button" className={`app-rail-nav-item ${active ? "is-active" : ""}`} onClick={() => setMode(tab.id)} aria-current={active ? "page" : undefined} aria-label={tab.label} title={collapsed ? tab.label : undefined}>
+              <span className="app-rail-nav-icon" aria-hidden="true"><Icon name={tab.icon} size={18} /></span>
+              <span className="app-rail-nav-copy"><span>{tab.label}</span><small>{tab.kicker}</small></span>
               {active && <span className="app-rail-active-mark" aria-hidden="true" />}
             </button>
           );
         })}
       </nav>
-
       <div className="app-rail-footer">
         <div className="app-rail-local-status" title={online ? "Đang có kết nối mạng" : "Đang ngoại tuyến"}>
           <span className={`app-status-dot ${online ? "is-online" : "is-offline"}`} aria-hidden="true" />
           <span className="app-rail-nav-copy"><span>{online ? "Đang kết nối" : "Ngoại tuyến"}</span><small>LOCAL-FIRST</small></span>
         </div>
         <button type="button" className="app-rail-account" onClick={onAccount} title={collapsed ? "Tài khoản" : undefined}>
-          <span className="app-rail-account-icon" aria-hidden="true">♙</span>
+          <span className="app-rail-account-icon" aria-hidden="true"><Icon name="user" size={18} /></span>
           <span className="app-rail-nav-copy"><span>Tài khoản</span><small>KHO BẢO MẬT</small></span>
         </button>
-        <button
-          type="button"
-          className="app-rail-collapse"
-          onClick={() => setCollapsed(!collapsed)}
-          aria-label={collapsed ? "Mở rộng thanh điều hướng" : "Thu gọn thanh điều hướng"}
-          title={collapsed ? "Mở rộng" : "Thu gọn"}
-        >
-          <span aria-hidden="true">{collapsed ? "›" : "‹"}</span>
+        <button type="button" className="app-rail-collapse" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? "Mở rộng thanh điều hướng" : "Thu gọn thanh điều hướng"} title={collapsed ? "Mở rộng" : "Thu gọn"}>
+          <span aria-hidden="true"><Icon name={collapsed ? "chevron-right" : "chevron-left"} size={17} /></span>
           <span className="app-rail-nav-copy">{collapsed ? "" : "Thu gọn"}</span>
         </button>
       </div>
@@ -121,31 +91,21 @@ function AppTopbar({ mode, online, onAccount, onSearch }: { mode: Mode; online: 
   const [query, setQuery] = useState("");
   return (
     <header className="app-topbar">
-      <div className="app-topbar-title">
-        <span>{meta.kicker}</span>
-        <h1>{meta.label}</h1>
-      </div>
+      <div className="app-topbar-title"><span>{meta.kicker}</span><h1>{meta.label}</h1></div>
       {mode === "calendar" ? (
-        <div className="app-topbar-context" aria-label="Thông tin lịch">
-          <span aria-hidden="true">☾</span>
-          <div><strong>Âm lịch Việt Nam</strong><small>Dương · Âm · Can Chi · Tết Nguyên Đán</small></div>
-        </div>
+        <div className="app-topbar-context" aria-label="Thông tin lịch"><span aria-hidden="true"><Icon name="clock" size={18} /></span><div><strong>Âm lịch Việt Nam</strong><small>Dương · Âm · Can Chi · Tết Nguyên Đán</small></div></div>
+      ) : mode === "library" ? (
+        <div className="app-topbar-context" aria-label="Thông tin Tàng Thư"><span aria-hidden="true"><Icon name="book" size={18} /></span><div><strong>Thư viện cá nhân</strong><small>PDF · sách · tiểu thuyết đang viết · ghim trang đọc</small></div></div>
       ) : (
         <form className="app-topbar-search" onSubmit={(event) => { event.preventDefault(); onSearch(query.trim()); }}>
-          <span aria-hidden="true">⌕</span>
+          <span aria-hidden="true"><Icon name="search" size={17} /></span>
           <input aria-label="Tìm trong ghi chú" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm trong ghi chú…" />
         </form>
       )}
       <div className="app-topbar-actions">
-        <div className="app-sync-chip" aria-live="polite">
-          <span className={`app-status-dot ${online ? "is-online" : "is-offline"}`} aria-hidden="true" />
-          <span>{online ? "Đang kết nối" : "Ngoại tuyến"}</span>
-        </div>
+        <div className="app-sync-chip" aria-live="polite"><span className={`app-status-dot ${online ? "is-online" : "is-offline"}`} aria-hidden="true" /><span>{online ? "Đang kết nối" : "Ngoại tuyến"}</span></div>
         <span className="app-topbar-version">{APP_CONFIG.version}</span>
-        <button type="button" className="app-topbar-account" onClick={onAccount} aria-label="Mở tài khoản">
-          <span aria-hidden="true">♙</span>
-          <span className="hidden sm:inline">Tài khoản</span>
-        </button>
+        <button type="button" className="app-topbar-account" onClick={onAccount} aria-label="Mở tài khoản"><span aria-hidden="true"><Icon name="user" size={17} /></span><span className="hidden sm:inline">Tài khoản</span></button>
       </div>
     </header>
   );
@@ -172,65 +132,38 @@ export default function App() {
     let disposed = false;
     let switchSequence = 0;
     let unsubscribeAuth: (() => void) | undefined;
-
     const resetStores = () => {
-      useNotesStore.setState({
-        notes: [], trashedNotes: [], selectedNoteId: null, searchQuery: "", searchResults: [],
-        loading: false, activeFolderId: undefined, view: "active",
-      });
+      useNotesStore.setState({ notes: [], trashedNotes: [], selectedNoteId: null, searchQuery: "", searchResults: [], loading: false, activeFolderId: undefined, view: "active" });
       useFoldersStore.setState({ folders: [], selectedFolderId: null });
-      useProjectsStore.setState({
-        projects: [], selectedProjectId: null, sections: [], chapters: [], tasks: [], milestones: [],
-        selectedChapterId: null, characters: [], locations: [], loreEntries: [], timelineEvents: [],
-      });
+      useProjectsStore.setState({ projects: [], selectedProjectId: null, sections: [], chapters: [], tasks: [], milestones: [], selectedChapterId: null, characters: [], locations: [], loreEntries: [], timelineEvents: [] });
     };
-
     const activate = async (userId: string | null) => {
       const sequence = ++switchSequence;
-      setWorkspaceReady(false);
-      setWorkspaceError("");
+      setWorkspaceReady(false); setWorkspaceError("");
       try {
-        if (getActiveWorkspaceUserId() !== userId) {
-          clearAllNoteUnlockSessions();
-          lockVault();
-        }
+        if (getActiveWorkspaceUserId() !== userId) { clearAllNoteUnlockSessions(); lockVault(); }
         await switchWorkspace(userId);
         if (disposed || sequence !== switchSequence) return;
         resetStores();
         await loadTheme();
         if (disposed || sequence !== switchSequence) return;
-        setFocusedSectionId(null);
-        setSyncRevision((value) => value + 1);
-        setWorkspaceReady(true);
+        setFocusedSectionId(null); setSyncRevision((value) => value + 1); setWorkspaceReady(true);
       } catch (error) {
         if (disposed || sequence !== switchSequence) return;
         setWorkspaceError(error instanceof Error ? error.message : "Không thể mở không gian dữ liệu.");
       }
     };
-
-    if (!supabase) {
-      void activate(null);
-    } else {
+    if (!supabase) void activate(null);
+    else {
       void supabase.auth.getSession().then(({ data }) => activate(data.session?.user.id ?? null));
-      const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-        void activate(nextSession?.user.id ?? null);
-      });
+      const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => { void activate(nextSession?.user.id ?? null); });
       unsubscribeAuth = () => data.subscription.unsubscribe();
     }
-
     const refresh = () => setSyncRevision((value) => value + 1);
     const handleOnline = () => setOnline(true);
     const handleOffline = () => setOnline(false);
-    window.addEventListener("hbc-sync-complete", refresh);
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      disposed = true;
-      unsubscribeAuth?.();
-      window.removeEventListener("hbc-sync-complete", refresh);
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
+    window.addEventListener("hbc-sync-complete", refresh); window.addEventListener("online", handleOnline); window.addEventListener("offline", handleOffline);
+    return () => { disposed = true; unsubscribeAuth?.(); window.removeEventListener("hbc-sync-complete", refresh); window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
   }, [loadTheme]);
 
   useEffect(() => {
@@ -239,118 +172,48 @@ export default function App() {
     void reconcileCalendarReminderJobs();
     if (typeof Notification !== "undefined" && Notification.permission === "granted") void registerPushSubscription().catch(() => undefined);
     const reconcile = () => { void reconcileCalendarReminderJobs(); if (typeof Notification !== "undefined" && Notification.permission === "granted") void registerPushSubscription().catch(() => undefined); };
-    window.addEventListener("online", reconcile);
-    window.addEventListener("hbc-workspace-changed", reconcile);
-    return () => {
-      stop();
-      window.removeEventListener("online", reconcile);
-      window.removeEventListener("hbc-workspace-changed", reconcile);
-    };
+    window.addEventListener("online", reconcile); window.addEventListener("hbc-workspace-changed", reconcile);
+    return () => { stop(); window.removeEventListener("online", reconcile); window.removeEventListener("hbc-workspace-changed", reconcile); };
   }, [workspaceReady, syncRevision]);
 
   if (!workspaceReady) {
-    return (
-      <div className="grid h-screen w-screen place-items-center p-6" style={{ background: "var(--color-bg)", color: "var(--color-text)" }}>
-        <div className="max-w-md text-center">
-          <div className="brand-sigil mx-auto mb-3">玄</div>
-          {workspaceError ? (
-            <>
-              <div className="font-semibold">Không thể mở không gian dữ liệu</div>
-              <div className="mt-2 text-sm opacity-70">{workspaceError}</div>
-              <button type="button" className="mt-4 rounded-xl border px-4 py-2" style={{ borderColor: "var(--color-border)" }} onClick={() => window.location.reload()}>Thử mở lại</button>
-            </>
-          ) : (
-            <>
-              <div className="font-semibold">Đang mở không gian dữ liệu…</div>
-              <div className="mt-1 text-sm opacity-60">Đang tách dữ liệu theo tài khoản để bảo vệ ghi chú trên thiết bị này.</div>
-            </>
-          )}
-        </div>
-      </div>
-    );
+    return <div className="grid h-screen w-screen place-items-center p-6" style={{ background: "var(--color-bg)", color: "var(--color-text)" }}><div className="max-w-md text-center"><div className="brand-sigil mx-auto mb-3"><Icon name="seal" size={24} /></div>{workspaceError ? <><div className="font-semibold">Không thể mở không gian dữ liệu</div><div className="mt-2 text-sm opacity-70">{workspaceError}</div><button type="button" className="mt-4 rounded-xl border px-4 py-2" style={{ borderColor: "var(--color-border)" }} onClick={() => window.location.reload()}>Thử mở lại</button></> : <><div className="font-semibold">Đang mở không gian dữ liệu…</div><div className="mt-1 text-sm opacity-60">Đang tách dữ liệu theo tài khoản để bảo vệ ghi chú trên thiết bị này.</div></>}</div></div>;
   }
 
   const activeMeta = MODE_TABS.find((tab) => tab.id === mode) ?? MODE_TABS[0];
   const openAccount = () => setAccountOpen(true);
   const navigate = (nextMode: Mode) => {
-    setMode(nextMode);
-    setMobileMenuOpen(false);
-    const url = new URL(window.location.href);
-    url.searchParams.set("mode", nextMode);
+    setMode(nextMode); setMobileMenuOpen(false);
+    const url = new URL(window.location.href); url.searchParams.set("mode", nextMode);
     if (nextMode !== "calendar") { url.searchParams.delete("event"); url.searchParams.delete("calendar"); }
     window.history.replaceState({}, "", url);
   };
-  const searchNotes = (query: string) => {
-    void setSearchQuery(query);
-    navigate("notes");
-  };
+  const searchNotes = (query: string) => { void setSearchQuery(query); navigate("notes"); };
 
   return (
     <div className="app-shell app-shell--figma flex w-screen overflow-hidden">
       <UpdatePrompt />
-
-      <AppRail
-        mode={mode}
-        setMode={navigate}
-        collapsed={railCollapsed}
-        setCollapsed={setRailCollapsed}
-        online={online}
-        onAccount={openAccount}
-      />
-
+      <AppRail mode={mode} setMode={navigate} collapsed={railCollapsed} setCollapsed={setRailCollapsed} online={online} onAccount={openAccount} />
       <section className="app-workspace">
         <div className="mobile-topbar md:hidden flex items-center gap-2 px-2 py-1.5 border-b shrink-0">
-          <button aria-label="Mở menu" className="mobile-icon-button mystic-icon" onClick={() => setMobileMenuOpen(true)}>☰</button>
-          <div className="flex-1 text-center min-w-0">
-            <div className="mobile-brand">Huyền Bút Các</div>
-            <div className="mobile-mode">{activeMeta.label}</div>
-          </div>
-          <button aria-label="Mở tài khoản" className="mobile-icon-button mystic-icon" onClick={openAccount}>♙</button>
+          <button aria-label="Mở menu" className="mobile-icon-button mystic-icon" onClick={() => setMobileMenuOpen(true)}><Icon name="menu" size={19} /></button>
+          <div className="flex-1 text-center min-w-0"><div className="mobile-brand">Huyền Bút Các</div><div className="mobile-mode">{activeMeta.label}</div></div>
+          <button aria-label="Mở tài khoản" className="mobile-icon-button mystic-icon" onClick={openAccount}><Icon name="user" size={18} /></button>
         </div>
-
-        {mobileMenuOpen && (
-          <div className="md:hidden fixed inset-0 z-50 flex">
-            <div className="relative z-10 h-full"><Sidebar onNavigate={() => setMobileMenuOpen(false)} onOpenNotes={() => navigate("notes")} /></div>
-            <button aria-label="Đóng menu" className="absolute inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
-          </div>
-        )}
-
+        {mobileMenuOpen && <div className="md:hidden fixed inset-0 z-50 flex"><div className="relative z-10 h-full"><ResponsiveSidebar onNavigate={() => setMobileMenuOpen(false)} onOpenNotes={() => navigate("notes")} /></div><button aria-label="Đóng menu" className="absolute inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} /></div>}
         <div className="hidden md:block"><AppTopbar mode={mode} online={online} onAccount={openAccount} onSearch={searchNotes} /></div>
-
         <div className="app-content flex-1 overflow-hidden">
           {mode === "notes" && <NotesModeView key={`notes-${syncRevision}`} />}
+          {mode === "library" && <LibraryView key={`library-${syncRevision}`} onOpenProject={async (projectId) => { await loadProjects(); await selectProject(projectId); navigate("projects"); }} />}
           {mode === "projects" && <ProjectsView key={`projects-${syncRevision}`} focusedSectionId={focusedSectionId} />}
-          {mode === "mindmap" && (
-            <MindMapView
-              onOpenProject={async (target) => {
-                setFocusedSectionId(target.sectionId);
-                await loadProjects();
-                await selectProject(target.projectId);
-                selectChapter(target.chapterId);
-                navigate("projects");
-              }}
-            />
-          )}
+          {mode === "mindmap" && <MindMapView onOpenProject={async (target) => { setFocusedSectionId(target.sectionId); await loadProjects(); await selectProject(target.projectId); selectChapter(target.chapterId); navigate("projects"); }} />}
           {mode === "whiteboard" && <WhiteboardView key={`whiteboard-${syncRevision}`} />}
           {mode === "calendar" && <CalendarView />}
         </div>
-
         <MusicPlayer />
         <AccountPanel open={accountOpen} onClose={() => setAccountOpen(false)} onRecoveryRequired={openRecovery} />
-
         <nav className="mobile-bottom-nav md:hidden flex justify-around border-t py-1 shrink-0" style={{ paddingBottom: "max(.25rem, env(safe-area-inset-bottom))" }}>
-          {MODE_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => navigate(tab.id)}
-              className={`mobile-nav-item flex flex-col items-center px-3 py-1.5 text-xs ${mode === tab.id ? "is-active" : ""}`}
-              aria-current={mode === tab.id ? "page" : undefined}
-            >
-              <span className="text-lg" aria-hidden="true">{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
+          {MODE_TABS.map((tab) => <button key={tab.id} type="button" onClick={() => navigate(tab.id)} className={`mobile-nav-item flex flex-col items-center px-3 py-1.5 text-xs ${mode === tab.id ? "is-active" : ""}`} aria-current={mode === tab.id ? "page" : undefined}><Icon name={tab.icon} size={18} />{tab.label}</button>)}
         </nav>
       </section>
     </div>

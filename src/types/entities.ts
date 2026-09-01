@@ -55,7 +55,13 @@ export type ThemeId =
   | "hoang-hon-co-thanh"
   | "ngoc-son-van-hai"
   | "huyet-nguyet-ma-canh"
-  | "tinh-ha-van-tuong";
+  | "tinh-ha-van-tuong"
+  | "tet-nguyen-dan"
+  | "tet-trung-thu"
+  | "quoc-khanh"
+  | "mung-8-3"
+  | "nha-giao-20-11"
+  | "non-song-30-4-1-5";
 
 // ---- Giai đoạn 4: Viết dự án (mục 9 master prompt) ----
 
@@ -148,7 +154,6 @@ export interface StoryTimelineEvent extends BaseEntity {
   chapterId: string | null; // liên kết chương nếu có
   order: number; // thứ tự trong dòng thời gian truyện (không nhất thiết theo thời gian thực)
 }
-
 
 export type CalendarEventColor = "jade" | "gold" | "crimson" | "azure" | "violet";
 

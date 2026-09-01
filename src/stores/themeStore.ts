@@ -20,6 +20,12 @@ export const THEME_LIST: { id: ThemeId; label: string; colors: [string,string,st
   { id: "ngoc-son-van-hai", label: "Ngọc Sơn Vân Hải", colors:["#eef5ef","#3e8872","#b89558"] },
   { id: "huyet-nguyet-ma-canh", label: "Huyết Nguyệt Ma Cảnh", colors:["#160a13","#d1465b","#8d4dc2"] },
   { id: "tinh-ha-van-tuong", label: "Tinh Hà Vạn Tượng", colors:["#080d22","#657edb","#e0bb69"] },
+  { id: "tet-nguyen-dan", label: "Tết Nguyên Đán", colors:["#180807","#f0b83f","#d94b35"] },
+  { id: "tet-trung-thu", label: "Tết Trung Thu", colors:["#10152c","#f2c35d","#7aa6f3"] },
+  { id: "quoc-khanh", label: "Quốc Khánh 2/9", colors:["#190c0d","#ffd43b","#e33139"] },
+  { id: "mung-8-3", label: "Mùng 8/3", colors:["#24151e","#ef8dad","#e8c3a7"] },
+  { id: "nha-giao-20-11", label: "Ngày Nhà giáo 20/11", colors:["#13241c","#e0b95c","#78a98a"] },
+  { id: "non-song-30-4-1-5", label: "30/4 – 1/5", colors:["#0b1f29","#e4c34f","#3db49b"] },
 ];
 
 interface ThemeState {
