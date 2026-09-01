@@ -1,6 +1,7 @@
 import { useNotesStore } from "../../stores/notesStore";
 import type { Note } from "../../types/entities";
 import { sanitizeRichHtml } from "../../features/security/htmlSanitizer";
+import { Icon } from "./Icons";
 
 function excerpt(html: string): string {
   const div = document.createElement("div");
@@ -14,18 +15,19 @@ function NoteRow({ note, active, onClick }: { note: Note; active: boolean; onCli
   return (
     <button
       onClick={onClick}
-      className="w-full text-left px-3 py-2 rounded-lg mb-1 transition-colors"
+      className={`note-card w-full text-left px-3 py-2 rounded-lg mb-1 transition-colors ${active ? "is-active" : ""}`}
       style={{
         background: active ? "var(--color-surface-alt)" : "transparent",
         border: `1px solid ${active ? "var(--color-accent)" : "transparent"}`,
       }}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="font-medium truncate" style={{ color: "var(--color-text)" }}>
-          {note.pinned ? "📌 " : ""}
-          {note.title || "(Không tiêu đề)"}
+        <span className="note-card-title font-medium truncate" style={{ color: "var(--color-text)" }}>
+          {note.pinned && <Icon name="pin" size={13} className="note-card-pin" />}
+          <span>{note.title || "(Không tiêu đề)"}</span>
         </span>
         <span
+          className={`note-favorite ${note.favorite ? "is-active" : ""}`}
           role="button"
           tabIndex={0}
           onClick={(e) => {
@@ -34,10 +36,10 @@ function NoteRow({ note, active, onClick }: { note: Note; active: boolean; onCli
           }}
           style={{ color: note.favorite ? "var(--color-warning)" : "var(--color-text-muted)" }}
         >
-          {note.favorite ? "★" : "☆"}
+          <Icon name="star" size={15} fill={note.favorite ? "currentColor" : "none"} />
         </span>
       </div>
-      <div className="text-xs truncate" style={{ color: "var(--color-text-muted)" }}>
+      <div className="note-card-excerpt text-xs truncate" style={{ color: "var(--color-text-muted)" }}>
         {excerpt(note.contentHtml) || "Chưa có nội dung"}
       </div>
     </button>
@@ -86,7 +88,7 @@ export function NoteList() {
   }
 
   return (
-    <div className="p-2 overflow-y-auto">
+    <div className="note-list p-2 overflow-y-auto">
       {items.map((n) => (
         <NoteRow key={n.id} note={n} active={n.id === selectedNoteId} onClick={() => selectNote(n.id)} />
       ))}

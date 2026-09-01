@@ -9,3 +9,586 @@
 
 .rich-text-toolbar{max-width:100%;overflow-x:auto;scrollbar-width:thin}.rich-text-toolbar.is-collapsed{overflow:visible}.rich-text-tool-button{display:inline-grid;place-items:center;min-height:2rem;border-color:var(--color-border);color:var(--color-text-muted);background:var(--color-surface-alt);flex:0 0 auto}.rich-text-toolbar select,.rich-text-toolbar label{flex:0 0 auto;border-color:var(--color-border);color:var(--color-text)}.note-editor-toolbar{min-width:0}.note-editor-action{flex:0 0 auto}
 @media(max-width:767px){.note-editor-toolbar{padding:.35rem}.rich-text-toolbar{flex:1 1 100%;order:2}.note-editor-action{font-size:.65rem;padding:.35rem .45rem}.note-editor-toolbar>span.ml-auto{margin-left:auto}}
+
+/* ========================================================================== */
+/* 0.16.0 — HUYỀN BÚT UI V2 · THƯ CÁC HIỆN ĐẠI                              */
+/* Mục tiêu: thay đổi bố cục, chiều sâu, nhịp điệu và chất liệu — không chỉ màu. */
+/* ========================================================================== */
+
+:root{
+  --hbc-radius-xl:24px;
+  --hbc-radius-lg:18px;
+  --hbc-radius-md:13px;
+  --hbc-shell-gap:12px;
+  --hbc-panel-stroke:color-mix(in srgb,var(--color-border) 72%,var(--music-metal));
+  --hbc-panel-bg:linear-gradient(145deg,color-mix(in srgb,var(--color-surface) 94%,transparent),color-mix(in srgb,var(--color-surface-alt) 72%,var(--color-bg)));
+  --hbc-elevated-shadow:0 22px 60px color-mix(in srgb,var(--color-bg) 46%,transparent),inset 0 1px rgb(255 255 255/.055);
+  --hbc-soft-shadow:0 10px 30px color-mix(in srgb,var(--color-bg) 30%,transparent),inset 0 1px rgb(255 255 255/.04);
+}
+
+/* ---------- Khung ứng dụng: từ giao diện phẳng thành một “thư phòng” ---------- */
+.app-shell--figma{
+  position:relative;
+  gap:var(--hbc-shell-gap);
+  padding:max(10px,env(safe-area-inset-top)) 12px 12px;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 9% 4%,color-mix(in srgb,var(--color-accent) 15%,transparent),transparent 24rem),
+    radial-gradient(circle at 91% 96%,color-mix(in srgb,var(--music-metal) 11%,transparent),transparent 29rem),
+    linear-gradient(145deg,color-mix(in srgb,var(--color-bg) 96%,black 3%),var(--color-bg));
+}
+
+.app-shell--figma::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  opacity:.24;
+  background:
+    linear-gradient(120deg,transparent 0 48%,color-mix(in srgb,var(--music-metal) 5%,transparent) 49% 50%,transparent 51% 100%),
+    radial-gradient(circle at 50% 50%,color-mix(in srgb,var(--color-text) 5%,transparent) 0 .7px,transparent .9px);
+  background-size:72px 72px,17px 17px;
+  mask-image:linear-gradient(to bottom,black,transparent 88%);
+}
+
+.app-shell--figma .app-workspace{
+  position:relative;
+  z-index:2;
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+  border:1px solid var(--hbc-panel-stroke);
+  border-radius:var(--hbc-radius-xl);
+  background:
+    radial-gradient(circle at 76% -12%,color-mix(in srgb,var(--color-accent) 8%,transparent),transparent 28rem),
+    color-mix(in srgb,var(--color-surface) 78%,var(--color-bg));
+  box-shadow:var(--hbc-elevated-shadow);
+}
+
+.app-shell--figma .app-workspace::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  border-radius:inherit;
+  pointer-events:none;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--music-metal) 8%,transparent);
+}
+
+.app-shell--figma .app-workspace>*{position:relative;z-index:1}
+
+/* ---------- Rail trái: một thanh “tủ mục lục” nổi, có vật liệu và nhịp ---------- */
+.app-rail{
+  align-self:stretch;
+  height:auto;
+  flex-basis:248px;
+  width:248px;
+  border:1px solid var(--hbc-panel-stroke);
+  border-radius:var(--hbc-radius-xl);
+  background:
+    radial-gradient(circle at 32% -4%,color-mix(in srgb,var(--color-accent) 15%,transparent),transparent 16rem),
+    linear-gradient(165deg,color-mix(in srgb,var(--color-surface) 94%,black 1%),color-mix(in srgb,var(--color-bg) 92%,black 4%));
+  box-shadow:var(--hbc-elevated-shadow);
+}
+
+.app-rail.is-collapsed{width:76px;flex-basis:76px}
+.app-rail-edge{right:7px;top:18px;bottom:18px;opacity:.55}
+
+.app-rail-brand{
+  min-height:92px;
+  padding:20px 17px 16px;
+  border-bottom:0;
+  position:relative;
+}
+.app-rail-brand::after{
+  content:"";
+  position:absolute;
+  left:17px;right:17px;bottom:0;height:1px;
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--music-metal) 48%,var(--color-border)),transparent);
+}
+.app-rail-sigil{
+  width:45px;height:45px;border-radius:14px;
+  transform:rotate(-3deg);
+  box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--color-bg) 24%,transparent),0 10px 30px color-mix(in srgb,var(--color-accent) 26%,transparent);
+}
+.app-rail-brand-copy strong{font-size:1.02rem;letter-spacing:.055em}
+.app-rail-brand-copy small{font-size:.5rem;letter-spacing:.22em}
+
+.app-rail-seal{
+  margin:14px 12px 5px;
+  padding:11px 12px;
+  border-radius:14px;
+  border-color:color-mix(in srgb,var(--music-metal) 38%,var(--color-border));
+  background:
+    linear-gradient(135deg,color-mix(in srgb,var(--music-metal) 11%,transparent),transparent 65%),
+    color-mix(in srgb,var(--color-surface-alt) 65%,transparent);
+}
+.app-rail-seal>span{width:31px;height:31px;background:color-mix(in srgb,var(--music-metal) 8%,transparent)}
+
+.app-rail-nav{padding:10px 9px 12px}
+.app-rail-nav-item{
+  min-height:58px;
+  margin-bottom:7px;
+  padding:9px 10px;
+  gap:.75rem;
+  border-radius:14px;
+  overflow:hidden;
+}
+.app-rail-nav-item::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  opacity:0;
+  background:linear-gradient(105deg,color-mix(in srgb,var(--color-accent) 12%,transparent),transparent 62%);
+  transition:opacity .18s ease;
+}
+.app-rail-nav-item:hover::before,.app-rail-nav-item.is-active::before{opacity:1}
+.app-rail-nav-item:hover{transform:translateX(2px)}
+.app-rail-nav-item.is-active{
+  color:var(--color-text);
+  border-color:color-mix(in srgb,var(--color-accent) 38%,var(--color-border));
+  background:color-mix(in srgb,var(--color-surface-alt) 74%,transparent);
+  box-shadow:0 10px 25px color-mix(in srgb,var(--color-bg) 24%,transparent),inset 0 1px rgb(255 255 255/.05);
+}
+.app-rail-nav-item.is-active .app-rail-nav-copy>span{color:var(--color-accent)}
+.app-rail-nav-icon{
+  width:38px;height:38px;border-radius:12px;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--color-surface-alt) 88%,transparent),color-mix(in srgb,var(--color-bg) 70%,transparent));
+  box-shadow:inset 0 1px rgb(255 255 255/.055);
+}
+.app-rail-nav-item.is-active .app-rail-nav-icon{
+  transform:rotate(-2deg);
+  background:linear-gradient(145deg,color-mix(in srgb,var(--color-accent) 19%,var(--color-surface-alt)),color-mix(in srgb,var(--color-surface) 84%,transparent));
+  box-shadow:0 8px 22px color-mix(in srgb,var(--color-accent) 18%,transparent),inset 0 1px rgb(255 255 255/.08);
+}
+.app-rail-active-mark{right:3px;top:17px;width:3px;height:24px}
+.app-rail-footer{margin:0 9px 9px;padding:9px 0 0;border-top-color:color-mix(in srgb,var(--color-border) 68%,transparent)}
+.app-rail-local-status,.app-rail-account,.app-rail-collapse{border-radius:12px}
+
+/* ---------- Topbar: thanh lệnh có chiều sâu, thay vì dải màu ngang ---------- */
+.app-topbar{
+  min-height:88px;
+  padding:14px clamp(1rem,2.5vw,2rem);
+  border-bottom:1px solid color-mix(in srgb,var(--color-border) 62%,transparent);
+  background:
+    radial-gradient(circle at 22% -80%,color-mix(in srgb,var(--color-accent) 18%,transparent),transparent 20rem),
+    linear-gradient(180deg,color-mix(in srgb,var(--color-surface) 91%,transparent),color-mix(in srgb,var(--color-surface-alt) 55%,transparent));
+  box-shadow:0 10px 28px color-mix(in srgb,var(--color-bg) 22%,transparent),inset 0 -1px color-mix(in srgb,var(--music-metal) 8%,transparent);
+}
+.app-topbar-title{
+  position:relative;
+  padding-left:15px;
+  min-width:150px;
+}
+.app-topbar-title::before{
+  content:"";
+  position:absolute;
+  left:0;top:3px;bottom:3px;width:3px;border-radius:9px;
+  background:linear-gradient(var(--music-metal),var(--color-accent));
+  box-shadow:0 0 12px color-mix(in srgb,var(--color-accent) 38%,transparent);
+}
+.app-topbar-title>span{font-weight:800;letter-spacing:.24em}
+.app-topbar-title h1{font-size:clamp(1.18rem,2vw,1.55rem);letter-spacing:.04em}
+
+.app-topbar-search{
+  max-width:34rem;
+  filter:drop-shadow(0 8px 20px color-mix(in srgb,var(--color-bg) 16%,transparent));
+}
+.app-topbar-search input{
+  min-height:44px;
+  padding-left:2.55rem;
+  border-radius:14px;
+  border-color:color-mix(in srgb,var(--color-border) 70%,var(--music-metal));
+  background:
+    linear-gradient(180deg,color-mix(in srgb,var(--color-surface) 90%,transparent),color-mix(in srgb,var(--color-bg) 58%,transparent));
+  box-shadow:inset 0 1px 7px color-mix(in srgb,var(--color-bg) 24%,transparent),inset 0 1px rgb(255 255 255/.05);
+}
+.app-topbar-search>span{left:.9rem}
+.app-topbar-context{
+  min-height:48px;
+  border-radius:14px;
+  box-shadow:0 8px 22px color-mix(in srgb,var(--color-bg) 16%,transparent),inset 0 1px rgb(255 255 255/.05);
+}
+.app-sync-chip{border-radius:12px;padding:.55rem .72rem;background:color-mix(in srgb,var(--color-surface-alt) 70%,transparent)}
+.app-topbar-account{min-height:42px;border-radius:12px;padding:.52rem .8rem;box-shadow:0 7px 18px color-mix(in srgb,var(--color-bg) 16%,transparent),inset 0 1px rgb(255 255 255/.05)}
+
+/* ---------- Khu nội dung: nội dung nằm trên “mặt bàn”, không dính sát khung ---------- */
+.app-shell--figma .app-content{
+  min-height:0;
+  margin:0;
+  background:
+    radial-gradient(circle at 85% 12%,color-mix(in srgb,var(--color-accent) 5%,transparent),transparent 22rem),
+    color-mix(in srgb,var(--color-bg) 54%,transparent);
+}
+
+/* ---------- Notes Studio: ba panel rõ ràng, có khoảng thở và card thật sự ---------- */
+.notes-studio{
+  gap:12px;
+  padding:12px;
+  background:transparent;
+}
+.notes-studio-sidebar,.notes-studio-list,.notes-studio-editor{
+  min-height:0;
+  overflow:hidden;
+  border:1px solid var(--hbc-panel-stroke)!important;
+  border-radius:18px;
+  background:var(--hbc-panel-bg);
+  box-shadow:var(--hbc-soft-shadow);
+}
+.notes-studio-sidebar{flex:0 0 auto}
+.notes-studio-sidebar .responsive-sidebar{
+  height:100%;
+  border:0;
+  border-radius:inherit;
+  background:transparent;
+  box-shadow:none;
+}
+.notes-studio-list{
+  border-right:1px solid var(--hbc-panel-stroke)!important;
+  transition:width .22s ease;
+}
+.notes-studio-editor{
+  position:relative;
+  background:
+    linear-gradient(90deg,color-mix(in srgb,var(--music-metal) 2.5%,transparent) 1px,transparent 1px),
+    linear-gradient(color-mix(in srgb,var(--music-metal) 2.5%,transparent) 1px,transparent 1px),
+    color-mix(in srgb,var(--color-editor-bg) 96%,var(--color-surface));
+  background-size:32px 32px,32px 32px,auto;
+}
+.notes-studio-editor::before{
+  content:"";
+  position:absolute;
+  inset:9px;
+  border:1px solid color-mix(in srgb,var(--music-metal) 8%,transparent);
+  border-radius:12px;
+  pointer-events:none;
+}
+.notes-mode-toolbar{
+  min-height:62px;
+  padding:10px!important;
+  border-bottom-color:color-mix(in srgb,var(--color-border) 62%,transparent)!important;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--color-surface-alt) 62%,transparent),transparent);
+}
+.notes-mode-search{
+  min-height:40px;
+  border-radius:12px!important;
+  background:color-mix(in srgb,var(--color-bg) 48%,var(--color-surface))!important;
+}
+.notes-mode-create{
+  min-height:40px;
+  border-radius:12px!important;
+  border:1px solid color-mix(in srgb,var(--color-accent) 60%,var(--music-metal));
+  background:linear-gradient(135deg,color-mix(in srgb,var(--color-accent) 86%,white 7%),var(--color-accent))!important;
+  box-shadow:0 8px 22px color-mix(in srgb,var(--color-accent) 20%,transparent),inset 0 1px rgb(255 255 255/.2);
+}
+.notes-mode-list-toggle{border-radius:11px}
+
+.note-list{padding:9px!important}
+.note-card{
+  position:relative;
+  min-height:66px;
+  margin-bottom:7px!important;
+  padding:10px 11px!important;
+  border:1px solid transparent!important;
+  border-radius:13px!important;
+  background:transparent!important;
+  overflow:hidden;
+}
+.note-card::before{
+  content:"";
+  position:absolute;
+  left:0;top:12px;bottom:12px;width:3px;border-radius:4px;
+  background:transparent;
+}
+.note-card:hover{
+  transform:translateX(2px);
+  background:color-mix(in srgb,var(--color-surface-alt) 58%,transparent)!important;
+  border-color:color-mix(in srgb,var(--color-border) 58%,transparent)!important;
+}
+.note-card.is-active{
+  background:linear-gradient(105deg,color-mix(in srgb,var(--color-accent) 12%,var(--color-surface-alt)),color-mix(in srgb,var(--color-surface-alt) 72%,transparent))!important;
+  border-color:color-mix(in srgb,var(--color-accent) 34%,var(--color-border))!important;
+  box-shadow:0 9px 22px color-mix(in srgb,var(--color-bg) 18%,transparent),inset 0 1px rgb(255 255 255/.04);
+}
+.note-card.is-active::before{background:linear-gradient(var(--music-metal),var(--color-accent));box-shadow:0 0 10px color-mix(in srgb,var(--color-accent) 48%,transparent)}
+.note-card-title{display:flex;align-items:center;gap:.35rem;min-width:0;font-size:.82rem}
+.note-card-title>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.note-card-pin{flex:0 0 auto;color:var(--color-accent)}
+.note-card-excerpt{margin-top:.28rem;line-height:1.4;opacity:.85}
+.note-favorite{width:26px;height:26px;flex:0 0 auto;display:grid;place-items:center;border-radius:8px;transition:.16s ease}
+.note-favorite:hover{background:color-mix(in srgb,var(--color-warning) 10%,transparent)}
+.note-favorite.is-active{filter:drop-shadow(0 0 5px color-mix(in srgb,var(--color-warning) 45%,transparent))}
+
+/* ---------- Editor: cảm giác một trang giấy viết thật, toolbar tách lớp ---------- */
+.note-editor-shell{position:relative;min-height:0;padding:10px}
+.notes-editor-frame{min-height:0}
+.note-editor-toolbar{
+  margin:0 0 8px;
+  padding:7px 8px!important;
+  border:1px solid color-mix(in srgb,var(--color-border) 60%,var(--music-metal))!important;
+  border-radius:13px;
+  background:color-mix(in srgb,var(--color-surface) 86%,transparent);
+  box-shadow:0 8px 22px color-mix(in srgb,var(--color-bg) 15%,transparent),inset 0 1px rgb(255 255 255/.04);
+  backdrop-filter:blur(12px);
+}
+.note-editor-titlebar{
+  position:relative;
+  padding:22px clamp(1rem,4vw,3.3rem) 8px!important;
+}
+.note-editor-titlebar::after{
+  content:"";
+  position:absolute;
+  left:clamp(1rem,4vw,3.3rem);right:clamp(1rem,4vw,3.3rem);bottom:0;height:1px;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--music-metal) 42%,transparent),color-mix(in srgb,var(--color-border) 35%,transparent),transparent);
+}
+.note-editor-title-input{
+  font-family:var(--hbc-font-display);
+  font-size:clamp(1.65rem,3vw,2.3rem)!important;
+  font-weight:700!important;
+  letter-spacing:.025em;
+}
+.note-editor-save-state{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  padding:.2rem .5rem;
+  border:1px solid color-mix(in srgb,var(--color-border) 55%,transparent);
+  border-radius:999px;
+  background:color-mix(in srgb,var(--color-surface-alt) 58%,transparent);
+}
+.note-editor-canvas{
+  width:min(100%,82ch);
+  margin:0 auto;
+  padding:24px clamp(1rem,4vw,3.3rem) 40px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:
+    repeating-linear-gradient(to bottom,transparent 0 31px,color-mix(in srgb,var(--color-border) 10%,transparent) 32px)!important;
+  box-shadow:none!important;
+  font-size:1.01rem;
+  line-height:2rem;
+}
+.note-editor-canvas:empty::before{opacity:.45;font-style:italic}
+.note-editor-footer{
+  margin-top:5px;
+  padding:8px clamp(1rem,4vw,3.3rem)!important;
+  border-top-color:color-mix(in srgb,var(--color-border) 48%,transparent)!important;
+  background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--color-bg) 18%,transparent));
+}
+
+.notes-empty-state{padding:2rem;color:var(--color-text)}
+.notes-empty-card{
+  position:relative;
+  width:min(450px,92%);
+  padding:38px 32px 34px;
+  text-align:center;
+  border:1px solid color-mix(in srgb,var(--music-metal) 30%,var(--color-border));
+  border-radius:22px;
+  background:
+    radial-gradient(circle at 50% 0,color-mix(in srgb,var(--color-accent) 12%,transparent),transparent 12rem),
+    color-mix(in srgb,var(--color-surface) 88%,transparent);
+  box-shadow:0 20px 55px color-mix(in srgb,var(--color-bg) 24%,transparent),inset 0 1px rgb(255 255 255/.05);
+}
+.notes-empty-card::before,.notes-empty-card::after{content:"";position:absolute;width:38px;height:38px;border-color:color-mix(in srgb,var(--music-metal) 38%,transparent);pointer-events:none}
+.notes-empty-card::before{left:12px;top:12px;border-left:1px solid;border-top:1px solid;border-radius:9px 0 0 0}
+.notes-empty-card::after{right:12px;bottom:12px;border-right:1px solid;border-bottom:1px solid;border-radius:0 0 9px 0}
+.notes-empty-seal{width:68px;height:68px;margin:0 auto 14px;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--color-accent) 58%,var(--music-metal));border-radius:20px;color:var(--color-accent);background:linear-gradient(145deg,color-mix(in srgb,var(--color-accent) 14%,var(--color-surface-alt)),color-mix(in srgb,var(--color-surface) 74%,transparent));box-shadow:0 12px 30px color-mix(in srgb,var(--color-accent) 16%,transparent),inset 0 1px rgb(255 255 255/.06);transform:rotate(-3deg)}
+.notes-empty-card small{display:block;color:color-mix(in srgb,var(--music-metal) 72%,var(--color-text-muted));font-size:.56rem;letter-spacing:.24em;font-weight:800}
+.notes-empty-card h2{margin:.45rem 0 .35rem;font-family:var(--hbc-font-display);font-size:1.35rem}
+.notes-empty-card p{max-width:31rem;margin:0 auto;color:var(--color-text-muted);font-size:.8rem;line-height:1.65}
+.notes-empty-card button{display:inline-flex;align-items:center;gap:.45rem;margin-top:1.15rem;padding:.62rem .9rem;border:1px solid color-mix(in srgb,var(--color-accent) 60%,var(--music-metal));border-radius:12px;color:var(--color-bg);background:linear-gradient(135deg,color-mix(in srgb,var(--color-accent) 88%,white 7%),var(--color-accent));box-shadow:0 9px 24px color-mix(in srgb,var(--color-accent) 20%,transparent);font-size:.78rem;font-weight:800}
+
+/* ---------- Sidebar nội bộ: phân cấp rõ hơn ---------- */
+.responsive-sidebar-brand{
+  min-height:76px;
+  padding:12px 11px;
+  border-bottom-color:color-mix(in srgb,var(--color-border) 55%,transparent);
+}
+.responsive-sidebar-sigil{width:40px;height:40px;border-radius:13px;box-shadow:0 8px 20px color-mix(in srgb,var(--color-accent) 12%,transparent)}
+.responsive-sidebar-primary{gap:5px;padding:9px}
+.responsive-sidebar-primary button,.responsive-sidebar-tool,.responsive-sidebar-collapse{min-height:40px;border-radius:11px;padding:.5rem .65rem}
+.responsive-sidebar-primary button:hover,.responsive-sidebar-tool:hover{background:color-mix(in srgb,var(--color-surface-alt) 58%,transparent)}
+.responsive-sidebar-primary button.is-active{border:1px solid color-mix(in srgb,var(--color-accent) 30%,var(--color-border));background:linear-gradient(90deg,color-mix(in srgb,var(--color-accent) 12%,transparent),color-mix(in srgb,var(--color-surface-alt) 54%,transparent));box-shadow:inset 3px 0 var(--color-accent)}
+.responsive-sidebar-section-title{padding:.6rem .8rem .3rem;font-weight:800;letter-spacing:.14em}
+.responsive-sidebar-folder{border-radius:10px}
+.responsive-sidebar-folder:hover{background:color-mix(in srgb,var(--color-surface-alt) 50%,transparent)}
+.responsive-sidebar-footer{padding:8px;border-top-color:color-mix(in srgb,var(--color-border) 55%,transparent)}
+.responsive-theme-picker{border-radius:16px;box-shadow:0 24px 70px color-mix(in srgb,var(--color-bg) 55%,transparent)}
+
+/* ---------- Rich text tools: bớt cảm giác “nút hệ thống” ---------- */
+.rich-text-toolbar{gap:5px!important}
+.rich-text-tool-button,.rich-text-toolbar select,.rich-text-toolbar label{
+  min-height:34px!important;
+  border-radius:9px!important;
+  border-color:color-mix(in srgb,var(--color-border) 58%,transparent)!important;
+  background:color-mix(in srgb,var(--color-surface-alt) 58%,transparent)!important;
+  box-shadow:inset 0 1px rgb(255 255 255/.035);
+}
+.rich-text-tool-button:hover{color:var(--color-accent)!important;border-color:color-mix(in srgb,var(--color-accent) 32%,var(--color-border))!important;background:color-mix(in srgb,var(--color-accent) 9%,var(--color-surface-alt))!important}
+.note-editor-action{min-height:34px;border-radius:9px!important;background:color-mix(in srgb,var(--color-surface-alt) 56%,transparent)}
+
+/* ---------- Tàng Thư: card sách có gáy, toolbar như bàn thủ thư ---------- */
+.library-view{
+  padding:14px!important;
+  background:
+    radial-gradient(circle at 88% 4%,color-mix(in srgb,var(--music-metal) 9%,transparent),transparent 25rem),
+    transparent!important;
+}
+.library-tools{
+  border-radius:18px!important;
+  border-color:var(--hbc-panel-stroke)!important;
+  background:var(--hbc-panel-bg)!important;
+  box-shadow:var(--hbc-soft-shadow)!important;
+}
+.library-intro-icon{width:48px!important;height:48px!important;border-radius:14px!important;transform:rotate(-2deg);box-shadow:0 10px 24px color-mix(in srgb,var(--color-accent) 15%,transparent)}
+.library-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))!important;gap:16px!important}
+.library-card{
+  position:relative;
+  border-radius:16px!important;
+  border-color:color-mix(in srgb,var(--color-border) 66%,var(--music-metal))!important;
+  background:var(--hbc-panel-bg)!important;
+  box-shadow:0 14px 35px color-mix(in srgb,var(--color-bg) 27%,transparent),inset 0 1px rgb(255 255 255/.04)!important;
+}
+.library-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;z-index:2;background:linear-gradient(var(--music-metal),color-mix(in srgb,var(--color-accent) 70%,var(--music-metal)),var(--color-accent));opacity:.55}
+.library-card:hover{transform:translateY(-5px) rotate(-.3deg)!important;box-shadow:0 22px 45px color-mix(in srgb,var(--color-bg) 34%,transparent),0 0 0 1px color-mix(in srgb,var(--color-accent) 14%,transparent)!important}
+.library-cover{border-bottom:1px solid color-mix(in srgb,var(--color-border) 45%,transparent)}
+.library-cover-fallback{background:radial-gradient(circle at 30% 18%,color-mix(in srgb,var(--color-accent) 24%,transparent),transparent 30%),repeating-linear-gradient(135deg,transparent 0 24px,color-mix(in srgb,var(--music-metal) 4%,transparent) 25px 26px),linear-gradient(155deg,var(--color-surface-alt),var(--color-bg))!important}
+.library-card-body{padding:.9rem .9rem 1rem!important}
+.library-card-body h3{font-family:var(--hbc-font-display);font-size:1rem!important;letter-spacing:.02em}
+.library-button,.library-icon-button{border-radius:10px!important}
+.library-modal{border-radius:20px!important;background:var(--hbc-panel-bg)!important;box-shadow:0 30px 90px rgb(0 0 0/.48)!important}
+.library-reader{background:color-mix(in srgb,var(--color-bg) 90%,black 2%)!important}
+.library-reader-toolbar{margin:10px;border:1px solid var(--hbc-panel-stroke)!important;border-radius:14px;background:var(--hbc-panel-bg)!important;box-shadow:var(--hbc-soft-shadow)}
+.library-reader-stage{margin:0 10px 10px;overflow:hidden;border:1px solid color-mix(in srgb,var(--color-border) 45%,transparent);border-radius:14px}
+
+/* ---------- Các panel/card còn lại: thống nhất hệ thống vật liệu ---------- */
+.project-card,.story-card,.kanban-column,.mindmap-panel,.whiteboard-toolbar,.canvas-toolbars>div,.van-nien-calendar-card,.van-nien-day-detail,.van-nien-month-events{
+  box-shadow:var(--hbc-soft-shadow);
+}
+
+/* ---------- Player: dock nhẹ, tách khỏi mép cửa sổ ---------- */
+.music-player{
+  margin:0 12px 10px;
+  border:1px solid color-mix(in srgb,var(--color-border) 62%,var(--music-metal));
+  border-radius:15px;
+  overflow:visible;
+  background:color-mix(in srgb,var(--color-surface) 86%,transparent);
+  box-shadow:0 12px 30px color-mix(in srgb,var(--color-bg) 24%,transparent);
+}
+.music-controls.immortal-panel{border-radius:14px!important;border:0!important;box-shadow:none!important}
+.music-library{bottom:calc(100% + 8px)}
+
+/* ========================================================================== */
+/* LỄ HỘI: mỗi theme có motif không gian riêng, không chỉ đổi palette          */
+/* ========================================================================== */
+
+/* Tết Nguyên Đán — song cửa, đồng tiền, ánh đèn vàng */
+[data-theme="tet-nguyen-dan"] .app-shell--figma::after{
+  opacity:.38;
+  background:
+    radial-gradient(circle at 8% 12%,color-mix(in srgb,var(--color-accent) 34%,transparent) 0 2px,transparent 3px),
+    repeating-linear-gradient(45deg,transparent 0 31px,color-mix(in srgb,var(--color-accent) 7%,transparent) 32px 33px),
+    repeating-linear-gradient(-45deg,transparent 0 31px,color-mix(in srgb,var(--color-accent) 5%,transparent) 32px 33px);
+  background-size:46px 46px,64px 64px,64px 64px;
+}
+[data-theme="tet-nguyen-dan"] .app-workspace::after{content:"";position:absolute;right:34px;top:18px;width:86px;height:86px;border:1px solid color-mix(in srgb,var(--color-accent) 18%,transparent);border-radius:50%;box-shadow:0 0 0 10px color-mix(in srgb,var(--color-accent) 2%,transparent),0 0 55px color-mix(in srgb,var(--color-accent) 8%,transparent);pointer-events:none;z-index:0}
+
+/* Trung Thu — vầng trăng, quầng sáng và quỹ đạo */
+[data-theme="tet-trung-thu"] .app-shell--figma::after{
+  opacity:.65;
+  background:
+    radial-gradient(circle at 87% 10%,color-mix(in srgb,var(--color-accent) 55%,white) 0 34px,color-mix(in srgb,var(--color-accent) 17%,transparent) 35px 52px,transparent 53px),
+    radial-gradient(circle at 87% 10%,color-mix(in srgb,var(--color-accent) 18%,transparent),transparent 13rem),
+    radial-gradient(circle at 18% 24%,color-mix(in srgb,var(--color-text) 28%,transparent) 0 1px,transparent 1.4px);
+  background-size:auto,auto,58px 58px;
+}
+[data-theme="tet-trung-thu"] .app-rail-sigil{border-radius:50%}
+
+/* Quốc Khánh — dải sáng sao năm cánh */
+[data-theme="quoc-khanh"] .app-shell--figma::after{
+  opacity:.3;
+  background:linear-gradient(116deg,transparent 0 63%,color-mix(in srgb,var(--color-accent) 7%,transparent) 64% 65%,transparent 66%),radial-gradient(circle at 78% 14%,color-mix(in srgb,var(--color-accent) 18%,transparent),transparent 14rem);
+  background-size:86px 86px,auto;
+}
+[data-theme="quoc-khanh"] .app-workspace::after{content:"";position:absolute;right:45px;top:24px;width:54px;height:54px;background:color-mix(in srgb,var(--color-accent) 10%,transparent);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 94%,50% 72%,21% 94%,32% 57%,2% 35%,39% 35%);filter:drop-shadow(0 0 22px color-mix(in srgb,var(--color-accent) 12%,transparent));pointer-events:none;z-index:0}
+
+/* 8/3 — cánh hoa mềm, bớt “đổi màu hồng là xong” */
+[data-theme="mung-8-3"] .app-shell--figma::after{
+  opacity:.34;
+  background:
+    radial-gradient(ellipse at 18% 18%,color-mix(in srgb,var(--color-accent) 13%,transparent) 0 18px,transparent 19px),
+    radial-gradient(ellipse at 22% 14%,color-mix(in srgb,var(--music-metal) 10%,transparent) 0 18px,transparent 19px),
+    radial-gradient(circle at 82% 82%,color-mix(in srgb,var(--color-accent) 9%,transparent),transparent 18rem);
+  background-size:98px 98px,98px 98px,auto;
+}
+
+/* 20/11 — giấy kẻ, trang sách, nét mực */
+[data-theme="nha-giao-20-11"] .app-shell--figma::after{
+  opacity:.32;
+  background:
+    repeating-linear-gradient(to bottom,transparent 0 31px,color-mix(in srgb,var(--music-metal) 5%,transparent) 32px 33px),
+    linear-gradient(90deg,transparent 0 11%,color-mix(in srgb,var(--color-accent) 5%,transparent) 11.1% 11.3%,transparent 11.4%);
+  background-size:auto,100% 100%;
+}
+
+/* 30/4–1/5 — lớp sóng núi, horizon chuyển động nhẹ */
+[data-theme="non-song-30-4-1-5"] .app-shell--figma::after{
+  opacity:.34;
+  background:
+    radial-gradient(ellipse at 18% 110%,color-mix(in srgb,var(--color-accent) 10%,transparent) 0 26%,transparent 27%),
+    radial-gradient(ellipse at 46% 118%,color-mix(in srgb,var(--music-gem) 12%,transparent) 0 30%,transparent 31%),
+    repeating-linear-gradient(0deg,transparent 0 44px,color-mix(in srgb,var(--color-accent) 4%,transparent) 45px 46px);
+}
+
+/* ---------- Mobile: vẫn có nhận diện UI mới nhưng gọn và dùng một tay ---------- */
+@media(max-width:767px){
+  .app-shell--figma{padding:0;gap:0;border-radius:0}
+  .app-shell--figma .app-workspace{border:0;border-radius:0;box-shadow:none}
+  .mobile-topbar{
+    min-height:60px;
+    padding:.55rem .65rem!important;
+    background:color-mix(in srgb,var(--color-surface) 90%,transparent)!important;
+    box-shadow:0 8px 24px color-mix(in srgb,var(--color-bg) 24%,transparent)!important;
+  }
+  .mobile-icon-button{border-radius:12px!important}
+  .app-shell--figma .app-content{margin:0}
+  .notes-studio{padding:0;gap:0}
+  .notes-studio-sidebar,.notes-studio-list,.notes-studio-editor{border:0!important;border-radius:0;box-shadow:none}
+  .notes-studio-editor::before{display:none}
+  .note-editor-shell{padding:0}
+  .note-editor-toolbar{margin:5px 6px;border-radius:11px}
+  .note-editor-titlebar{padding:16px 16px 7px!important}
+  .note-editor-titlebar::after{left:16px;right:16px}
+  .note-editor-canvas{padding:18px 16px 32px!important;width:100%}
+  .note-editor-footer{padding:8px 16px!important}
+  .notes-empty-state{padding:1rem}
+  .notes-empty-card{width:100%;padding:30px 22px}
+  .library-view{padding:8px!important}
+  .library-tools{border-radius:14px!important}
+  .library-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+  .library-card{border-radius:13px!important}
+  .library-card-body{padding:.65rem!important}
+  .library-card-body p{display:none}
+  .music-player{margin:0;border-width:1px 0 0;border-radius:0;box-shadow:0 -8px 25px color-mix(in srgb,var(--color-bg) 20%,transparent)}
+  .mobile-bottom-nav{
+    margin:0;
+    padding-top:5px!important;
+    border-top-color:color-mix(in srgb,var(--color-border) 58%,var(--music-metal));
+    background:color-mix(in srgb,var(--color-surface) 94%,transparent)!important;
+    box-shadow:0 -12px 30px color-mix(in srgb,var(--color-bg) 25%,transparent)!important;
+  }
+  .mobile-nav-item{border-radius:10px!important}
+}
+
+@media(min-width:768px) and (max-width:1100px){
+  .app-shell--figma{gap:9px;padding:9px}
+  .app-rail{width:76px;flex-basis:76px;border-radius:19px}
+  .app-shell--figma .app-workspace{border-radius:19px}
+  .notes-studio{gap:9px;padding:9px}
+  .notes-studio-sidebar,.notes-studio-list,.notes-studio-editor{border-radius:14px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .app-rail-nav-item:hover,.library-card:hover,.app-rail-sigil,.library-intro-icon,.notes-empty-seal{transform:none!important}
+}

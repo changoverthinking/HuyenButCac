@@ -25,6 +25,7 @@ export type IconName =
   | "export"
   | "check"
   | "spark"
+  | "star"
   | "pin"
   | "book"
   | "scroll"
@@ -106,6 +107,7 @@ export function Icon({ name, size = 20, title, strokeWidth = 1.8, ...props }: Ic
       {name === "export" && <><path {...common} d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 13.5v5h14v-5" /></>}
       {name === "check" && <path {...common} d="m5 12.5 4.2 4.2L19 7" />}
       {name === "spark" && <><path {...common} d="m12 3 1.4 5.6L19 10l-5.6 1.4L12 17l-1.4-5.6L5 10l5.6-1.4z" /><path {...common} d="m18.5 16 .6 2.4 2.4.6-2.4.6-.6 2.4-.6-2.4-2.4-.6 2.4-.6z" /></>}
+      {name === "star" && <path {...common} d="m12 3.8 2.45 4.96 5.48.8-3.96 3.86.94 5.45L12 16.3l-4.91 2.57.94-5.45-3.96-3.86 5.48-.8z" />}
       {name === "pin" && <><path {...common} d="m8.5 4.5 7 7M14.5 3l6.5 6.5-3 1-3.8 3.8.8 4.2-1.1 1.1-4.8-4.8-4.8 4.8-.9-.9 4.8-4.8-4.8-4.8 1.1-1.1 4.2.8 3.8-3.8z" /></>}
       {name === "book" && <><path {...common} d="M5 4.5h8.3A2.7 2.7 0 0 1 16 7.2V20H7.2A2.2 2.2 0 0 0 5 22z" /><path {...common} d="M19 4.5h-3v15.4h3M8.5 8h4.2M8.5 11.5h4.2" /></>}
       {name === "scroll" && <><path {...common} d="M7 4.5h9.5A2.5 2.5 0 0 1 19 7v10.5a2 2 0 0 1-2 2H7a3 3 0 0 1-3-3V7.5a3 3 0 0 1 3-3Z" /><path {...common} d="M7 4.5v12a1 1 0 0 0 1 1h10.5M8.5 8.5h7M8.5 12h6" /></>}

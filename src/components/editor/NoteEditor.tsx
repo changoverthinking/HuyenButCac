@@ -61,7 +61,7 @@ export function NoteEditor({ note }: { note: Note }) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="note-editor-shell flex flex-col h-full">
       <div className="note-editor-toolbar flex items-center gap-2 px-2 py-1.5 border-b flex-wrap" style={{ borderColor: "var(--color-border)" }}>
         <RichTextToolbar editorRef={editorRef} compact onFormat={() => scheduleSave({ contentHtml: editorRef.current?.innerHTML ?? "" })} />
         {note.locked ? (
@@ -79,18 +79,18 @@ export function NoteEditor({ note }: { note: Note }) {
             try { await lockNote(note.id, password); } catch (error) { window.alert((error as Error).message); }
           }}><Icon name="lock" size={14} /> Khóa ghi chú</button>
         )}
-        <span className="ml-auto text-xs" style={{ color: "var(--color-text-muted)" }}>
+        <span className="note-editor-save-state ml-auto text-xs" style={{ color: "var(--color-text-muted)" }}>
           {saveState === "saving" ? "Đang lưu…" : saveState === "idle" ? "Lưu chưa thành công" : "Đã lưu"}
         </span>
       </div>
 
-      <div className="px-6 pt-4">
-        <input className="w-full bg-transparent text-2xl font-semibold outline-none" style={{ color: "var(--color-text)" }} value={title} onChange={(event) => { setTitle(event.target.value); scheduleSave({ title: event.target.value }); }} placeholder="Tiêu đề ghi chú" />
+      <div className="note-editor-titlebar px-6 pt-4">
+        <input className="note-editor-title-input w-full bg-transparent text-2xl font-semibold outline-none" style={{ color: "var(--color-text)" }} value={title} onChange={(event) => { setTitle(event.target.value); scheduleSave({ title: event.target.value }); }} placeholder="Tiêu đề ghi chú" />
       </div>
 
-      <div ref={(node) => { editorRef.current = node; if (node && !editorInitialized.current) { node.innerHTML = sanitizeRichHtml(note.contentHtml); editorInitialized.current = true; } }} className="hbc-editor flex-1 px-6 py-4 overflow-y-auto max-w-[70ch]" contentEditable suppressContentEditableWarning data-placeholder="Bắt đầu viết…" onInput={() => scheduleSave({ contentHtml: editorRef.current?.innerHTML ?? "" })} />
+      <div ref={(node) => { editorRef.current = node; if (node && !editorInitialized.current) { node.innerHTML = sanitizeRichHtml(note.contentHtml); editorInitialized.current = true; } }} className="hbc-editor note-editor-canvas flex-1 px-6 py-4 overflow-y-auto max-w-[70ch]" contentEditable suppressContentEditableWarning data-placeholder="Bắt đầu viết…" onInput={() => scheduleSave({ contentHtml: editorRef.current?.innerHTML ?? "" })} />
 
-      <div className="px-6 py-2 border-t" style={{ borderColor: "var(--color-border)" }}>
+      <div className="note-editor-footer px-6 py-2 border-t" style={{ borderColor: "var(--color-border)" }}>
         <button type="button" className="text-sm inline-flex items-center gap-1" style={{ color: "var(--color-error)" }} onClick={() => deleteNote(note.id)}><Icon name="trash" size={14} /> Chuyển vào thùng rác</button>
       </div>
     </div>

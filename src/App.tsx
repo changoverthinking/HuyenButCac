@@ -92,15 +92,21 @@ function AppTopbar({ mode, online, onAccount, onSearch }: { mode: Mode; online: 
   return (
     <header className="app-topbar">
       <div className="app-topbar-title"><span>{meta.kicker}</span><h1>{meta.label}</h1></div>
-      {mode === "calendar" ? (
-        <div className="app-topbar-context" aria-label="Thông tin lịch"><span aria-hidden="true"><Icon name="clock" size={18} /></span><div><strong>Âm lịch Việt Nam</strong><small>Dương · Âm · Can Chi · Tết Nguyên Đán</small></div></div>
-      ) : mode === "library" ? (
-        <div className="app-topbar-context" aria-label="Thông tin Tàng Thư"><span aria-hidden="true"><Icon name="book" size={18} /></span><div><strong>Thư viện cá nhân</strong><small>PDF · sách · tiểu thuyết đang viết · ghim trang đọc</small></div></div>
-      ) : (
+      {mode === "notes" ? (
         <form className="app-topbar-search" onSubmit={(event) => { event.preventDefault(); onSearch(query.trim()); }}>
           <span aria-hidden="true"><Icon name="search" size={17} /></span>
-          <input aria-label="Tìm trong ghi chú" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm trong ghi chú…" />
+          <input aria-label="Tìm trong ghi chú" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm tiêu đề, nội dung, ý tưởng…" />
         </form>
+      ) : mode === "calendar" ? (
+        <div className="app-topbar-context" aria-label="Thông tin lịch"><span aria-hidden="true"><Icon name="clock" size={18} /></span><div><strong>Nhật Nguyệt Đồ</strong><small>Dương lịch · Âm lịch · Can Chi · sự kiện</small></div></div>
+      ) : mode === "library" ? (
+        <div className="app-topbar-context" aria-label="Thông tin Tàng Thư"><span aria-hidden="true"><Icon name="book" size={18} /></span><div><strong>Tàng Thư cá nhân</strong><small>PDF · sách · tiểu thuyết · dấu trang đọc</small></div></div>
+      ) : mode === "projects" ? (
+        <div className="app-topbar-context" aria-label="Thông tin Dự án"><span aria-hidden="true"><Icon name="projects" size={18} /></span><div><strong>Xưởng bản thảo</strong><small>Chương · mục tiêu · tiến độ · Story Bible</small></div></div>
+      ) : mode === "mindmap" ? (
+        <div className="app-topbar-context" aria-label="Thông tin Sơ đồ"><span aria-hidden="true"><Icon name="mindmap" size={18} /></span><div><strong>Linh Đồ ý tưởng</strong><small>Nút · liên kết · cấu trúc · mở về bản thảo</small></div></div>
+      ) : (
+        <div className="app-topbar-context" aria-label="Thông tin Bảng trắng"><span aria-hidden="true"><Icon name="whiteboard" size={18} /></span><div><strong>Bạch Đài sáng tác</strong><small>Phác thảo tự do · hình · nét · bố cục</small></div></div>
       )}
       <div className="app-topbar-actions">
         <div className="app-sync-chip" aria-live="polite"><span className={`app-status-dot ${online ? "is-online" : "is-offline"}`} aria-hidden="true" /><span>{online ? "Đang kết nối" : "Ngoại tuyến"}</span></div>
@@ -191,7 +197,7 @@ export default function App() {
   const searchNotes = (query: string) => { void setSearchQuery(query); navigate("notes"); };
 
   return (
-    <div className="app-shell app-shell--figma flex w-screen overflow-hidden">
+    <div className="app-shell app-shell--figma flex w-screen overflow-hidden" data-mode={mode}>
       <UpdatePrompt />
       <AppRail mode={mode} setMode={navigate} collapsed={railCollapsed} setCollapsed={setRailCollapsed} online={online} onAccount={openAccount} />
       <section className="app-workspace">

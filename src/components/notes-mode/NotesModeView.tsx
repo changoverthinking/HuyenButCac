@@ -55,9 +55,9 @@ export function NotesModeView() {
   async function handleCreateNote() { await createNote(selectedFolderId); setMobileView("editor"); }
 
   return (
-    <div className="flex h-full w-full overflow-hidden">
-      <div className="hidden md:block h-full"><ResponsiveSidebar collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((value) => !value)} /></div>
-      <div className={`w-full ${listCollapsed ? "md:w-14 notes-mode-list-collapsed" : "md:w-80"} shrink-0 border-r h-full flex flex-col ${mobileView === "editor" ? "hidden md:flex" : "flex"}`} style={{ borderColor: "var(--color-border)" }}>
+    <div className="notes-studio flex h-full w-full overflow-hidden">
+      <div className="notes-studio-sidebar hidden md:block h-full"><ResponsiveSidebar collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((value) => !value)} /></div>
+      <div className={`notes-studio-list w-full ${listCollapsed ? "md:w-14 notes-mode-list-collapsed" : "md:w-80"} shrink-0 border-r h-full flex flex-col ${mobileView === "editor" ? "hidden md:flex" : "flex"}`} style={{ borderColor: "var(--color-border)" }}>
         <div className="notes-mode-toolbar p-3 border-b" style={{ borderColor: "var(--color-border)" }}>
           <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Tìm kiếm ghi chú…" className="notes-mode-search flex-1 min-w-0 text-sm px-3 py-2 rounded-lg outline-none border" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)" }} />
           <button onClick={handleCreateNote} disabled={view === "trash"} className="notes-mode-create px-3 py-2 rounded-lg text-sm font-medium inline-flex items-center gap-1" style={{ background: "var(--color-accent)", color: "var(--color-bg)" }} aria-label={view === "trash" ? "Thùng rác" : "Tạo ghi chú"}>
@@ -68,13 +68,13 @@ export function NotesModeView() {
         <div className="notes-mode-list-body flex-1 overflow-y-auto"><NoteList /></div>
       </div>
 
-      <div className={`flex-1 h-full ${mobileView === "list" ? "hidden md:block" : "block"}`}>
+      <div className={`notes-studio-editor flex-1 h-full ${mobileView === "list" ? "hidden md:block" : "block"}`}>
         {selectedNote ? (
-          <div className="h-full flex flex-col">
+          <div className="notes-editor-frame h-full flex flex-col">
             <button className="md:hidden px-4 py-2 text-sm text-left inline-flex items-center gap-1" style={{ color: "var(--color-text-muted)" }} onClick={() => setMobileView("list")}><Icon name="chevron-left" size={15} /> Danh sách</button>
             {selectedNote.locked && !isNoteUnlocked(selectedNote.id) ? <LockedNoteGate note={selectedNote} /> : <NoteEditor key={`${selectedNote.id}-${selectedNote.locked ? "unlocked" : "plain"}`} note={selectedNote} />}
           </div>
-        ) : <div className="h-full flex items-center justify-center" style={{ color: "var(--color-text-muted)" }}>Chọn hoặc tạo một ghi chú để bắt đầu.</div>}
+        ) : <div className="notes-empty-state h-full flex items-center justify-center"><div className="notes-empty-card"><span className="notes-empty-seal"><Icon name="pencil" size={30} /></span><small>TRÚC GIẢN</small><h2>Trang giấy đang chờ nét bút</h2><p>Chọn một ghi chú ở bên trái, hoặc tạo trang mới để bắt đầu viết.</p><button type="button" onClick={() => void handleCreateNote()}><Icon name="plus" size={17} /> Tạo ghi chú mới</button></div></div>}
       </div>
     </div>
   );
