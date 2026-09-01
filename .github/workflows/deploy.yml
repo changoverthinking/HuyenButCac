@@ -41,6 +41,12 @@ jobs:
           VITE_WEB_PUSH_VAPID_PUBLIC_KEY: ${{ vars.VITE_WEB_PUSH_VAPID_PUBLIC_KEY }}
       - run: npm run test
         name: Vitest
+      - name: Đóng gói mã nguồn 0.15.0
+        run: zip -r HuyenButCac-0.15.0-tang-thu.zip . -x '.git/*' 'node_modules/*' 'dist/*' 'HuyenButCac-0.15.0-tang-thu.zip'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HuyenButCac-0.15.0-tang-thu-source
+          path: HuyenButCac-0.15.0-tang-thu.zip
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
