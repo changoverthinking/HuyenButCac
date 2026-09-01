@@ -10,7 +10,7 @@ Chỉ đánh dấu STABLE khi: hoạt động thật, lưu được, reload khô
 | Tailwind v4 (@tailwindcss/vite) + CSS variables | STABLE | 6 theme tokens đã định nghĩa |
 | Zustand store | STABLE | notesStore, foldersStore, uiStore |
 | Dexie (IndexedDB) schema + migration v1 | STABLE | xem `src/database/db.ts` |
-| Chuyển chế độ Notes/Projects/MindMap/Whiteboard/Vạn niên | STABLE | tab desktop + thanh điều hướng di động |
+| Chuyển chế độ Notes/Projects/MindMap/Whiteboard | STABLE | tab desktop + thanh điều hướng di động |
 | PWA manifest + service worker (vite-plugin-pwa) | STABLE | test offline reload OK trên build local |
 | i18n khung (vi mặc định) | IMPLEMENTING | chưa có tiếng Anh/Nhật |
 
@@ -94,18 +94,6 @@ Chỉ đánh dấu STABLE khi: hoạt động thật, lưu được, reload khô
 | Điều khiển Media Session | STABLE | hoạt động khi hệ điều hành/trình duyệt hỗ trợ |
 | Ảnh nền người dùng | STABLE | lưu Blob IndexedDB, thay/xóa và trở về mặc định |
 | Đồng bộ MP3/ảnh nền giữa thiết bị | TODO | hiện chỉ lưu trên thiết bị đã tải lên |
-
-
-## 9. Lịch Vạn Niên & nhắc hạn
-| Hạng mục | Trạng thái | Ghi chú |
-|---|---|---|
-| Dương lịch + Âm lịch Việt Nam + Can Chi | TESTING | regression 8 mốc Tết/Giao thừa/Âm lịch đạt; cần QA thêm trên thiết bị thật |
-| Ghi chú/lịch hẹn theo ngày | TESTING | CRUD, màu, cả ngày, reminder, tombstone scrub |
-| Đồng bộ lịch E2EE theo tài khoản | TESTING | `calendarEvents` nằm trong `SYNC_TABLES` |
-| Notification khi app đang chạy | TESTING | kiểm tra mỗi 30 giây, biên nhận local theo thiết bị |
-| Web Push khi app đóng | TESTING | Supabase Edge Function + pg_cron + delivery receipt theo endpoint; cần cấu hình VAPID/Supabase thực tế |
-| PWA shortcut / badge / cài ra màn hình | TESTING | shortcut Hôm nay/Đặt lịch; install prompt trên nền tảng hỗ trợ |
-| Native live widget iOS/Android | BLOCKED | PWA không có chuẩn widget native đa nền tảng; cần wrapper/native Swift/Kotlin nếu muốn WidgetKit/App Widget |
 
 ---
 **Giới hạn hiện tại:** mã hóa và đồng bộ E2EE đã có implementation và regression test source, nhưng vẫn cần CI/QA trên GitHub Pages và iPhone thật trước khi nâng trạng thái TESTING → STABLE. Cộng tác realtime vẫn chưa triển khai.

@@ -1,22 +1,35 @@
-# THREAT MODEL — Huyền Bút Các (bản đầu, cập nhật theo từng giai đoạn)
+# THREAT MODEL — Huyền Bút Các 0.12.2
 
 ## Tài sản cần bảo vệ
-- Nội dung ghi chú, dự án, mind map, whiteboard của người dùng.
-- (Tương lai) khóa mã hóa dẫn xuất từ mật khẩu/PIN người dùng.
 
-## Kẻ tấn công giả định
-1. Người khác dùng chung thiết bị (không phải kẻ tấn công kỹ thuật cao) → cần khóa PIN/mật khẩu cho note nhạy cảm.
-2. Kẻ tấn công qua mạng khi bật đồng bộ cloud (chưa triển khai) → server chỉ được thấy ciphertext.
-3. XSS qua nội dung import (HTML dán vào, file import) → phải sanitize trước khi render.
-4. Rò rỉ secret qua GitHub repo/Actions log → không commit `.env` thật, dùng GitHub Actions Secrets, bật Secret Scanning + Push Protection.
+- Nội dung ghi chú, dự án, mind map, whiteboard.
+- Workspace local của từng tài khoản.
+- Khóa Kho bảo mật và khóa tạm của ghi chú khóa.
+- Phiên Supabase Authentication.
 
-## Trạng thái hiện tại (checkpoint Giai đoạn 1-3)
-- **Chưa có mã hóa thật.** Ghi chú "khóa" (nếu bật ở giai đoạn 7) sẽ không hiện trong tìm kiếm/preview nhưng cho tới khi AES-GCM được triển khai, dữ liệu trong IndexedDB là plaintext — đây là giới hạn phải nêu rõ với người dùng cuối, không được quảng cáo là "đã mã hóa".
-- **Chưa có đồng bộ/cộng tác** → không có bề mặt tấn công mạng ở checkpoint này.
-- App không gọi network nào ngoài chính asset của nó (không tracker, không analytics).
+## Mối đe dọa chính và biện pháp hiện tại
 
-## Việc phải làm trước khi tuyên bố "bảo mật"
-- [ ] Triển khai AES-GCM + Argon2id thật, test vector rõ ràng.
-- [ ] Sanitize toàn bộ nội dung import (DOMPurify hoặc tương đương) trước khi bật rich HTML import.
-- [ ] CSP nghiêm ngặt trong `index.html`/headers khi deploy.
-- [ ] Audit dependency (`npm audit`) trước mỗi release.
+1. **Người khác đăng nhập tài khoản khác trên cùng trình duyệt**
+   IndexedDB được tách theo workspace `guest`/`userId`; chuyển tài khoản không `clear()` và không dùng chung DB.
+
+2. **Server/cloud đọc nội dung đồng bộ**
+   Payload sync được mã hóa AES-256-GCM trên client. Khóa được dẫn xuất từ mật khẩu Kho bằng PBKDF2-SHA-256 và chỉ giữ trong RAM.
+
+3. **Người khác có quyền xem IndexedDB trên cùng thiết bị**
+   Ghi chú được khóa riêng sẽ mã hóa tiêu đề/nội dung/tag bằng AES-256-GCM. Mật khẩu/key ghi chú không lưu vào IndexedDB/localStorage. Các ghi chú không khóa vẫn là dữ liệu local plaintext trong workspace.
+
+4. **Race condition làm cloud ghi đè nội dung mới**
+   Sync chụp snapshot trước upload và chỉ đánh dấu `synced` nếu record hiện tại vẫn đúng fingerprint snapshot đó. Record `local/pending` không bị remote pull ghi đè.
+
+5. **XSS từ HTML rich-text/sync**
+   HTML contentEditable được sanitize khi lưu và sanitize lại trước khi gán `innerHTML`; loại script, iframe, SVG, event handler và URL nguy hiểm.
+
+6. **Rò secret qua GitHub**
+   `.gitignore` chặn `.env*` (trừ `.env.example`). Frontend chỉ dùng Supabase publishable/anon key; `service_role` không được đưa vào source.
+
+## Giới hạn còn lại
+
+- Ghi chú không bật khóa riêng vẫn nằm plaintext trong IndexedDB local.
+- Nếu thiết bị hoặc trình duyệt đã bị malware/XSS kiểm soát khi người dùng đang mở dữ liệu, mã hóa at-rest không thể bảo vệ nội dung đã giải mã trong RAM.
+- PBKDF2 được dùng vì WebCrypto hỗ trợ native rộng trên PWA; không tuyên bố sử dụng Argon2id.
+- Cần tiếp tục chạy dependency audit và regression test ở CI trước release.
