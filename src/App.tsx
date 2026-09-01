@@ -5,6 +5,7 @@ import { NotesModeView } from "./components/notes-mode/NotesModeView";
 import { ProjectsView } from "./components/projects/ProjectsView";
 import { MindMapView } from "./components/mind-map/MindMapView";
 import { WhiteboardView } from "./components/whiteboard/WhiteboardView";
+import { CalendarView } from "./components/calendar/CalendarView";
 import { MusicPlayer } from "./components/music/MusicPlayer";
 import { Sidebar } from "./components/common/Sidebar";
 import { useProjectsStore } from "./stores/projectsStore";
@@ -17,13 +18,14 @@ import { getActiveWorkspaceUserId, switchWorkspace } from "./database/db";
 import { clearAllNoteUnlockSessions } from "./features/notes/notesService";
 import { lockVault } from "./features/crypto/vaultService";
 
-type Mode = "notes" | "projects" | "mindmap" | "whiteboard";
+type Mode = "notes" | "projects" | "mindmap" | "whiteboard" | "calendar";
 
 const MODE_TABS: { id: Mode; label: string; kicker: string; icon: string }[] = [
   { id: "notes", label: "Ghi chú", kicker: "TRÚC GIẢN", icon: "▤" },
   { id: "projects", label: "Dự án", kicker: "THƯ VIỆN TRUYỆN", icon: "◈" },
   { id: "mindmap", label: "Sơ đồ", kicker: "LINH ĐỒ", icon: "◎" },
   { id: "whiteboard", label: "Bảng trắng", kicker: "BẠCH ĐÀI", icon: "◇" },
+  { id: "calendar", label: "Vạn niên", kicker: "NHẬT NGUYỆT ĐỒ", icon: "曆" },
 ];
 
 function AppRail({
@@ -114,10 +116,17 @@ function AppTopbar({ mode, online, onAccount, onSearch }: { mode: Mode; online: 
         <span>{meta.kicker}</span>
         <h1>{meta.label}</h1>
       </div>
-      <form className="app-topbar-search" onSubmit={(event) => { event.preventDefault(); onSearch(query.trim()); }}>
-        <span aria-hidden="true">⌕</span>
-        <input aria-label="Tìm trong ghi chú" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm trong ghi chú…" />
-      </form>
+      {mode === "calendar" ? (
+        <div className="app-topbar-context" aria-label="Thông tin lịch">
+          <span aria-hidden="true">☾</span>
+          <div><strong>Âm lịch Việt Nam</strong><small>Dương · Âm · Can Chi · Tết Nguyên Đán</small></div>
+        </div>
+      ) : (
+        <form className="app-topbar-search" onSubmit={(event) => { event.preventDefault(); onSearch(query.trim()); }}>
+          <span aria-hidden="true">⌕</span>
+          <input aria-label="Tìm trong ghi chú" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm trong ghi chú…" />
+        </form>
+      )}
       <div className="app-topbar-actions">
         <div className="app-sync-chip" aria-live="polite">
           <span className={`app-status-dot ${online ? "is-online" : "is-offline"}`} aria-hidden="true" />
@@ -295,6 +304,7 @@ export default function App() {
             />
           )}
           {mode === "whiteboard" && <WhiteboardView key={`whiteboard-${syncRevision}`} />}
+          {mode === "calendar" && <CalendarView />}
         </div>
 
         <MusicPlayer />

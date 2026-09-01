@@ -1,8 +1,16 @@
 # Huyền Bút Các (Mystic Notes)
 
-Ứng dụng ghi chú, viết dự án, sơ đồ tư duy và bảng trắng phong cách tu tiên — local-first, offline-first, PWA.
+Ứng dụng ghi chú, viết dự án, sơ đồ tư duy, bảng trắng và Lịch Vạn Niên phong cách tu tiên — local-first, offline-first, PWA.
 
 > **Trạng thái:** Checkpoint 14.1 — local-first, có Thư Viện Truyện, đăng nhập đa thiết bị và đồng bộ được mã hóa qua Supabase. Xem `HUONG_DAN_SUPABASE.md`.
+
+
+## Lịch Vạn Niên
+
+- Xem song song **Dương lịch + Âm lịch Việt Nam (UTC+7)** ngay trên lịch tháng.
+- Mỗi ngày hiển thị **Can Chi ngày**; phần chi tiết hiển thị Can Chi **năm – tháng – ngày** và vị trí trong **Lục Thập Hoa Giáp**.
+- Hiển thị tháng âm nhuận, Can Chi của từng tháng âm, **Tết Nguyên Đán** và các ngày lễ truyền thống.
+- Hoạt động offline, không cần API lịch bên ngoài. Phạm vi giao diện: 1800–2199.
 
 ## Chạy local
 

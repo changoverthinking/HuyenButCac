@@ -16,7 +16,7 @@ export default defineConfig({
         id: APP_CONFIG.appId,
         name: APP_CONFIG.appNameVi,
         short_name: APP_CONFIG.appNameVi,
-        description: "Ghi chú, viết dự án, sơ đồ tư duy và bảng trắng phong cách tu tiên",
+        description: "Ghi chú, viết dự án, sơ đồ tư duy, bảng trắng và Lịch Vạn Niên phong cách tu tiên",
         theme_color: "#0b1418",
         background_color: "#0b1418",
         display: "standalone",

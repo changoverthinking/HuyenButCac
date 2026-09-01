@@ -1,4 +1,4 @@
-# ARCHITECTURE — Huyền Bút Các 0.12.2
+# ARCHITECTURE — Huyền Bút Các 0.13.0
 
 ## Nguyên tắc
 
@@ -70,3 +70,12 @@ Mỗi `syncNow()` chụp cả `user.id` và đúng instance `HuyenButDB` đang h
 ## Autosave tuần tự
 
 `NoteEditor` và `FocusWriter` đưa các lần save vào một Promise queue. Một lần save cũ không thể hoàn thành sau một lần save mới rồi ghi đè dữ liệu mới. `pagehide`/`visibilitychange` cũng gọi flush, và nút thoát Focus Writer chờ flush hoàn tất trước khi đổi màn hình.
+
+## Lịch Vạn Niên
+
+- UI: `src/components/calendar/CalendarView.tsx`.
+- Thuật toán: `src/features/calendar/lunarCalendar.ts`.
+- Không lưu dữ liệu người dùng và không cần Supabase/API mạng.
+- Tính Âm lịch Việt Nam theo UTC+7 từ Julian Day, Sóc, kinh độ Mặt Trời, tháng 11 âm và tháng nhuận.
+- Can Chi ngày dùng chu kỳ Julian liên tục; Can Chi tháng/năm lấy theo năm/tháng âm.
+- Test hồi quy: `src/tests/lunarCalendar.test.ts`.
