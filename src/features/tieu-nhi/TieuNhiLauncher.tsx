@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-const SYSTEM_PROMPT = `Bạn là Tiểu Nhị, trợ lý AI cục bộ của Huyền Bút Các.
+const SYSTEM_PROMPT = `Bạn là Tiểu Nhị, trợ lý AI của Huyền Bút Các.
 - Mặc định trả lời bằng tiếng Việt, rõ ràng, ngắn gọn và đúng trọng tâm.
 - Hỗ trợ viết truyện, xây dựng nhân vật, lập dàn ý, tóm tắt, giải thích, brainstorm và xử lý nội dung người dùng cung cấp.
 - Không được giả vờ rằng bạn đã đọc Tàng Thư, ghi chú, dự án hoặc dữ liệu ứng dụng nếu nội dung đó chưa được cung cấp trong cuộc trò chuyện.
@@ -13,8 +13,12 @@ const SUGGESTIONS = [
   "Gợi ý tên và tính cách nhân vật",
 ];
 
+const PUTER_SCRIPT_ID = "hbc-puter-js";
+const PUTER_SCRIPT_URL = "https://js.puter.com/v2/";
+
 type ChatRole = "user" | "assistant";
 type ChatMessage = { id: string; role: ChatRole; content: string };
+type AiMode = "local" | "online" | null;
 type AiStatus = "idle" | "checking" | "loading" | "ready" | "generating" | "unsupported" | "error";
 type WorkerEventData = {
   status?: string;
@@ -25,12 +29,77 @@ type WorkerEventData = {
   tps?: number;
 };
 
+type PuterChunk = {
+  type?: string;
+  text?: string;
+  message?: string;
+};
+
+type PuterChatMessage = {
+  role: "system" | "user" | "assistant";
+  content: string;
+};
+
+type PuterClient = {
+  ai: {
+    chat: (
+      messages: PuterChatMessage[],
+      options: { stream: true; max_tokens: number; temperature: number },
+    ) => Promise<AsyncIterable<PuterChunk>>;
+  };
+};
+
+type PuterWindow = Window & { puter?: PuterClient };
+
 function makeId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function loadPuter(): Promise<PuterClient> {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return Promise.reject(new Error("Tiểu Nhị Online chỉ hoạt động trong trình duyệt."));
+  }
+
+  const puterWindow = window as PuterWindow;
+  if (puterWindow.puter) return Promise.resolve(puterWindow.puter);
+
+  return new Promise((resolve, reject) => {
+    const finish = () => {
+      if (puterWindow.puter) resolve(puterWindow.puter);
+      else reject(new Error("Không tải được dịch vụ Tiểu Nhị Online."));
+    };
+
+    const existing = document.getElementById(PUTER_SCRIPT_ID) as HTMLScriptElement | null;
+    if (existing) {
+      existing.addEventListener("load", finish, { once: true });
+      existing.addEventListener("error", () => reject(new Error("Không tải được Puter.js.")), { once: true });
+      window.setTimeout(() => {
+        if (!puterWindow.puter) reject(new Error("Kết nối Tiểu Nhị Online quá thời gian chờ."));
+      }, 15_000);
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = PUTER_SCRIPT_ID;
+    script.src = PUTER_SCRIPT_URL;
+    script.async = true;
+    script.addEventListener("load", finish, { once: true });
+    script.addEventListener("error", () => reject(new Error("Không tải được Puter.js.")), { once: true });
+    document.head.appendChild(script);
+
+    window.setTimeout(() => {
+      if (!puterWindow.puter) reject(new Error("Kết nối Tiểu Nhị Online quá thời gian chờ."));
+    }, 15_000);
+  });
+}
+
 export function TieuNhiLauncher() {
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<AiMode>(null);
   const [status, setStatus] = useState<AiStatus>("idle");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -42,16 +111,20 @@ export function TieuNhiLauncher() {
   const workerRef = useRef<Worker | null>(null);
   const pendingLoadRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const generationRef = useRef(0);
 
   const hasWebGpuApi = useMemo(() => typeof navigator !== "undefined" && "gpu" in navigator, []);
 
-  const shutdownWorker = useCallback(() => {
+  const resetAi = useCallback(() => {
+    generationRef.current += 1;
     workerRef.current?.terminate();
     workerRef.current = null;
     pendingLoadRef.current = false;
+    setMode(null);
     setStatus("idle");
     setLoadingText("");
     setProgress(0);
+    setError("");
     setTps(null);
     setNumTokens(null);
   }, []);
@@ -127,42 +200,124 @@ export function TieuNhiLauncher() {
     return worker;
   }, [onWorkerMessage]);
 
-  const loadModel = useCallback(() => {
+  const loadLocalModel = useCallback(() => {
+    generationRef.current += 1;
     workerRef.current?.terminate();
     workerRef.current = null;
     pendingLoadRef.current = false;
+    setMode("local");
     setError("");
     setProgress(0);
     setStatus("checking");
+
     if (!hasWebGpuApi) {
       setStatus("unsupported");
-      setError("Thiết bị hoặc trình duyệt này chưa có WebGPU. Tiểu Nhị local không được bật để tránh chạy quá chậm và nóng máy.");
+      setError("Trình duyệt này không cung cấp WebGPU. Trên iPhone/iPad, AI local cần iOS/iPadOS 26 trở lên. Bạn vẫn có thể dùng Tiểu Nhị Online.");
       return;
     }
+
     pendingLoadRef.current = true;
     ensureWorker().postMessage({ type: "check" });
   }, [ensureWorker, hasWebGpuApi]);
 
+  const enableOnline = useCallback(async () => {
+    generationRef.current += 1;
+    workerRef.current?.terminate();
+    workerRef.current = null;
+    pendingLoadRef.current = false;
+    setMode("online");
+    setError("");
+    setProgress(0);
+    setLoadingText("Đang kết nối Tiểu Nhị Online…");
+    setStatus("loading");
+
+    try {
+      await loadPuter();
+      setLoadingText("");
+      setStatus("ready");
+    } catch (onlineError) {
+      setStatus("error");
+      setError(errorMessage(onlineError, "Không thể kết nối Tiểu Nhị Online."));
+    }
+  }, []);
+
+  const sendOnline = useCallback(async (context: PuterChatMessage[]) => {
+    const generationId = ++generationRef.current;
+    setMessages((current) => [...current, { id: makeId("assistant"), role: "assistant", content: "" }]);
+
+    try {
+      const puter = await loadPuter();
+      const response = await puter.ai.chat(
+        [{ role: "system", content: SYSTEM_PROMPT }, ...context],
+        { stream: true, max_tokens: 512, temperature: 0.7 },
+      );
+
+      for await (const part of response) {
+        if (generationRef.current !== generationId) return;
+        if (part.type === "error") throw new Error(part.message ?? "Dịch vụ AI trả về lỗi.");
+
+        if (part.type === "text" && part.text) {
+          setMessages((current) => {
+            const next = [...current];
+            const last = next[next.length - 1];
+            if (last?.role === "assistant") next[next.length - 1] = { ...last, content: last.content + part.text };
+            return next;
+          });
+        }
+      }
+
+      if (generationRef.current === generationId) setStatus("ready");
+    } catch (onlineError) {
+      if (generationRef.current !== generationId) return;
+      const message = errorMessage(onlineError, "Không thể kết nối dịch vụ AI.");
+      setMessages((current) => {
+        const next = [...current];
+        const last = next[next.length - 1];
+        if (last?.role === "assistant") {
+          next[next.length - 1] = {
+            ...last,
+            content: `Tiểu Nhị Online chưa trả lời được: ${message}`,
+          };
+        }
+        return next;
+      });
+      setStatus("ready");
+    }
+  }, []);
+
   const sendMessage = useCallback((raw: string) => {
     const content = raw.trim();
-    if (!content || status !== "ready") return;
+    if (!content || status !== "ready" || !mode) return;
+
     const userMessage: ChatMessage = { id: makeId("user"), role: "user", content };
     const nextUiMessages = [...messages, userMessage].slice(-30);
-    const context = nextUiMessages.slice(-10).map(({ role, content: messageContent }) => ({ role, content: messageContent }));
+    const context: PuterChatMessage[] = nextUiMessages.slice(-10).map(({ role, content: messageContent }) => ({
+      role,
+      content: messageContent,
+    }));
+
     setMessages(nextUiMessages);
     setInput("");
     setTps(null);
     setNumTokens(null);
     setStatus("generating");
+
+    if (mode === "online") {
+      void sendOnline(context);
+      return;
+    }
+
     ensureWorker().postMessage({
       type: "generate",
       data: { messages: [{ role: "system", content: SYSTEM_PROMPT }, ...context] },
     });
-  }, [ensureWorker, messages, status]);
+  }, [ensureWorker, messages, mode, sendOnline, status]);
 
   const stopGeneration = useCallback(() => {
-    workerRef.current?.postMessage({ type: "interrupt" });
-  }, []);
+    generationRef.current += 1;
+    if (mode === "local") workerRef.current?.postMessage({ type: "interrupt" });
+    setStatus("ready");
+  }, [mode]);
 
   const clearConversation = useCallback(() => {
     if (status === "generating") stopGeneration();
@@ -179,10 +334,10 @@ export function TieuNhiLauncher() {
   useEffect(() => () => workerRef.current?.terminate(), []);
 
   useEffect(() => {
-    if (open || status !== "ready" || typeof window === "undefined" || window.matchMedia("(min-width: 768px)").matches) return;
-    const timer = window.setTimeout(shutdownWorker, 90_000);
+    if (open || mode !== "local" || status !== "ready" || typeof window === "undefined" || window.matchMedia("(min-width: 768px)").matches) return;
+    const timer = window.setTimeout(resetAi, 90_000);
     return () => window.clearTimeout(timer);
-  }, [open, shutdownWorker, status]);
+  }, [mode, open, resetAi, status]);
 
   const closePanel = () => {
     if (status === "generating") stopGeneration();
@@ -191,14 +346,19 @@ export function TieuNhiLauncher() {
 
   const ready = status === "ready";
   const generating = status === "generating";
+  const modeLabel = mode === "local"
+    ? "Qwen3 0.6B · local bằng WebGPU"
+    : mode === "online"
+      ? "Tiểu Nhị Online · tối ưu cho điện thoại"
+      : "Local khi hỗ trợ · Online khi cần";
 
   return (
     <>
       {open && <button type="button" className="tieu-nhi-backdrop" aria-label="Đóng Tiểu Nhị" onClick={closePanel} />}
       {!open && (
-        <button type="button" className="tieu-nhi-fab" onClick={() => setOpen(true)} aria-label="Mở Tiểu Nhị" title="Tiểu Nhị · AI cục bộ">
+        <button type="button" className="tieu-nhi-fab" onClick={() => setOpen(true)} aria-label="Mở Tiểu Nhị" title="Tiểu Nhị · AI hybrid">
           <span className="tieu-nhi-fab-mark" aria-hidden="true">Nhị</span>
-          <span className="tieu-nhi-fab-copy"><strong>Tiểu Nhị</strong><small>AI LOCAL</small></span>
+          <span className="tieu-nhi-fab-copy"><strong>Tiểu Nhị</strong><small>AI HYBRID</small></span>
         </button>
       )}
 
@@ -207,10 +367,10 @@ export function TieuNhiLauncher() {
           <header className="tieu-nhi-header">
             <div className="tieu-nhi-title">
               <span className="tieu-nhi-avatar" aria-hidden="true">Nhị</span>
-              <div><strong>Tiểu Nhị</strong><small>Qwen3 0.6B · chạy cục bộ bằng WebGPU</small></div>
+              <div><strong>Tiểu Nhị</strong><small>{modeLabel}</small></div>
             </div>
             <div className="tieu-nhi-header-actions">
-              {(ready || generating) && <button type="button" onClick={shutdownWorker} title="Giải phóng AI khỏi RAM">Giải phóng RAM</button>}
+              {mode === "local" && (ready || generating) && <button type="button" onClick={resetAi} title="Giải phóng AI khỏi RAM">Giải phóng RAM</button>}
               <button type="button" className="tieu-nhi-icon-button" onClick={closePanel} aria-label="Đóng Tiểu Nhị">×</button>
             </div>
           </header>
@@ -220,10 +380,30 @@ export function TieuNhiLauncher() {
               <div className="tieu-nhi-welcome">
                 <div className="tieu-nhi-seal">Nhị</div>
                 <h2>Khai mở Tiểu Nhị</h2>
-                <p>Tiểu Nhị dùng Qwen3-0.6B chạy trực tiếp trên thiết bị. Model chỉ tải khi bạn chủ động bật AI, không làm nặng Huyền Bút Các lúc khởi động.</p>
-                <div className="tieu-nhi-notice"><strong>Lần đầu cần tải khoảng 570 MB.</strong><span>Nội dung trò chuyện được suy luận trên thiết bị, không gửi tới máy chủ AI.</span></div>
-                <button type="button" className="tieu-nhi-primary" onClick={loadModel}>Khai mở Tiểu Nhị</button>
-                <small>Khuyến nghị Wi‑Fi và thiết bị có WebGPU. Trên điện thoại, Tiểu Nhị tự giải phóng RAM sau 90 giây khi đóng.</small>
+                <p>Tiểu Nhị tự thích nghi theo thiết bị: máy có WebGPU có thể chạy Qwen3 local; iPhone hoặc trình duyệt không hỗ trợ có thể dùng chế độ Online nhẹ hơn.</p>
+
+                {hasWebGpuApi ? (
+                  <>
+                    <div className="tieu-nhi-notice">
+                      <strong>AI local: riêng tư hơn, lần đầu tải khoảng 570 MB.</strong>
+                      <span>Model chỉ tải khi bạn chủ động bật và được chạy trong Web Worker.</span>
+                    </div>
+                    <div className="tieu-nhi-error-actions">
+                      <button type="button" className="tieu-nhi-primary" onClick={loadLocalModel}>Dùng AI local</button>
+                      <button type="button" onClick={() => void enableOnline()}>Dùng Online</button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="tieu-nhi-notice">
+                      <strong>Thiết bị này chưa có WebGPU.</strong>
+                      <span>Trên iPhone/iPad, AI local cần iOS/iPadOS 26+. Bạn có thể dùng Online ngay mà không tải model 570 MB.</span>
+                    </div>
+                    <button type="button" className="tieu-nhi-primary" onClick={() => void enableOnline()}>Dùng Tiểu Nhị Online</button>
+                  </>
+                )}
+
+                <small>Online dùng Puter.js và không nhúng API key vào GitHub. Puter có thể yêu cầu đăng nhập; nội dung chat sẽ được gửi tới dịch vụ AI bên ngoài và hạn mức/chi phí phụ thuộc tài khoản người dùng.</small>
               </div>
             )}
 
@@ -231,18 +411,23 @@ export function TieuNhiLauncher() {
               <div className="tieu-nhi-loading" aria-live="polite">
                 <div className="tieu-nhi-spinner" aria-hidden="true" />
                 <strong>{status === "checking" ? "Đang kiểm tra WebGPU…" : loadingText || "Đang tải Tiểu Nhị…"}</strong>
-                <div className="tieu-nhi-progress"><span style={{ width: `${progress}%` }} /></div>
-                <small>{progress > 0 ? `${Math.round(progress)}%` : "Lần đầu có thể mất một lúc tùy tốc độ mạng."}</small>
+                {mode === "local" && <div className="tieu-nhi-progress"><span style={{ width: `${progress}%` }} /></div>}
+                <small>
+                  {mode === "local"
+                    ? progress > 0 ? `${Math.round(progress)}%` : "Lần đầu có thể mất một lúc tùy tốc độ mạng."
+                    : "Không tải model AI xuống điện thoại."}
+                </small>
               </div>
             )}
 
             {(status === "unsupported" || status === "error") && (
               <div className="tieu-nhi-error">
-                <strong>{status === "unsupported" ? "Thiết bị chưa phù hợp" : "Không thể khởi tạo Tiểu Nhị"}</strong>
+                <strong>{status === "unsupported" ? "AI local chưa dùng được trên thiết bị này" : "Không thể khởi tạo Tiểu Nhị"}</strong>
                 <p>{error}</p>
                 <div className="tieu-nhi-error-actions">
-                  <button type="button" onClick={shutdownWorker}>Đóng AI local</button>
-                  {status === "error" && <button type="button" className="tieu-nhi-primary" onClick={loadModel}>Thử lại</button>}
+                  <button type="button" onClick={resetAi}>Quay lại</button>
+                  {mode !== "online" && <button type="button" className="tieu-nhi-primary" onClick={() => void enableOnline()}>Dùng Online</button>}
+                  {mode === "online" && <button type="button" className="tieu-nhi-primary" onClick={() => void enableOnline()}>Thử Online lại</button>}
                 </div>
               </div>
             )}
@@ -252,7 +437,11 @@ export function TieuNhiLauncher() {
                 <div className="tieu-nhi-messages">
                   {messages.length === 0 ? (
                     <div className="tieu-nhi-empty">
-                      <p>Tiểu Nhị đã sẵn sàng. Bản đầu tập trung vào trò chuyện, viết và phân tích nội dung; chưa tự ý đọc hay sửa dữ liệu Tàng Thư.</p>
+                      <p>
+                        {mode === "online"
+                          ? "Tiểu Nhị Online đã sẵn sàng. Tin nhắn sẽ được gửi qua Puter tới dịch vụ AI bên ngoài; lần sử dụng đầu có thể yêu cầu đăng nhập."
+                          : "Tiểu Nhị local đã sẵn sàng. Nội dung được suy luận trên thiết bị; bản này chưa tự ý đọc hay sửa dữ liệu Tàng Thư."}
+                      </p>
                       <div className="tieu-nhi-suggestions">
                         {SUGGESTIONS.map((suggestion) => <button key={suggestion} type="button" onClick={() => sendMessage(suggestion)}>{suggestion}</button>)}
                       </div>
@@ -267,7 +456,8 @@ export function TieuNhiLauncher() {
                 </div>
                 <div className="tieu-nhi-chat-meta">
                   <button type="button" onClick={clearConversation} disabled={messages.length === 0}>Xóa đoạn chat</button>
-                  {tps !== null && numTokens !== null && <span>{tps.toFixed(1)} token/s · {numTokens} token</span>}
+                  {mode === "online" && <span>ONLINE · PUTER</span>}
+                  {mode === "local" && tps !== null && numTokens !== null && <span>{tps.toFixed(1)} token/s · {numTokens} token</span>}
                 </div>
               </div>
             )}
