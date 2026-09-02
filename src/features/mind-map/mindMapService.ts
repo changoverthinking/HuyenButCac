@@ -1,6 +1,6 @@
 import { v4 as uuid } from "uuid";
 import { db } from "../../database/db";
-import type { MindMap, MindMapEdge, MindMapEdgeType, MindMapNode } from "../../types/entities";
+import type { MindMap, MindMapEdge, MindMapEdgeType, MindMapNode, ProjectChapter, ProjectSection } from "../../types/entities";
 
 const base = () => ({
   createdAt: Date.now(),
@@ -15,10 +15,210 @@ export function getMindMapEdgeType(edge: MindMapEdge): MindMapEdgeType {
   return edge.edgeType ?? "tree";
 }
 
+const byVisualOrder = (a: MindMapNode, b: MindMapNode) =>
+  a.y - b.y || a.x - b.x || a.createdAt - b.createdAt || a.id.localeCompare(b.id);
+
+const cleanTitle = (value: string, fallback: string) => value.trim() || fallback;
+
+function isProjectStructureChange(
+  changes: Partial<Pick<MindMapNode, "title" | "x" | "y" | "color" | "collapsed" | "parentId" | "linkType" | "linkId">>,
+) {
+  return "title" in changes || "parentId" in changes || "linkType" in changes || "linkId" in changes;
+}
+
+/**
+ * Đồng bộ thay đổi từ sơ đồ cây ngược về dự án.
+ *
+ * Quy tắc:
+ * - node gốc liên kết với project và tên node gốc là tên dự án;
+ * - nhánh mới trực tiếp dưới project trở thành Section;
+ * - nhánh mới dưới Section trở thành Chapter;
+ * - nhánh mới dưới Chapter trở thành Chapter cùng Section với chapter cha;
+ * - ô tự do (parentId = null) không tự tạo dữ liệu dự án;
+ * - thay đổi parent của Chapter sẽ cập nhật sectionId;
+ * - bố cục x/y, màu, collapse và liên kết tự do không làm thay đổi dự án.
+ */
+export async function syncProjectFromMindMap(mapId: string): Promise<void> {
+  const map = await db.mindMaps.get(mapId);
+  if (!map || map.deletedAt !== null || !map.projectId) return;
+
+  const project = await db.projects.get(map.projectId);
+  if (!project || project.deletedAt !== null) return;
+
+  let nodes = await db.mindMapNodes
+    .where("mapId")
+    .equals(mapId)
+    .filter((node) => node.deletedAt === null)
+    .toArray();
+  if (!nodes.length) return;
+  nodes.sort(byVisualOrder);
+
+  const rootCandidates = nodes
+    .filter((node) => node.parentId === null)
+    .sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+  let root = nodes.find((node) => node.linkType === "project" && node.linkId === project.id)
+    ?? rootCandidates.find((node) => node.linkType === "project" || node.linkId === project.id)
+    ?? rootCandidates[0];
+  if (!root) return;
+
+  if (root.linkType !== "project" || root.linkId !== project.id) {
+    const linkedAt = Date.now();
+    await db.mindMapNodes.update(root.id, {
+      linkType: "project",
+      linkId: project.id,
+      updatedAt: linkedAt,
+    });
+    root = { ...root, linkType: "project", linkId: project.id, updatedAt: linkedAt };
+  }
+
+  const projectTitle = cleanTitle(root.title, project.title);
+  if (project.title !== projectTitle) {
+    await db.projects.update(project.id, { title: projectTitle, updatedAt: Date.now() });
+  }
+  if (map.title !== projectTitle) {
+    await db.mindMaps.update(map.id, { title: projectTitle, updatedAt: Date.now() });
+  }
+
+  const sections = await db.projectSections
+    .where("projectId")
+    .equals(project.id)
+    .filter((item) => item.deletedAt === null)
+    .toArray();
+  const chapters = await db.projectChapters
+    .where("projectId")
+    .equals(project.id)
+    .filter((item) => item.deletedAt === null)
+    .toArray();
+  const sectionsById = new Map(sections.map((item) => [item.id, item]));
+  const chaptersById = new Map(chapters.map((item) => [item.id, item]));
+  const nodesById = new Map(nodes.map((node) => [node.id, node]));
+
+  // Trước tiên đồng bộ tên của các node đã có liên kết ổn định.
+  for (const node of nodes) {
+    if (node.linkType === "section" && node.linkId) {
+      const section = sectionsById.get(node.linkId);
+      if (section) {
+        const title = cleanTitle(node.title, section.title);
+        if (title !== section.title) {
+          const updatedAt = Date.now();
+          const updated = { ...section, title, updatedAt };
+          await db.projectSections.put(updated);
+          sectionsById.set(updated.id, updated);
+        }
+      }
+    } else if (node.linkType === "chapter" && node.linkId) {
+      const chapter = chaptersById.get(node.linkId);
+      if (chapter) {
+        const title = cleanTitle(node.title, chapter.title);
+        if (title !== chapter.title) {
+          const updatedAt = Date.now();
+          const updated = { ...chapter, title, updatedAt };
+          await db.projectChapters.put(updated);
+          chaptersById.set(updated.id, updated);
+        }
+      }
+    }
+  }
+
+  // Node chưa có link được giữ nguyên. Chỉ addMindMapNode() mới tự nhận nhánh mới vào dự án,
+  // nhờ vậy node từng bị project-side delete/unlink sẽ không bị vô tình "hồi sinh".
+
+  // Sau khi mọi nhánh mới đã được gắn link, cập nhật cấu trúc Section của các Chapter.
+  for (const node of nodesById.values()) {
+    if (node.linkType !== "chapter" || !node.linkId) continue;
+    const chapter = chaptersById.get(node.linkId);
+    if (!chapter) continue;
+
+    const parent = node.parentId ? nodesById.get(node.parentId) : null;
+    let sectionId = chapter.sectionId;
+    if (!parent || (parent.linkType === "project" && parent.linkId === project.id)) {
+      sectionId = null;
+    } else if (parent.linkType === "section" && parent.linkId && sectionsById.has(parent.linkId)) {
+      sectionId = parent.linkId;
+    } else if (parent.linkType === "chapter" && parent.linkId) {
+      const parentChapter = chaptersById.get(parent.linkId);
+      if (parentChapter) sectionId = parentChapter.sectionId;
+    }
+
+    if (sectionId !== chapter.sectionId) {
+      const order = [...chaptersById.values()]
+        .filter((item) => item.id !== chapter.id && item.sectionId === sectionId)
+        .reduce((max, item) => Math.max(max, item.order), -1) + 1;
+      const updatedAt = Date.now();
+      const updated = { ...chapter, sectionId, order, updatedAt };
+      await db.projectChapters.put(updated);
+      chaptersById.set(updated.id, updated);
+    }
+  }
+}
+
+
+/** Gắn một nhánh VỪA được người dùng tạo vào project tương ứng. */
+async function linkNewNodeToProject(node: MindMapNode): Promise<MindMapNode> {
+  if (!node.parentId || node.linkType || node.linkId) return node;
+  const map = await db.mindMaps.get(node.mapId);
+  if (!map || map.deletedAt !== null || !map.projectId) return node;
+  const project = await db.projects.get(map.projectId);
+  if (!project || project.deletedAt !== null) return node;
+
+  const parent = await db.mindMapNodes.get(node.parentId);
+  if (!parent || parent.deletedAt !== null || parent.mapId !== node.mapId) return node;
+
+  const title = cleanTitle(node.title, "Nhánh mới");
+  if (parent.linkType === "project" && parent.linkId === project.id) {
+    const sections = await db.projectSections
+      .where("projectId")
+      .equals(project.id)
+      .filter((item) => item.deletedAt === null)
+      .toArray();
+    const order = sections.reduce((max, item) => Math.max(max, item.order), -1) + 1;
+    const section: ProjectSection = { id: uuid(), projectId: project.id, title, order, ...base() };
+    await db.projectSections.add(section);
+    const updatedAt = Date.now();
+    await db.mindMapNodes.update(node.id, { linkType: "section", linkId: section.id, updatedAt });
+    return { ...node, linkType: "section", linkId: section.id, updatedAt };
+  }
+
+  let sectionId: string | null | undefined;
+  if (parent.linkType === "section" && parent.linkId) {
+    const section = await db.projectSections.get(parent.linkId);
+    if (section && section.deletedAt === null && section.projectId === project.id) sectionId = section.id;
+  } else if (parent.linkType === "chapter" && parent.linkId) {
+    const parentChapter = await db.projectChapters.get(parent.linkId);
+    if (parentChapter && parentChapter.deletedAt === null && parentChapter.projectId === project.id) {
+      sectionId = parentChapter.sectionId;
+    }
+  }
+  if (sectionId === undefined) return node;
+
+  const chapters = await db.projectChapters
+    .where("projectId")
+    .equals(project.id)
+    .filter((item) => item.deletedAt === null && item.sectionId === sectionId)
+    .toArray();
+  const order = chapters.reduce((max, item) => Math.max(max, item.order), -1) + 1;
+  const chapter: ProjectChapter = {
+    id: uuid(), projectId: project.id, sectionId, title, contentHtml: "", contentText: "",
+    order, wordCount: 0, synopsis: "", ...base(),
+  };
+  await db.projectChapters.add(chapter);
+  const updatedAt = Date.now();
+  await db.mindMapNodes.update(node.id, { linkType: "chapter", linkId: chapter.id, updatedAt });
+  return { ...node, linkType: "chapter", linkId: chapter.id, updatedAt };
+}
+
 export async function createMindMap(title = "Sơ đồ chưa đặt tên", projectId: string | null = null) {
   const map: MindMap = { id: uuid(), title, projectId, ...base() };
   await db.mindMaps.add(map);
-  const root = await addMindMapNode(map.id, null, "Chủ đề trung tâm", 380, 220);
+  const root = await addMindMapNode(
+    map.id,
+    null,
+    projectId ? title : "Chủ đề trung tâm",
+    380,
+    220,
+    projectId ? { linkType: "project", linkId: projectId } : undefined,
+    false,
+  );
   return { map, root };
 }
 
@@ -49,7 +249,8 @@ export async function addMindMapNode(
   title: string,
   x: number,
   y: number,
-  link?: Pick<MindMapNode, "linkType" | "linkId">
+  link?: Pick<MindMapNode, "linkType" | "linkId">,
+  syncProject = true,
 ) {
   const node: MindMapNode = {
     id: uuid(),
@@ -77,14 +278,31 @@ export async function addMindMapNode(
     };
     await db.mindMapEdges.add(edge);
   }
-  return node;
+  let result = node;
+  if (syncProject) {
+    result = await linkNewNodeToProject(node);
+    await syncProjectFromMindMap(mapId);
+  }
+  return (await db.mindMapNodes.get(node.id)) ?? result;
 }
 
 export const getMapGraph = async (mapId: string) => {
   const map = await db.mindMaps.get(mapId);
   if (!map || map.deletedAt !== null) return { nodes: [], edges: [] };
   let nodes = await db.mindMapNodes.where("mapId").equals(mapId).filter((node) => node.deletedAt === null).toArray();
-  if (nodes.length === 0) nodes = [await addMindMapNode(mapId, null, "Chủ đề trung tâm", 380, 220)];
+  if (nodes.length === 0) {
+    const project = map.projectId ? await db.projects.get(map.projectId) : null;
+    const title = project && project.deletedAt === null ? project.title : "Chủ đề trung tâm";
+    nodes = [await addMindMapNode(
+      mapId,
+      null,
+      title,
+      380,
+      220,
+      project && project.deletedAt === null ? { linkType: "project", linkId: project.id } : undefined,
+      false,
+    )];
+  }
   nodes.sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
   const nodeIds = new Set(nodes.map((node) => node.id));
   const edges = await db.mindMapEdges
@@ -95,10 +313,18 @@ export const getMapGraph = async (mapId: string) => {
   return { nodes, edges };
 };
 
-export const updateMindMapNode = (
+export async function updateMindMapNode(
   id: string,
-  changes: Partial<Pick<MindMapNode, "title" | "x" | "y" | "color" | "collapsed" | "parentId" | "linkType" | "linkId">>
-) => db.mindMapNodes.update(id, { ...changes, updatedAt: Date.now() });
+  changes: Partial<Pick<MindMapNode, "title" | "x" | "y" | "color" | "collapsed" | "parentId" | "linkType" | "linkId">>,
+  syncProject = true,
+) {
+  const updated = await db.mindMapNodes.update(id, { ...changes, updatedAt: Date.now() });
+  if (updated && syncProject && isProjectStructureChange(changes)) {
+    const node = await db.mindMapNodes.get(id);
+    if (node && node.deletedAt === null) await syncProjectFromMindMap(node.mapId);
+  }
+  return updated;
+}
 
 /**
  * Tạo liên kết tự do giữa hai ô. Liên kết này không thay đổi parentId,
@@ -152,6 +378,7 @@ export async function deleteMindMapEdge(id: string) {
     }
     await db.mindMapEdges.update(id, { deletedAt, updatedAt: deletedAt });
   });
+  if (getMindMapEdgeType(edge) === "tree") await syncProjectFromMindMap(edge.mapId);
 }
 
 /**
@@ -175,9 +402,9 @@ export async function createOrSyncProjectMap(projectId: string) {
 
   let root = nodes.find((item) => item.linkType === "project" && item.linkId === projectId) ?? nodes.find((item) => item.parentId === null);
   if (!root) {
-    root = await addMindMapNode(map.id, null, project.title, 100, 180, { linkType: "project", linkId: projectId });
+    root = await addMindMapNode(map.id, null, project.title, 100, 180, { linkType: "project", linkId: projectId }, false);
   } else {
-    await updateMindMapNode(root.id, { title: project.title, linkType: "project", linkId: projectId });
+    await updateMindMapNode(root.id, { title: project.title, linkType: "project", linkId: projectId }, false);
   }
 
   nodes = await db.mindMapNodes.where("mapId").equals(map.id).filter((item) => item.deletedAt === null).toArray();
@@ -188,10 +415,10 @@ export async function createOrSyncProjectMap(projectId: string) {
     const section = sections[index];
     let node = byLink.get(section.id);
     if (!node) {
-      node = await addMindMapNode(map.id, root.id, section.title, 340, 70 + index * 150, { linkType: "section", linkId: section.id });
+      node = await addMindMapNode(map.id, root.id, section.title, 340, 70 + index * 150, { linkType: "section", linkId: section.id }, false);
       byLink.set(section.id, node);
     } else {
-      await updateMindMapNode(node.id, { title: section.title, linkType: "section", linkId: section.id });
+      await updateMindMapNode(node.id, { title: section.title, linkType: "section", linkId: section.id }, false);
     }
     sectionNodes.set(section.id, node);
   }
@@ -206,11 +433,11 @@ export async function createOrSyncProjectMap(projectId: string) {
       ? chapters.filter((item) => item.sectionId === chapter.sectionId).findIndex((item) => item.id === chapter.id)
       : unsectioned.findIndex((item) => item.id === chapter.id);
     if (!node) {
-      node = await addMindMapNode(map.id, parent.id, chapter.title, chapter.sectionId ? 610 : 340, parent.y + siblingIndex * 62, { linkType: "chapter", linkId: chapter.id });
+      node = await addMindMapNode(map.id, parent.id, chapter.title, chapter.sectionId ? 610 : 340, parent.y + siblingIndex * 62, { linkType: "chapter", linkId: chapter.id }, false);
       byLink.set(chapter.id, node);
     } else {
       // Không đụng vào node.parentId/x/y: đây là quyền tự do bố trí của người viết.
-      await updateMindMapNode(node.id, { title: chapter.title, linkType: "chapter", linkId: chapter.id });
+      await updateMindMapNode(node.id, { title: chapter.title, linkType: "chapter", linkId: chapter.id }, false);
     }
   }
 
@@ -254,8 +481,19 @@ export async function resolveNodeLink(node: MindMapNode) {
 }
 
 export async function deleteMindMapNode(id: string) {
-  const node = await db.mindMapNodes.get(id);
+  let node = await db.mindMapNodes.get(id);
   if (!node || node.deletedAt !== null) return;
+
+  // Gắn link cho dữ liệu cây cũ trước khi xóa để thao tác xóa cũng phản ánh chính xác về dự án.
+  await syncProjectFromMindMap(node.mapId);
+  node = await db.mindMapNodes.get(id);
+  if (!node || node.deletedAt !== null) return;
+
+  const map = await db.mindMaps.get(node.mapId);
+  if (map?.projectId && node.linkType === "project" && node.linkId === map.projectId) {
+    throw new Error("Không thể xóa nút gốc của dự án từ sơ đồ. Hãy xóa dự án hoặc xóa toàn bộ sơ đồ nếu không còn cần.");
+  }
+
   const activeNodes = await db.mindMapNodes.where("mapId").equals(node.mapId).filter((item) => item.deletedAt === null).toArray();
   if (activeNodes.length <= 1) throw new Error("Không thể xóa ô cuối cùng. Sơ đồ phải còn ít nhất một ô.");
 
@@ -264,7 +502,37 @@ export async function deleteMindMapNode(id: string) {
   const children = activeNodes.filter((item) => item.parentId === id);
   const edges = await db.mindMapEdges.where("mapId").equals(node.mapId).filter((edge) => edge.deletedAt === null).toArray();
 
-  await db.transaction("rw", db.mindMapNodes, db.mindMapEdges, async () => {
+  await db.transaction("rw", db.mindMapNodes, db.mindMapEdges, db.projectSections, db.projectChapters, async () => {
+    if (map?.projectId && node.linkType === "chapter" && node.linkId) {
+      const chapter = await db.projectChapters.get(node.linkId);
+      if (chapter && chapter.deletedAt === null && chapter.projectId === map.projectId) {
+        await db.projectChapters.update(chapter.id, { deletedAt, updatedAt: deletedAt });
+      }
+    }
+
+    if (map?.projectId && node.linkType === "section" && node.linkId) {
+      const section = await db.projectSections.get(node.linkId);
+      if (section && section.deletedAt === null && section.projectId === map.projectId) {
+        await db.projectSections.update(section.id, { deletedAt, updatedAt: deletedAt });
+        const sectionChapters = await db.projectChapters
+          .filter((chapter) => chapter.deletedAt === null && chapter.projectId === map.projectId && chapter.sectionId === section.id)
+          .toArray();
+        const rootChapters = await db.projectChapters
+          .filter((chapter) => chapter.deletedAt === null && chapter.projectId === map.projectId && chapter.sectionId === null)
+          .toArray();
+        let nextOrder = rootChapters.reduce((max, chapter) => Math.max(max, chapter.order), -1) + 1;
+        if (sectionChapters.length) {
+          const moved = sectionChapters.sort((a, b) => a.order - b.order).map((chapter) => ({
+            ...chapter,
+            sectionId: null,
+            order: nextOrder++,
+            updatedAt: deletedAt,
+          }));
+          await db.projectChapters.bulkPut(moved);
+        }
+      }
+    }
+
     for (const child of children) {
       await db.mindMapNodes.update(child.id, { parentId: parent?.id ?? null, updatedAt: deletedAt });
     }
@@ -296,4 +564,6 @@ export async function deleteMindMapNode(id: string) {
     const incidentEdges = edges.filter((edge) => edge.sourceId === id || edge.targetId === id);
     if (incidentEdges.length) await db.mindMapEdges.bulkPut(incidentEdges.map((edge) => ({ ...edge, deletedAt, updatedAt: deletedAt })));
   });
+
+  await syncProjectFromMindMap(node.mapId);
 }
