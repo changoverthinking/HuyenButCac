@@ -1,29 +1,17 @@
 /*
- * Huyền Bút Các — Full App Background + Mobile Music Seam Fix
- * File này phải được import SAU app-enhancements.css.
- *
- * Mục tiêu:
- * 1) Ảnh nền người dùng phủ toàn bộ app thay vì chỉ lớp vỏ ngoài.
- * 2) Xóa đường ngang thừa do Tiên Âm Các bị UI V2 ép position:relative trên mobile.
+ * Huyền Bút Các — nền/giao diện toàn bộ tab + mobile seam fix
+ * File này được import sau app-enhancements.css.
  */
 
-/* ==========================================================================
-   1. ẢNH NỀN TOÀN APP
-   ========================================================================== */
+/* =========================
+   1) NỀN CHUNG TOÀN ỨNG DỤNG
+   ========================= */
 
 .app-shell.app-shell--figma {
   background-color: var(--color-bg);
   background-image:
-    radial-gradient(
-      circle at 10% 3%,
-      color-mix(in srgb, var(--color-accent) 10%, transparent),
-      transparent 24rem
-    ),
-    radial-gradient(
-      circle at 92% 96%,
-      color-mix(in srgb, var(--music-metal) 8%, transparent),
-      transparent 28rem
-    ),
+    radial-gradient(circle at 10% 3%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 24rem),
+    radial-gradient(circle at 92% 96%, color-mix(in srgb, var(--music-metal) 8%, transparent), transparent 28rem),
     linear-gradient(
       180deg,
       color-mix(in srgb, var(--color-bg) 38%, transparent),
@@ -35,35 +23,21 @@
   background-repeat: no-repeat;
 }
 
-/*
- * UI V2 trước đây dùng các bề mặt gần như đặc, nên dù --custom-background đã
- * được lưu đúng trong IndexedDB thì ảnh vẫn bị che. Các lớp chính dưới đây
- * được chuyển thành kính mờ/bán trong suốt; card và editor vẫn giữ nền riêng
- * để chữ dễ đọc.
- */
 .app-shell--figma .app-workspace {
   background:
-    radial-gradient(
-      circle at 76% -12%,
-      color-mix(in srgb, var(--color-accent) 6%, transparent),
-      transparent 28rem
-    ),
-    color-mix(in srgb, var(--color-surface) 58%, transparent) !important;
+    radial-gradient(circle at 76% -12%, color-mix(in srgb, var(--color-accent) 6%, transparent), transparent 28rem),
+    color-mix(in srgb, var(--color-surface) 56%, transparent) !important;
   -webkit-backdrop-filter: blur(8px) saturate(1.06);
   backdrop-filter: blur(8px) saturate(1.06);
 }
 
 .app-shell--figma .app-content {
-  background: color-mix(in srgb, var(--color-bg) 18%, transparent) !important;
+  background: color-mix(in srgb, var(--color-bg) 12%, transparent) !important;
 }
 
 .app-shell--figma .app-rail {
   background:
-    radial-gradient(
-      circle at 32% -4%,
-      color-mix(in srgb, var(--color-accent) 10%, transparent),
-      transparent 16rem
-    ),
+    radial-gradient(circle at 32% -4%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 16rem),
     color-mix(in srgb, var(--color-surface) 72%, transparent) !important;
   -webkit-backdrop-filter: blur(14px) saturate(1.08);
   backdrop-filter: blur(14px) saturate(1.08);
@@ -77,53 +51,217 @@
   backdrop-filter: blur(14px) saturate(1.08);
 }
 
-/* Sidebar mở từ menu trên điện thoại cũng hòa với ảnh nền chung. */
 .app-shell--figma .responsive-sidebar {
   background: color-mix(in srgb, var(--color-surface) 82%, transparent) !important;
   -webkit-backdrop-filter: blur(16px) saturate(1.08);
   backdrop-filter: blur(16px) saturate(1.08);
 }
 
-/* Các vùng làm việc lớn không được tự phủ một tấm màu kín lên ảnh nền. */
-.app-shell--figma .library-view,
-.app-shell--figma .notes-studio {
-  background-color: transparent !important;
+/* =========================
+   2) GHI CHÚ
+   ========================= */
+
+.app-shell--figma[data-mode="notes"] .notes-studio,
+.app-shell--figma[data-mode="notes"] .note-editor-shell,
+.app-shell--figma[data-mode="notes"] .notes-empty-state {
+  background: transparent !important;
 }
 
-/*
- * Card/editor vẫn phải dễ đọc. Không làm toàn bộ UI trong suốt hoàn toàn,
- * nếu không chữ sẽ chìm vào ảnh sáng/tối của người dùng.
- */
-.app-shell--figma .library-card,
-.app-shell--figma .library-tools,
-.app-shell--figma .notes-studio-sidebar,
-.app-shell--figma .notes-studio-list,
-.app-shell--figma .notes-studio-editor,
-.app-shell--figma .project-card,
-.app-shell--figma .story-card,
-.app-shell--figma .kanban-column,
-.app-shell--figma .mindmap-panel,
-.app-shell--figma .van-nien-calendar-card,
-.app-shell--figma .van-nien-day-detail,
-.app-shell--figma .van-nien-month-events {
+.app-shell--figma[data-mode="notes"] .notes-studio-sidebar,
+.app-shell--figma[data-mode="notes"] .notes-studio-list {
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--color-surface) 70%, transparent),
+      color-mix(in srgb, var(--color-surface-alt) 58%, transparent)
+    ) !important;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.app-shell--figma[data-mode="notes"] .notes-studio-editor {
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--color-editor-bg) 68%, transparent),
+      color-mix(in srgb, var(--color-editor-bg) 58%, transparent)
+    ) !important;
   -webkit-backdrop-filter: blur(7px);
   backdrop-filter: blur(7px);
 }
 
-/* ==========================================================================
-   2. XÓA ĐƯỜNG NGANG THỪA TRÊN MOBILE
-   ========================================================================== */
+.app-shell--figma[data-mode="notes"] .note-editor-canvas {
+  background-color: color-mix(in srgb, var(--color-editor-bg) 56%, transparent) !important;
+}
 
-/*
- * app-enhancements.css có selector:
- * .app-shell--figma .app-workspace > :not(.fixed) { position:relative; ... }
- *
- * MusicPlayer không mang class "fixed", nên selector đó thắng rule mobile
- * position:fixed. Kết quả: section Tiên Âm Các rơi trở lại document flow và
- * border-top của nó tạo một đường ngang ở mọi tab.
- *
- * Ép player trở lại fixed với !important để không còn chiếm chỗ trong layout.
- */
+.app-shell--figma[data-mode="notes"] .note-editor-toolbar,
+.app-shell--figma[data-mode="notes"] .notes-mode-toolbar {
+  background: color-mix(in srgb, var(--color-surface) 68%, transparent) !important;
+}
+
+/* =========================
+   3) TÀNG THƯ
+   ========================= */
+
+.app-shell--figma[data-mode="library"] .library-view,
+.app-shell--figma[data-mode="library"] .library-grid {
+  background: transparent !important;
+}
+
+.app-shell--figma[data-mode="library"] .library-tools,
+.app-shell--figma[data-mode="library"] .library-card {
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--color-surface) 72%, transparent),
+      color-mix(in srgb, var(--color-surface-alt) 58%, transparent)
+    ) !important;
+  -webkit-backdrop-filter: blur(9px);
+  backdrop-filter: blur(9px);
+}
+
+/* =========================
+   4) DỰ ÁN
+   ========================= */
+
+.app-shell--figma[data-mode="projects"] .projects-view,
+.app-shell--figma[data-mode="projects"] .projects-shell,
+.app-shell--figma[data-mode="projects"] .project-workspace,
+.app-shell--figma[data-mode="projects"] .project-detail,
+.app-shell--figma[data-mode="projects"] .project-board {
+  background: transparent !important;
+}
+
+.app-shell--figma[data-mode="projects"] .project-card,
+.app-shell--figma[data-mode="projects"] .story-card,
+.app-shell--figma[data-mode="projects"] .kanban-column,
+.app-shell--figma[data-mode="projects"] .codex-card {
+  background:
+    linear-gradient(
+      150deg,
+      color-mix(in srgb, var(--color-surface) 72%, transparent),
+      color-mix(in srgb, var(--color-surface-alt) 57%, transparent)
+    ) !important;
+  -webkit-backdrop-filter: blur(9px);
+  backdrop-filter: blur(9px);
+}
+
+/* =========================
+   5) SƠ ĐỒ
+   MindMapView có inline background var(--color-canvas-bg)
+   ========================= */
+
+.app-shell--figma[data-mode="mindmap"] .app-content > div,
+.app-shell--figma[data-mode="mindmap"] .app-content main {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.app-shell--figma[data-mode="mindmap"] .app-content main {
+  background-image:
+    radial-gradient(
+      circle,
+      color-mix(in srgb, var(--color-border) 36%, transparent) 1px,
+      transparent 1.3px
+    ) !important;
+  background-size: 24px 24px !important;
+}
+
+.app-shell--figma[data-mode="mindmap"] .canvas-toolbars > div,
+.app-shell--figma[data-mode="mindmap"] .mindmap-panel {
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent) !important;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+/* Thanh công cụ mobile của Sơ đồ có inline var(--color-surface). */
+.app-shell--figma[data-mode="mindmap"] .app-content > div > div.md\:hidden {
+  background: color-mix(in srgb, var(--color-surface) 72%, transparent) !important;
+}
+
+/* =========================
+   6) BẢNG TRẮNG
+   WhiteboardView có inline backgroundColor/backgroundImage
+   ========================= */
+
+.app-shell--figma[data-mode="whiteboard"] .whiteboard-canvas {
+  background-color: transparent !important;
+  background-image:
+    radial-gradient(
+      color-mix(in srgb, var(--color-border) 42%, transparent) 1px,
+      transparent 1px
+    ) !important;
+}
+
+.app-shell--figma[data-mode="whiteboard"] .whiteboard-toolbar {
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent) !important;
+  -webkit-backdrop-filter: blur(11px);
+  backdrop-filter: blur(11px);
+}
+
+.app-shell--figma[data-mode="whiteboard"] .whiteboard-canvas [contenteditable="true"],
+.app-shell--figma[data-mode="whiteboard"] .whiteboard-canvas textarea,
+.app-shell--figma[data-mode="whiteboard"] .whiteboard-canvas input {
+  background: color-mix(in srgb, var(--color-surface) 78%, transparent) !important;
+}
+
+/* =========================
+   7) VẠN NIÊN
+   ========================= */
+
+.app-shell--figma[data-mode="calendar"] .van-nien-view,
+.app-shell--figma[data-mode="calendar"] .van-nien-layout,
+.app-shell--figma[data-mode="calendar"] .van-nien-shell {
+  background: transparent !important;
+}
+
+.app-shell--figma[data-mode="calendar"] .van-nien-calendar-card,
+.app-shell--figma[data-mode="calendar"] .van-nien-day-detail,
+.app-shell--figma[data-mode="calendar"] .van-nien-month-events {
+  background:
+    linear-gradient(
+      150deg,
+      color-mix(in srgb, var(--color-surface) 72%, transparent),
+      color-mix(in srgb, var(--color-surface-alt) 58%, transparent)
+    ) !important;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.app-shell--figma[data-mode="calendar"] .van-nien-calendar-toolbar {
+  background: color-mix(in srgb, var(--color-surface-alt) 52%, transparent) !important;
+}
+
+/* =========================
+   8) INPUT / TOOLBAR CHUNG
+   ========================= */
+
+.app-shell--figma .app-content select,
+.app-shell--figma .app-content input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+.app-shell--figma .app-content textarea {
+  background: color-mix(in srgb, var(--color-surface) 78%, transparent) !important;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.app-shell--figma .library-modal,
+.app-shell--figma [role="dialog"]:not(.mobile-drawer-layer) {
+  -webkit-backdrop-filter: blur(15px) saturate(1.08);
+  backdrop-filter: blur(15px) saturate(1.08);
+}
+
+/* =========================
+   9) TIÊN ÂM CÁC — XÓA VẾT NGANG MOBILE
+   ========================= */
+
+.app-shell--figma .app-workspace > .music-player {
+  z-index: 70 !important;
+}
+
+.music-library {
+  z-index: 80 !important;
+  overscroll-behavior: contain;
+}
+
 @media (max-width: 767px) {
   .app-shell.app-shell--figma {
     background-attachment: scroll;
@@ -133,7 +271,7 @@
   .app-shell--figma .app-workspace {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-    background: color-mix(in srgb, var(--color-surface) 52%, transparent) !important;
+    background: color-mix(in srgb, var(--color-surface) 40%, transparent) !important;
   }
 
   .app-shell--figma .app-workspace > .music-player {
@@ -147,7 +285,6 @@
     box-shadow: none !important;
   }
 
-  /* Khi đóng: player hoàn toàn không chiếm kích thước, vì vậy không còn "vết". */
   .app-shell--figma .app-workspace > .music-player.is-collapsed {
     left: auto !important;
     right: max(.8rem, env(safe-area-inset-right)) !important;
@@ -164,7 +301,6 @@
     display: none !important;
   }
 
-  /* Khi mở Tiên Âm Các: trở thành dock nổi, không đẩy content lên/xuống. */
   .app-shell--figma .app-workspace > .music-player.is-open {
     left: max(.5rem, env(safe-area-inset-left)) !important;
     right: max(.5rem, env(safe-area-inset-right)) !important;
@@ -190,27 +326,38 @@
     bottom: calc(8.1rem + env(safe-area-inset-bottom)) !important;
     width: auto !important;
     max-height: min(58dvh, 34rem) !important;
-    z-index: 80 !important;
-    overscroll-behavior: contain;
   }
 
-  /*
-   * App content phải kéo thẳng tới thanh tab dưới. Không chừa khoảng giả
-   * cho music player vì player đã là fixed overlay.
-   */
   .app-shell--figma .app-content {
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
-    min-height: 0;
   }
 
   .app-shell--figma .mobile-bottom-nav {
     position: relative;
     z-index: 60;
+    background: color-mix(in srgb, var(--color-surface) 78%, transparent) !important;
+  }
+
+  /* Giảm blur trên iPhone để tránh nặng máy. */
+  .app-shell--figma[data-mode="notes"] .notes-studio-sidebar,
+  .app-shell--figma[data-mode="notes"] .notes-studio-list,
+  .app-shell--figma[data-mode="notes"] .notes-studio-editor,
+  .app-shell--figma[data-mode="library"] .library-tools,
+  .app-shell--figma[data-mode="library"] .library-card,
+  .app-shell--figma[data-mode="projects"] .project-card,
+  .app-shell--figma[data-mode="projects"] .story-card,
+  .app-shell--figma[data-mode="projects"] .kanban-column,
+  .app-shell--figma[data-mode="mindmap"] .canvas-toolbars > div,
+  .app-shell--figma[data-mode="whiteboard"] .whiteboard-toolbar,
+  .app-shell--figma[data-mode="calendar"] .van-nien-calendar-card,
+  .app-shell--figma[data-mode="calendar"] .van-nien-day-detail,
+  .app-shell--figma[data-mode="calendar"] .van-nien-month-events {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }
 
-/* Điện thoại xoay ngang: giữ cùng nguyên tắc, chỉ giảm khoảng cách bottom. */
 @media (max-width: 767px) and (orientation: landscape),
        (hover: none) and (pointer: coarse) and (orientation: landscape) {
   .app-shell--figma .app-workspace > .music-player.is-collapsed,

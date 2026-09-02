@@ -1,30 +1,30 @@
-HUYỀN BÚT CÁC — FIX ĐƯỜNG NGANG + ẢNH NỀN TOÀN APP
+HUYỀN BÚT CÁC — UPDATE GIAO DIỆN CHO TẤT CẢ TAB
 
-CHỈ CẦN UPDATE 1 FILE:
+CHỈ CẦN UPDATE:
 src/media-fixes.css
 
-CÁCH LÀM:
+SAU UPDATE, ẢNH NỀN + THEME ÁP DỤNG CHO:
+1. Ghi chú
+2. Tàng Thư
+3. Dự án
+4. Sơ đồ
+5. Bảng trắng
+6. Vạn niên
+
+CHI TIẾT:
+- Ghi chú: sidebar/list/editor dùng nền bán trong suốt.
+- Tàng Thư: toolbar/card hòa với nền chung.
+- Dự án: card/codex/kanban hòa với nền chung.
+- Sơ đồ: canvas đặc bị bỏ, ảnh nền hiện phía sau lưới chấm.
+- Bảng trắng: canvas đặc bị bỏ, ảnh nền hiện phía sau lưới chấm.
+- Vạn niên: các card lịch dùng nền kính mờ.
+- Topbar, bottom nav, rail/sidebar cùng nhận giao diện.
+- Giữ hotfix xóa đường ngang Tiên Âm Các trên mobile.
+- iPhone giảm blur để tránh lag.
+
+CÁCH UPDATE:
 1. Giải nén ZIP.
-2. Vào repo HuyenButCac trên GitHub.
-3. Upload đè:
-   src/media-fixes.css
-4. Commit changes.
-5. Chờ GitHub Actions deploy.
-6. Trên iPhone: đóng hẳn PWA rồi mở lại.
-
-ĐÃ SỬA:
-- Xóa đường ngang/vết thừa nằm trên thanh tab dưới ở tất cả màn.
-- Tiên Âm Các trở lại position:fixed trên mobile, không còn chiếm chỗ layout.
-- Khi đóng Tiên Âm Các: kích thước layout = 0.
-- Khi mở: player nổi trên app, không đẩy nội dung.
-- Ảnh nền người dùng phủ toàn bộ app.
-- Workspace, topbar, bottom nav, rail/sidebar chuyển sang bán trong suốt.
-- Card/editor vẫn có lớp nền đủ rõ để đọc chữ.
-- iPhone không dùng background-attachment:fixed để giảm giật.
-
-Không cần sửa:
-- App.tsx
-- MusicPlayer.tsx
-- themeStore.ts
-- mediaService.ts
-- main.tsx
+2. Upload đè src/media-fixes.css.
+3. Commit changes.
+4. Chờ GitHub Actions deploy.
+5. Trên iPhone đóng hẳn PWA rồi mở lại.
