@@ -333,6 +333,65 @@ export function TieuNhiLauncher() {
 
   useEffect(() => () => workerRef.current?.terminate(), []);
 
+  // Đưa Tiểu Nhị vào thanh điều hướng của Huyền Bút Các thay vì dùng nút nổi.
+  // Desktop: nằm sát mục Tàng Thư Mật Cảnh/Tài khoản ở chân app rail.
+  // Mobile: nút “Nhị” nằm ngay cạnh nút tài khoản trên thanh đầu trang.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const created: HTMLButtonElement[] = [];
+
+    const installDockButtons = () => {
+      const accountRail = document.querySelector<HTMLButtonElement>(".app-rail-account:not([data-tieu-nhi-rail])");
+      if (accountRail) {
+        accountRail.setAttribute("aria-label", "Mở Tàng Thư Mật Cảnh");
+        const accountCopy = accountRail.querySelector<HTMLElement>(".app-rail-nav-copy");
+        if (accountCopy && accountCopy.dataset.tieuNhiRenamed !== "true") {
+          accountCopy.innerHTML = "<span>Tàng Thư Mật Cảnh</span><small>TÀI KHOẢN · BẢO MẬT</small>";
+          accountCopy.dataset.tieuNhiRenamed = "true";
+        }
+      }
+
+      if (accountRail && !document.querySelector("[data-tieu-nhi-rail]")) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "app-rail-account tieu-nhi-nav-entry";
+        button.dataset.tieuNhiRail = "true";
+        button.setAttribute("aria-label", "Mở Tiểu Nhị");
+        button.title = "Tiểu Nhị · Trợ lý AI";
+        button.innerHTML = `<span class="app-rail-account-icon" aria-hidden="true"><span style="font-family:serif;font-weight:800;font-size:.82rem">Nhị</span></span><span class="app-rail-nav-copy"><span>Tiểu Nhị</span><small>TRỢ LÝ AI</small></span>`;
+        button.addEventListener("click", () => setOpen(true));
+        accountRail.parentElement?.insertBefore(button, accountRail);
+        created.push(button);
+      }
+
+      const mobileAccount = document.querySelector<HTMLButtonElement>(".mobile-topbar button[aria-label='Mở tài khoản']");
+      if (mobileAccount && !document.querySelector("[data-tieu-nhi-mobile]")) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "mobile-icon-button mystic-icon tieu-nhi-mobile-tab";
+        button.dataset.tieuNhiMobile = "true";
+        button.setAttribute("aria-label", "Mở Tiểu Nhị");
+        button.title = "Tiểu Nhị";
+        button.textContent = "Nhị";
+        button.style.fontFamily = "serif";
+        button.style.fontWeight = "800";
+        button.addEventListener("click", () => setOpen(true));
+        mobileAccount.parentElement?.insertBefore(button, mobileAccount);
+        created.push(button);
+      }
+    };
+
+    installDockButtons();
+    const observer = new MutationObserver(installDockButtons);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+      created.forEach((button) => button.remove());
+    };
+  }, []);
+
   useEffect(() => {
     if (open || mode !== "local" || status !== "ready" || typeof window === "undefined" || window.matchMedia("(min-width: 768px)").matches) return;
     const timer = window.setTimeout(resetAi, 90_000);
@@ -355,13 +414,6 @@ export function TieuNhiLauncher() {
   return (
     <>
       {open && <button type="button" className="tieu-nhi-backdrop" aria-label="Đóng Tiểu Nhị" onClick={closePanel} />}
-      {!open && (
-        <button type="button" className="tieu-nhi-fab" onClick={() => setOpen(true)} aria-label="Mở Tiểu Nhị" title="Tiểu Nhị · AI hybrid">
-          <span className="tieu-nhi-fab-mark" aria-hidden="true">Nhị</span>
-          <span className="tieu-nhi-fab-copy"><strong>Tiểu Nhị</strong><small>AI HYBRID</small></span>
-        </button>
-      )}
-
       {open && (
         <section className="tieu-nhi-panel" role="dialog" aria-modal="true" aria-label="Tiểu Nhị - trợ lý AI">
           <header className="tieu-nhi-header">
