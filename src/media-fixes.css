@@ -1,0 +1,70 @@
+/*
+ * Hotfix media — ảnh nền + Tiên Âm Các.
+ * Được import SAU app-enhancements.css để sửa các override của UI V2.
+ */
+
+/* UI V2 trước đây dùng một lớp nền opaque, khiến --custom-background vẫn tồn tại
+   nhưng bị che hoàn toàn. Giữ lớp trang trí, chuyển lớp phủ thành bán trong suốt
+   và đặt ảnh người dùng phía dưới. */
+.app-shell.app-shell--figma {
+  background-color: var(--color-bg);
+  background-image:
+    radial-gradient(circle at 9% 4%, color-mix(in srgb, var(--color-accent) 15%, transparent), transparent 24rem),
+    radial-gradient(circle at 91% 96%, color-mix(in srgb, var(--music-metal) 11%, transparent), transparent 29rem),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--color-bg) 68%, transparent),
+      color-mix(in srgb, var(--color-bg) 76%, transparent)
+    ),
+    var(--custom-background, none);
+  background-size: cover, cover, cover, cover;
+  background-position: center, center, center, center;
+  background-repeat: no-repeat;
+}
+
+/* Workspace cũng phải có độ trong suốt; nếu không ảnh chỉ thấy ở viền ngoài. */
+.app-shell--figma .app-workspace {
+  background:
+    radial-gradient(circle at 76% -12%, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 28rem),
+    color-mix(in srgb, var(--color-surface) 82%, transparent);
+  -webkit-backdrop-filter: blur(10px) saturate(1.05);
+  backdrop-filter: blur(10px) saturate(1.05);
+}
+
+/* Bảo đảm Tiên Âm Các nằm trên content/mobile nav trong UI V2. */
+.app-shell--figma .app-workspace > .music-player {
+  z-index: 40 !important;
+}
+
+.music-library {
+  z-index: 70;
+  max-height: min(62dvh, 36rem);
+  overscroll-behavior: contain;
+}
+
+/* iOS: background-attachment:fixed không ổn định và có thể gây giật. */
+@media (max-width: 767px) {
+  .app-shell.app-shell--figma {
+    background-attachment: scroll;
+    background-position: center;
+  }
+
+  .app-shell--figma .app-workspace {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background:
+      linear-gradient(
+        color-mix(in srgb, var(--color-surface) 84%, transparent),
+        color-mix(in srgb, var(--color-bg) 78%, transparent)
+      );
+  }
+
+  .music-library {
+    position: fixed;
+    left: .5rem;
+    right: .5rem;
+    bottom: calc(7.15rem + env(safe-area-inset-bottom));
+    width: auto;
+    max-height: min(62dvh, 34rem);
+  }
+}
