@@ -1,20 +1,33 @@
 /*
- * Hotfix media — ảnh nền + Tiên Âm Các.
- * Được import SAU app-enhancements.css để sửa các override của UI V2.
+ * Huyền Bút Các — Full App Background + Mobile Music Seam Fix
+ * File này phải được import SAU app-enhancements.css.
+ *
+ * Mục tiêu:
+ * 1) Ảnh nền người dùng phủ toàn bộ app thay vì chỉ lớp vỏ ngoài.
+ * 2) Xóa đường ngang thừa do Tiên Âm Các bị UI V2 ép position:relative trên mobile.
  */
 
-/* UI V2 trước đây dùng một lớp nền opaque, khiến --custom-background vẫn tồn tại
-   nhưng bị che hoàn toàn. Giữ lớp trang trí, chuyển lớp phủ thành bán trong suốt
-   và đặt ảnh người dùng phía dưới. */
+/* ==========================================================================
+   1. ẢNH NỀN TOÀN APP
+   ========================================================================== */
+
 .app-shell.app-shell--figma {
   background-color: var(--color-bg);
   background-image:
-    radial-gradient(circle at 9% 4%, color-mix(in srgb, var(--color-accent) 15%, transparent), transparent 24rem),
-    radial-gradient(circle at 91% 96%, color-mix(in srgb, var(--music-metal) 11%, transparent), transparent 29rem),
+    radial-gradient(
+      circle at 10% 3%,
+      color-mix(in srgb, var(--color-accent) 10%, transparent),
+      transparent 24rem
+    ),
+    radial-gradient(
+      circle at 92% 96%,
+      color-mix(in srgb, var(--music-metal) 8%, transparent),
+      transparent 28rem
+    ),
     linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--color-bg) 68%, transparent),
-      color-mix(in srgb, var(--color-bg) 76%, transparent)
+      180deg,
+      color-mix(in srgb, var(--color-bg) 38%, transparent),
+      color-mix(in srgb, var(--color-bg) 52%, transparent)
     ),
     var(--custom-background, none);
   background-size: cover, cover, cover, cover;
@@ -22,49 +35,191 @@
   background-repeat: no-repeat;
 }
 
-/* Workspace cũng phải có độ trong suốt; nếu không ảnh chỉ thấy ở viền ngoài. */
+/*
+ * UI V2 trước đây dùng các bề mặt gần như đặc, nên dù --custom-background đã
+ * được lưu đúng trong IndexedDB thì ảnh vẫn bị che. Các lớp chính dưới đây
+ * được chuyển thành kính mờ/bán trong suốt; card và editor vẫn giữ nền riêng
+ * để chữ dễ đọc.
+ */
 .app-shell--figma .app-workspace {
   background:
-    radial-gradient(circle at 76% -12%, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 28rem),
-    color-mix(in srgb, var(--color-surface) 82%, transparent);
-  -webkit-backdrop-filter: blur(10px) saturate(1.05);
-  backdrop-filter: blur(10px) saturate(1.05);
+    radial-gradient(
+      circle at 76% -12%,
+      color-mix(in srgb, var(--color-accent) 6%, transparent),
+      transparent 28rem
+    ),
+    color-mix(in srgb, var(--color-surface) 58%, transparent) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(1.06);
+  backdrop-filter: blur(8px) saturate(1.06);
 }
 
-/* Bảo đảm Tiên Âm Các nằm trên content/mobile nav trong UI V2. */
-.app-shell--figma .app-workspace > .music-player {
-  z-index: 40 !important;
+.app-shell--figma .app-content {
+  background: color-mix(in srgb, var(--color-bg) 18%, transparent) !important;
 }
 
-.music-library {
-  z-index: 70;
-  max-height: min(62dvh, 36rem);
-  overscroll-behavior: contain;
+.app-shell--figma .app-rail {
+  background:
+    radial-gradient(
+      circle at 32% -4%,
+      color-mix(in srgb, var(--color-accent) 10%, transparent),
+      transparent 16rem
+    ),
+    color-mix(in srgb, var(--color-surface) 72%, transparent) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.08);
+  backdrop-filter: blur(14px) saturate(1.08);
 }
 
-/* iOS: background-attachment:fixed không ổn định và có thể gây giật. */
+.app-shell--figma .app-topbar,
+.app-shell--figma .mobile-topbar,
+.app-shell--figma .mobile-bottom-nav {
+  background: color-mix(in srgb, var(--color-surface) 72%, transparent) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.08);
+  backdrop-filter: blur(14px) saturate(1.08);
+}
+
+/* Sidebar mở từ menu trên điện thoại cũng hòa với ảnh nền chung. */
+.app-shell--figma .responsive-sidebar {
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
+  backdrop-filter: blur(16px) saturate(1.08);
+}
+
+/* Các vùng làm việc lớn không được tự phủ một tấm màu kín lên ảnh nền. */
+.app-shell--figma .library-view,
+.app-shell--figma .notes-studio {
+  background-color: transparent !important;
+}
+
+/*
+ * Card/editor vẫn phải dễ đọc. Không làm toàn bộ UI trong suốt hoàn toàn,
+ * nếu không chữ sẽ chìm vào ảnh sáng/tối của người dùng.
+ */
+.app-shell--figma .library-card,
+.app-shell--figma .library-tools,
+.app-shell--figma .notes-studio-sidebar,
+.app-shell--figma .notes-studio-list,
+.app-shell--figma .notes-studio-editor,
+.app-shell--figma .project-card,
+.app-shell--figma .story-card,
+.app-shell--figma .kanban-column,
+.app-shell--figma .mindmap-panel,
+.app-shell--figma .van-nien-calendar-card,
+.app-shell--figma .van-nien-day-detail,
+.app-shell--figma .van-nien-month-events {
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+}
+
+/* ==========================================================================
+   2. XÓA ĐƯỜNG NGANG THỪA TRÊN MOBILE
+   ========================================================================== */
+
+/*
+ * app-enhancements.css có selector:
+ * .app-shell--figma .app-workspace > :not(.fixed) { position:relative; ... }
+ *
+ * MusicPlayer không mang class "fixed", nên selector đó thắng rule mobile
+ * position:fixed. Kết quả: section Tiên Âm Các rơi trở lại document flow và
+ * border-top của nó tạo một đường ngang ở mọi tab.
+ *
+ * Ép player trở lại fixed với !important để không còn chiếm chỗ trong layout.
+ */
 @media (max-width: 767px) {
   .app-shell.app-shell--figma {
     background-attachment: scroll;
-    background-position: center;
+    background-position: center, center, center, center;
   }
 
   .app-shell--figma .app-workspace {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-    background:
-      linear-gradient(
-        color-mix(in srgb, var(--color-surface) 84%, transparent),
-        color-mix(in srgb, var(--color-bg) 78%, transparent)
-      );
+    background: color-mix(in srgb, var(--color-surface) 52%, transparent) !important;
+  }
+
+  .app-shell--figma .app-workspace > .music-player {
+    position: fixed !important;
+    z-index: 70 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-width: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* Khi đóng: player hoàn toàn không chiếm kích thước, vì vậy không còn "vết". */
+  .app-shell--figma .app-workspace > .music-player.is-collapsed {
+    left: auto !important;
+    right: max(.8rem, env(safe-area-inset-right)) !important;
+    bottom: calc(4.35rem + env(safe-area-inset-bottom)) !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .music-player.is-collapsed .music-controls,
+  .music-player.is-collapsed > audio {
+    display: none !important;
+  }
+
+  /* Khi mở Tiên Âm Các: trở thành dock nổi, không đẩy content lên/xuống. */
+  .app-shell--figma .app-workspace > .music-player.is-open {
+    left: max(.5rem, env(safe-area-inset-left)) !important;
+    right: max(.5rem, env(safe-area-inset-right)) !important;
+    bottom: calc(4.35rem + env(safe-area-inset-bottom)) !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .music-player.is-open .music-controls {
+    display: flex !important;
+    height: 3.2rem;
+    border: 0 !important;
+    border-radius: 1rem !important;
+    box-shadow: 0 10px 28px color-mix(in srgb, var(--color-bg) 28%, transparent) !important;
   }
 
   .music-library {
-    position: fixed;
-    left: .5rem;
-    right: .5rem;
-    bottom: calc(7.15rem + env(safe-area-inset-bottom));
-    width: auto;
-    max-height: min(62dvh, 34rem);
+    position: fixed !important;
+    left: max(.5rem, env(safe-area-inset-left)) !important;
+    right: max(.5rem, env(safe-area-inset-right)) !important;
+    bottom: calc(8.1rem + env(safe-area-inset-bottom)) !important;
+    width: auto !important;
+    max-height: min(58dvh, 34rem) !important;
+    z-index: 80 !important;
+    overscroll-behavior: contain;
+  }
+
+  /*
+   * App content phải kéo thẳng tới thanh tab dưới. Không chừa khoảng giả
+   * cho music player vì player đã là fixed overlay.
+   */
+  .app-shell--figma .app-content {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    min-height: 0;
+  }
+
+  .app-shell--figma .mobile-bottom-nav {
+    position: relative;
+    z-index: 60;
+  }
+}
+
+/* Điện thoại xoay ngang: giữ cùng nguyên tắc, chỉ giảm khoảng cách bottom. */
+@media (max-width: 767px) and (orientation: landscape),
+       (hover: none) and (pointer: coarse) and (orientation: landscape) {
+  .app-shell--figma .app-workspace > .music-player.is-collapsed,
+  .app-shell--figma .app-workspace > .music-player.is-open {
+    bottom: calc(3rem + env(safe-area-inset-bottom)) !important;
+  }
+
+  .music-library {
+    bottom: calc(6.6rem + env(safe-area-inset-bottom)) !important;
+    max-height: 48dvh !important;
   }
 }
