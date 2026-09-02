@@ -1,14 +1,14 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { db } from "../database/db";
+import { db } from "../src/database/db";
 import {
   addMindMapNode,
   createOrSyncProjectMap,
   deleteMindMapNode,
   getMapGraph,
   updateMindMapNode,
-} from "../features/mind-map/mindMapService";
-import { createChapter, createProject, createSection } from "../features/projects/projectsService";
+} from "../src/features/mind-map/mindMapService";
+import { createChapter, createProject, createSection } from "../src/features/projects/projectsService";
 
 describe("đồng bộ hai chiều project ↔ mind map", () => {
   beforeEach(async () => {
