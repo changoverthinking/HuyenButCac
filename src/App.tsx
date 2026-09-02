@@ -134,6 +134,12 @@ export default function App() {
   const selectChapter = useProjectsStore((state) => state.selectChapter);
   const setSearchQuery = useNotesStore((state) => state.setSearchQuery);
 
+  // Trên mobile, mọi thay đổi tab phải đóng drawer. Điều này loại bỏ race khi
+  // người dùng chạm gần như đồng thời nút menu và một tab ở bottom navigation.
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [mode]);
+
   useEffect(() => {
     let disposed = false;
     let switchSequence = 0;
@@ -206,7 +212,7 @@ export default function App() {
           <div className="flex-1 text-center min-w-0"><div className="mobile-brand">Huyền Bút Các</div><div className="mobile-mode">{activeMeta.label}</div></div>
           <button aria-label="Mở tài khoản" className="mobile-icon-button mystic-icon" onClick={openAccount}><Icon name="user" size={18} /></button>
         </div>
-        {mobileMenuOpen && <div className="md:hidden fixed inset-0 z-50 flex"><div className="relative z-10 h-full"><ResponsiveSidebar onNavigate={() => setMobileMenuOpen(false)} onOpenNotes={() => navigate("notes")} /></div><button aria-label="Đóng menu" className="absolute inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} /></div>}
+        {mobileMenuOpen && <div className="mobile-drawer-layer md:hidden fixed inset-0 z-50 flex" role="dialog" aria-modal="true" aria-label="Menu điều hướng"><div className="relative z-10 h-full"><ResponsiveSidebar onNavigate={() => setMobileMenuOpen(false)} onOpenNotes={() => navigate("notes")} /></div><button type="button" aria-label="Đóng menu" className="mobile-drawer-backdrop absolute inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} /></div>}
         <div className="hidden md:block"><AppTopbar mode={mode} online={online} onAccount={openAccount} onSearch={searchNotes} /></div>
         <div className="app-content flex-1 overflow-hidden">
           {mode === "notes" && <NotesModeView key={`notes-${syncRevision}`} />}

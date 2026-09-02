@@ -76,7 +76,15 @@
   box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--music-metal) 8%,transparent);
 }
 
-.app-shell--figma .app-workspace>*{position:relative;z-index:1}
+.app-shell--figma .app-workspace>:not(.fixed){position:relative;z-index:1}
+
+/* Modal/drawer dùng position:fixed phải thoát khỏi lớp layout của workspace.
+   Selector cũ ép mọi direct child thành position:relative, làm drawer bị chèn
+   vào flow và khiến hai tab có thể xuất hiện đồng thời trên mobile. */
+.app-shell--figma .app-workspace>.mobile-drawer-layer{position:fixed;inset:0;z-index:50}
+.mobile-drawer-layer{isolation:isolate;overscroll-behavior:contain}
+.mobile-drawer-layer>.relative{height:100dvh;max-height:100dvh}
+.mobile-drawer-backdrop{touch-action:none}
 
 /* ---------- Rail trái: một thanh “tủ mục lục” nổi, có vật liệu và nhịp ---------- */
 .app-rail{
