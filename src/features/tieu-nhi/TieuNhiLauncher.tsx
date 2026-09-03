@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listLibraryBooks } from "../library/libraryService";
+import { AppearanceIcon, AppearanceLayer } from "../../components/common/AdjustedImage";
+import { Icon } from "../../components/common/Icons";
 import { useNotesStore } from "../../stores/notesStore";
 import { useProjectsStore } from "../../stores/projectsStore";
 import {
@@ -818,9 +820,10 @@ export function TieuNhiLauncher({
       {open && <button type="button" className="tieu-nhi-backdrop" aria-label="Đóng Tiểu Nhị" onClick={closePanel} />}
       {open && (
         <section className="tieu-nhi-panel" role="dialog" aria-modal="true" aria-label="Tiểu Nhị — trợ lý AI">
+          <AppearanceLayer target="tieu-nhi" />
           <header className="tieu-nhi-header">
             <div className="tieu-nhi-title">
-              <span className="tieu-nhi-avatar" aria-hidden="true">Nhị</span>
+              <span className="tieu-nhi-avatar" aria-hidden="true"><AppearanceIcon target="tieu-nhi-avatar" className="tieu-nhi-custom-avatar" fallback={<Icon name="spark" size={18} />} /></span>
               <div><strong>Tiểu Nhị</strong><small>{modeLabel}</small></div>
             </div>
             <div className="tieu-nhi-header-actions">

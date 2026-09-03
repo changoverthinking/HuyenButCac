@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from "react";
 import { useFoldersStore } from "../../stores/foldersStore";
 import { useNotesStore } from "../../stores/notesStore";
-import { useThemeStore, THEME_LIST } from "../../stores/themeStore";
 import { APP_CONFIG } from "../../app/appConfig";
 import type { Folder } from "../../types/entities";
+import { AppearanceLayer } from "./AdjustedImage";
 import { Icon } from "./Icons";
 
 export function ResponsiveSidebar({
@@ -28,12 +28,6 @@ export function ResponsiveSidebar({
   const view = useNotesStore((s) => s.view);
   const [newFolderName, setNewFolderName] = useState("");
   const [folderMessage, setFolderMessage] = useState("");
-  const [showThemePicker, setShowThemePicker] = useState(false);
-  const themeId = useThemeStore((s) => s.themeId);
-  const setTheme = useThemeStore((s) => s.setTheme);
-  const backgroundUrl = useThemeStore((s) => s.backgroundUrl);
-  const setCustomBackground = useThemeStore((s) => s.setCustomBackground);
-  const clearCustomBackground = useThemeStore((s) => s.clearCustomBackground);
 
   const childrenOf = (parentId: string | null) => folders
     .filter((folder) => folder.parentId === parentId)
@@ -81,7 +75,8 @@ export function ResponsiveSidebar({
   };
 
   return (
-    <aside className={`responsive-sidebar mystic-sidebar ${collapsed ? "is-collapsed" : ""}`} style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
+    <aside className={`responsive-sidebar mystic-sidebar ${collapsed ? "is-collapsed" : ""}`} style={{ borderColor: "var(--color-border)", background: "color-mix(in srgb,var(--color-surface) 90%,transparent)" }}>
+      <AppearanceLayer target="tools" />
       <div className="responsive-sidebar-brand">
         <span className="responsive-sidebar-sigil"><Icon name="seal" size={22} /></span>
         {!collapsed && <div><h1>{APP_CONFIG.appNameVi}</h1><p>{APP_CONFIG.version}</p></div>}
@@ -119,25 +114,7 @@ export function ResponsiveSidebar({
       )}
 
       <div className="responsive-sidebar-footer">
-        {!collapsed && (
-          <>
-            <label className="responsive-sidebar-tool"><Icon name="image" size={17} /><span>Chọn ảnh nền</span><input type="file" accept="image/*" onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; try { await setCustomBackground(file); } catch (error) { window.alert((error as Error).message); } event.target.value = ""; }} /></label>
-            {backgroundUrl && <button className="responsive-sidebar-tool danger" onClick={() => void clearCustomBackground()}><Icon name="refresh" size={17} /><span>Dùng lại nền mặc định</span></button>}
-            <button className="responsive-sidebar-tool" onClick={() => { window.dispatchEvent(new CustomEvent("hbc-toggle-music")); onNavigate?.(); }}><Icon name="music" size={17} /><span>Tiên Âm Các</span></button>
-            <button className="responsive-sidebar-tool" onClick={() => setShowThemePicker((value) => !value)}><Icon name="palette" size={17} /><span>Đổi giao diện</span></button>
-            {showThemePicker && (
-              <div className="responsive-theme-picker">
-                {THEME_LIST.map((theme) => (
-                  <button key={theme.id} className={themeId === theme.id ? "is-active" : ""} onClick={() => { void setTheme(theme.id); setShowThemePicker(false); }}>
-                    <span className="responsive-theme-check">{themeId === theme.id && <Icon name="check" size={12} />}</span>
-                    <span className="responsive-theme-name">{theme.label}</span>
-                    <span className="responsive-theme-colors">{theme.colors.map((color) => <span key={color} style={{ background: color }} />)}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+        {!collapsed && <button className="responsive-sidebar-tool" onClick={() => { window.dispatchEvent(new CustomEvent("hbc-toggle-music")); onNavigate?.(); }}><Icon name="music" size={17} /><span>Tiên Âm Các</span></button>}
         {onToggleCollapse && (
           <button type="button" className="responsive-sidebar-collapse" onClick={onToggleCollapse} aria-label={collapsed ? "Mở rộng thanh công cụ" : "Thu gọn thanh công cụ"} title={collapsed ? "Mở rộng" : "Thu gọn"}>
             <Icon name={collapsed ? "chevron-right" : "chevron-left"} size={17} />{!collapsed && <span>Thu gọn công cụ</span>}
