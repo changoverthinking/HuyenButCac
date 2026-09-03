@@ -88,6 +88,11 @@ export async function listLibraryBooks() {
   return currentDb().books.orderBy("updatedAt").reverse().toArray();
 }
 
+/** Đọc một mục Tàng Thư theo id để Tiểu Nhị có thể lập chỉ mục PDF mà không lộ database instance. */
+export async function getLibraryBook(bookId: string) {
+  return currentDb().books.get(bookId);
+}
+
 export async function createLibraryBook(input: {
   title: string;
   author?: string;
