@@ -8,6 +8,7 @@ import {
   softDeleteChapter,
   listChapters,
   reorderChapter,
+  moveChapter,
   createTask,
   updateTaskStatus, softDeleteTask,
   listTasks,
@@ -57,15 +58,49 @@ describe("projectsService — dự án và chương", () => {
     expect(updated.wordCount).toBe(5);
   });
 
-  it("kéo sắp xếp (reorder) đổi order đúng", async () => {
+  it("reorderChapter tương thích cũ nhưng vẫn chuẩn hóa order", async () => {
     const project = await createProject({ title: "Dự án", kind: "software" });
-    const c1 = await createChapter({ projectId: project.id, sectionId: null, title: "A" });
+    await createChapter({ projectId: project.id, sectionId: null, title: "A" });
     const c2 = await createChapter({ projectId: project.id, sectionId: null, title: "B" });
-    await reorderChapter(c1.id, 5);
-    await reorderChapter(c2.id, 1);
+    await reorderChapter(c2.id, 0);
     const chapters = await listChapters(project.id);
-    expect(chapters[0].title).toBe("B");
-    expect(chapters[1].title).toBe("A");
+    expect(chapters.map((item) => item.title)).toEqual(["B", "A"]);
+    expect(chapters.map((item) => item.order)).toEqual([0, 1]);
+  });
+
+  it("tạo chương mới sau khi xóa không sinh order trùng", async () => {
+    const project = await createProject({ title: "Dàn ý dài", kind: "novel" });
+    await createChapter({ projectId: project.id, sectionId: null, title: "A" });
+    const b = await createChapter({ projectId: project.id, sectionId: null, title: "B" });
+    await createChapter({ projectId: project.id, sectionId: null, title: "C" });
+    await softDeleteChapter(b.id);
+    await createChapter({ projectId: project.id, sectionId: null, title: "D" });
+    const chapters = await listChapters(project.id);
+    expect(chapters.map((item) => item.order)).toEqual([0, 2, 3]);
+    expect(new Set(chapters.map((item) => item.order)).size).toBe(chapters.length);
+  });
+
+  it("di chuyển chương giữa vị trí và Phần sẽ chuẩn hóa order", async () => {
+    const project = await createProject({ title: "Dàn ý linh hoạt", kind: "novel" });
+    const c1 = await createChapter({ projectId: project.id, sectionId: null, title: "A" });
+    await createChapter({ projectId: project.id, sectionId: null, title: "B" });
+    const c3 = await createChapter({ projectId: project.id, sectionId: null, title: "C" });
+
+    await moveChapter(c3.id, null, 0);
+    let chapters = await listChapters(project.id);
+    let root = chapters.filter((item) => item.sectionId === null);
+    expect(root.map((item) => item.title)).toEqual(["C", "A", "B"]);
+    expect(root.map((item) => item.order)).toEqual([0, 1, 2]);
+
+    const section = await createSection(project.id, "Quyển 1");
+    await moveChapter(c1.id, section.id, 0);
+    chapters = await listChapters(project.id);
+    root = chapters.filter((item) => item.sectionId === null);
+    const inSection = chapters.filter((item) => item.sectionId === section.id);
+    expect(root.map((item) => item.title)).toEqual(["C", "B"]);
+    expect(root.map((item) => item.order)).toEqual([0, 1]);
+    expect(inSection.map((item) => item.title)).toEqual(["A"]);
+    expect(inSection.map((item) => item.order)).toEqual([0]);
   });
 
   it("xóa chương (soft delete) không còn xuất hiện trong danh sách", async () => {

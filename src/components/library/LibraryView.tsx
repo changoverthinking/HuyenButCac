@@ -16,6 +16,7 @@ import {
   type LibraryBook,
   type LibraryProjectMeta,
 } from "../../features/library/libraryService";
+import { loadPdfRuntime, type PdfDocumentHandle, type PdfRenderTask } from "../../features/library/pdfRuntime";
 import "./LibraryView.css";
 
 type AddMode = "pdf" | "book" | "novel" | null;
@@ -116,10 +117,15 @@ function AddBookDialog({
 
 function PdfReader({ book, onClose, onChanged }: { book: LibraryBook; onClose: () => void; onChanged: () => Promise<void> }) {
   const [page, setPage] = useState(Math.max(1, book.pinnedPage ?? book.lastPage ?? 1));
+  const [totalPages, setTotalPages] = useState(0);
+  const [pdfDocument, setPdfDocument] = useState<PdfDocumentHandle | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-  const pageRef = useRef(page);
-  pageRef.current = page;
+  const [readerError, setReaderError] = useState("");
+  const [rendering, setRendering] = useState(true);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const renderTaskRef = useRef<PdfRenderTask | null>(null);
 
   useEffect(() => {
     if (!book.pdfBlob) return;
@@ -129,11 +135,104 @@ function PdfReader({ book, onClose, onChanged }: { book: LibraryBook; onClose: (
   }, [book.pdfBlob]);
 
   useEffect(() => {
-    const id = window.setTimeout(() => { void saveLibraryReadingPosition(book.id, pageRef.current); }, 250);
-    return () => window.clearTimeout(id);
+    if (!book.pdfBlob) return;
+    let disposed = false;
+    let openedDocument: PdfDocumentHandle | null = null;
+    setReaderError("");
+    setRendering(true);
+    void (async () => {
+      const runtime = await loadPdfRuntime();
+      const data = await book.pdfBlob!.arrayBuffer();
+      openedDocument = await runtime.getDocument({ data }).promise;
+      if (disposed) {
+        await openedDocument.destroy();
+        return;
+      }
+      setPdfDocument(openedDocument);
+      setTotalPages(openedDocument.numPages);
+      setPage((current) => Math.max(1, Math.min(current, openedDocument!.numPages)));
+    })().catch((error) => {
+      if (disposed) return;
+      setRendering(false);
+      setReaderError(error instanceof Error ? error.message : "Không thể khởi tạo trình đọc PDF.");
+    });
+    return () => {
+      disposed = true;
+      renderTaskRef.current?.cancel();
+      if (openedDocument) void openedDocument.destroy();
+      setPdfDocument(null);
+    };
+  }, [book.id, book.pdfBlob]);
+
+  useEffect(() => {
+    if (!pdfDocument || !canvasRef.current || !stageRef.current) return;
+    let disposed = false;
+    let renderSequence = 0;
+
+    const renderPage = async () => {
+      const sequence = ++renderSequence;
+      renderTaskRef.current?.cancel();
+      setRendering(true);
+      try {
+        const pdfPage = await pdfDocument.getPage(page);
+        if (disposed || sequence !== renderSequence) return;
+        const stage = stageRef.current;
+        const canvas = canvasRef.current;
+        if (!stage || !canvas) return;
+        const baseViewport = pdfPage.getViewport({ scale: 1 });
+        const availableWidth = Math.max(260, stage.clientWidth - 24);
+        const scale = Math.max(0.5, Math.min(2.5, availableWidth / Math.max(baseViewport.width, 1)));
+        const viewport = pdfPage.getViewport({ scale });
+        const outputScale = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+        canvas.width = Math.max(1, Math.floor(viewport.width * outputScale));
+        canvas.height = Math.max(1, Math.floor(viewport.height * outputScale));
+        canvas.style.width = `${Math.floor(viewport.width)}px`;
+        canvas.style.height = `${Math.floor(viewport.height)}px`;
+        const context = canvas.getContext("2d", { alpha: false });
+        if (!context) throw new Error("Trình duyệt không tạo được vùng vẽ PDF.");
+        const task = pdfPage.render({
+          canvasContext: context,
+          viewport,
+          transform: outputScale === 1 ? undefined : [outputScale, 0, 0, outputScale, 0, 0],
+        });
+        renderTaskRef.current = task;
+        await task.promise;
+        if (!disposed && sequence === renderSequence) {
+          setReaderError("");
+          setRendering(false);
+        }
+      } catch (error) {
+        if (disposed || sequence !== renderSequence) return;
+        if (error instanceof Error && error.name === "RenderingCancelledException") return;
+        setRendering(false);
+        setReaderError(error instanceof Error ? error.message : "Không thể hiển thị trang PDF.");
+      }
+    };
+
+    void renderPage();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => { void renderPage(); });
+    if (observer && stageRef.current) observer.observe(stageRef.current);
+    return () => {
+      disposed = true;
+      renderSequence += 1;
+      observer?.disconnect();
+      renderTaskRef.current?.cancel();
+    };
+  }, [page, pdfDocument]);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => { void saveLibraryReadingPosition(book.id, page); }, 250);
+    return () => {
+      window.clearTimeout(id);
+      void saveLibraryReadingPosition(book.id, page);
+    };
   }, [book.id, page]);
 
-  const go = (nextPage: number) => setPage(Math.max(1, Math.floor(nextPage || 1)));
+  const go = (nextPage: number) => {
+    const finite = Number.isFinite(nextPage) ? Math.floor(nextPage) : 1;
+    const maxPage = totalPages > 0 ? totalPages : Number.MAX_SAFE_INTEGER;
+    setPage(Math.max(1, Math.min(finite, maxPage)));
+  };
   const pin = async () => {
     const next = book.pinnedPage === page ? null : page;
     await pinLibraryReadingPage(book.id, next);
@@ -152,19 +251,19 @@ function PdfReader({ book, onClose, onChanged }: { book: LibraryBook; onClose: (
         <div className="library-reader-title"><strong>{book.title}</strong><small>{book.pdfFileName || "PDF"}</small></div>
         <div className="library-reader-page-controls">
           <button type="button" className="library-icon-button" onClick={() => go(page - 1)} disabled={page <= 1} aria-label="Trang trước"><Icon name="previous" /></button>
-          <label>Trang <input type="number" min={1} value={page} onChange={(event) => go(Number(event.target.value))} /></label>
-          <button type="button" className="library-icon-button" onClick={() => go(page + 1)} aria-label="Trang sau"><Icon name="next" /></button>
+          <label>Trang <input type="number" min={1} max={totalPages || undefined} value={page} onChange={(event) => go(Number(event.target.value))} />{totalPages > 0 && <span>/ {totalPages}</span>}</label>
+          <button type="button" className="library-icon-button" onClick={() => go(page + 1)} disabled={totalPages > 0 && page >= totalPages} aria-label="Trang sau"><Icon name="next" /></button>
         </div>
         <button type="button" className={`library-button compact ${book.pinnedPage === page ? "primary" : "secondary"}`} onClick={() => void pin()}><Icon name="pin" size={16} /> {book.pinnedPage === page ? "Bỏ ghim" : "Ghim trang"}</button>
-        <button type="button" className="library-icon-button" onClick={openExternal} aria-label="Mở PDF toàn màn hình"><Icon name="export" /></button>
+        <button type="button" className="library-icon-button" onClick={openExternal} aria-label="Mở PDF bằng trình đọc của trình duyệt"><Icon name="export" /></button>
       </header>
-      {message && <div className="library-reader-message">{message}</div>}
-      <div className="library-reader-stage">
-        {pdfUrl ? (
-          <iframe key={`${book.id}-${page}`} title={`PDF ${book.title}`} src={`${pdfUrl}#page=${page}&view=FitH&toolbar=1`} className="library-pdf-frame" />
-        ) : (
-          <div className="library-empty"><Icon name="scroll" size={34} /><p>Không thể tạo phiên đọc PDF.</p></div>
-        )}
+      {message && <div className="library-reader-message" role="status">{message}</div>}
+      <div ref={stageRef} className="library-reader-stage">
+        <div className="library-pdf-canvas-wrap">
+          <canvas ref={canvasRef} className="library-pdf-canvas" aria-label={`Trang ${page} của ${book.title}`} />
+          {rendering && !readerError && <div className="library-reader-loading">Đang mở trang {page}…</div>}
+          {readerError && <div className="library-reader-fallback"><p>Không thể hiển thị PDF trong ứng dụng: {readerError}</p><button type="button" className="library-button secondary" onClick={openExternal}>Mở bằng trình đọc của trình duyệt</button></div>}
+        </div>
       </div>
     </section>
   );

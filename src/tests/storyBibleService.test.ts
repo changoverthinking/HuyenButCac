@@ -43,6 +43,18 @@ describe("storyBibleService — Thư Viện Truyện", () => {
     expect(await listCharacters(project.id)).toHaveLength(0);
   });
 
+  it("tạo nhân vật mới sau khi xóa không trùng order", async () => {
+    const project = await createProject({ title: "Tiên Lộ", kind: "novel" });
+    await createCharacter(project.id, "A");
+    const b = await createCharacter(project.id, "B");
+    await createCharacter(project.id, "C");
+    await deleteCharacter(b.id);
+    await createCharacter(project.id, "D");
+    const rows = await listCharacters(project.id);
+    expect(rows.map((item) => item.order)).toEqual([0, 2, 3]);
+    expect(new Set(rows.map((item) => item.order)).size).toBe(rows.length);
+  });
+
   it("tạo địa danh/cảnh giới/thế lực với đúng loại", async () => {
     const project = await createProject({ title: "Tiên Lộ", kind: "novel" });
     await createLocation(project.id, "Thanh Vân Tông", "faction");

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import "./tieu-nhi.css";
 
 const SYSTEM_PROMPT = `Bạn là Tiểu Nhị, trợ lý AI của Huyền Bút Các.
 - Mặc định trả lời bằng tiếng Việt, rõ ràng, ngắn gọn và đúng trọng tâm.
@@ -97,8 +98,19 @@ function loadPuter(): Promise<PuterClient> {
   });
 }
 
-export function TieuNhiLauncher() {
-  const [open, setOpen] = useState(false);
+export function TieuNhiLauncher({
+  open: controlledOpen,
+  onOpenChange,
+}: {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setLauncherOpen = useCallback((nextOpen: boolean) => {
+    if (controlledOpen === undefined) setInternalOpen(nextOpen);
+    onOpenChange?.(nextOpen);
+  }, [controlledOpen, onOpenChange]);
   const [mode, setMode] = useState<AiMode>(null);
   const [status, setStatus] = useState<AiStatus>("idle");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -333,64 +345,7 @@ export function TieuNhiLauncher() {
 
   useEffect(() => () => workerRef.current?.terminate(), []);
 
-  // Đưa Tiểu Nhị vào thanh điều hướng của Huyền Bút Các thay vì dùng nút nổi.
-  // Desktop: nằm sát mục Tàng Thư Mật Cảnh/Tài khoản ở chân app rail.
-  // Mobile: nút “Nhị” nằm ngay cạnh nút tài khoản trên thanh đầu trang.
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-
-    const created: HTMLButtonElement[] = [];
-
-    const installDockButtons = () => {
-      const accountRail = document.querySelector<HTMLButtonElement>(".app-rail-account:not([data-tieu-nhi-rail])");
-      if (accountRail) {
-        accountRail.setAttribute("aria-label", "Mở Tàng Thư Mật Cảnh");
-        const accountCopy = accountRail.querySelector<HTMLElement>(".app-rail-nav-copy");
-        if (accountCopy && accountCopy.dataset.tieuNhiRenamed !== "true") {
-          accountCopy.innerHTML = "<span>Tàng Thư Mật Cảnh</span><small>TÀI KHOẢN · BẢO MẬT</small>";
-          accountCopy.dataset.tieuNhiRenamed = "true";
-        }
-      }
-
-      if (accountRail && !document.querySelector("[data-tieu-nhi-rail]")) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "app-rail-account tieu-nhi-nav-entry";
-        button.dataset.tieuNhiRail = "true";
-        button.setAttribute("aria-label", "Mở Tiểu Nhị");
-        button.title = "Tiểu Nhị · Trợ lý AI";
-        button.innerHTML = `<span class="app-rail-account-icon" aria-hidden="true"><span style="font-family:serif;font-weight:800;font-size:.82rem">Nhị</span></span><span class="app-rail-nav-copy"><span>Tiểu Nhị</span><small>TRỢ LÝ AI</small></span>`;
-        button.addEventListener("click", () => setOpen(true));
-        accountRail.parentElement?.insertBefore(button, accountRail);
-        created.push(button);
-      }
-
-      const mobileAccount = document.querySelector<HTMLButtonElement>(".mobile-topbar button[aria-label='Mở tài khoản']");
-      if (mobileAccount && !document.querySelector("[data-tieu-nhi-mobile]")) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "mobile-icon-button mystic-icon tieu-nhi-mobile-tab";
-        button.dataset.tieuNhiMobile = "true";
-        button.setAttribute("aria-label", "Mở Tiểu Nhị");
-        button.title = "Tiểu Nhị";
-        button.textContent = "Nhị";
-        button.style.fontFamily = "serif";
-        button.style.fontWeight = "800";
-        button.addEventListener("click", () => setOpen(true));
-        mobileAccount.parentElement?.insertBefore(button, mobileAccount);
-        created.push(button);
-      }
-    };
-
-    installDockButtons();
-    const observer = new MutationObserver(installDockButtons);
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    return () => {
-      observer.disconnect();
-      created.forEach((button) => button.remove());
-    };
-  }, []);
+  // Nút mở Tiểu Nhị được render trực tiếp bởi App.tsx. Không còn chèn DOM bằng MutationObserver.
 
   useEffect(() => {
     if (open || mode !== "local" || status !== "ready" || typeof window === "undefined" || window.matchMedia("(min-width: 768px)").matches) return;
@@ -400,7 +355,7 @@ export function TieuNhiLauncher() {
 
   const closePanel = () => {
     if (status === "generating") stopGeneration();
-    setOpen(false);
+    setLauncherOpen(false);
   };
 
   const ready = status === "ready";

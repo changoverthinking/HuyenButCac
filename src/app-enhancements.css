@@ -468,7 +468,7 @@
 .library-modal{border-radius:20px!important;background:var(--hbc-panel-bg)!important;box-shadow:0 30px 90px rgb(0 0 0/.48)!important}
 .library-reader{background:color-mix(in srgb,var(--color-bg) 90%,black 2%)!important}
 .library-reader-toolbar{margin:10px;border:1px solid var(--hbc-panel-stroke)!important;border-radius:14px;background:var(--hbc-panel-bg)!important;box-shadow:var(--hbc-soft-shadow)}
-.library-reader-stage{margin:0 10px 10px;overflow:hidden;border:1px solid color-mix(in srgb,var(--color-border) 45%,transparent);border-radius:14px}
+.library-reader-stage{margin:0 10px 10px;overflow:auto!important;border:1px solid color-mix(in srgb,var(--color-border) 45%,transparent);border-radius:14px}
 
 /* ---------- Các panel/card còn lại: thống nhất hệ thống vật liệu ---------- */
 .project-card,.story-card,.kanban-column,.mindmap-panel,.whiteboard-toolbar,.canvas-toolbars>div,.van-nien-calendar-card,.van-nien-day-detail,.van-nien-month-events{

@@ -6,14 +6,15 @@ export async function createFolder(name: string, parentId: string | null): Promi
   const cleanName=name.trim();
   if(!cleanName)throw new Error("Tên thư mục không được để trống.");
   const now = Date.now();
-  const siblingCount = await db.folders
+  const siblings = await db.folders
     .filter((f) => f.parentId === parentId && f.deletedAt === null)
-    .count();
+    .toArray();
+  const nextOrder = siblings.reduce((max, folder) => Math.max(max, folder.order), -1) + 1;
   const folder: Folder = {
     id: uuid(),
     name:cleanName,
     parentId,
-    order: siblingCount,
+    order: nextOrder,
     createdAt: now,
     updatedAt: now,
     schemaVersion: 1,
@@ -25,27 +26,42 @@ export async function createFolder(name: string, parentId: string | null): Promi
 }
 
 export async function renameFolder(id: string, name: string): Promise<void> {
-  await db.folders.update(id, { name, updatedAt: Date.now() });
+  const cleanName = name.trim();
+  if (!cleanName) throw new Error("Tên thư mục không được để trống.");
+  await db.folders.update(id, { name: cleanName, updatedAt: Date.now() });
 }
 
-/** Ngăn vòng lặp: không cho phép chọn chính nó hoặc con cháu làm parent mới. */
+/** Ngăn vòng lặp và chuẩn hóa thứ tự khi chuyển thư mục sang parent mới. */
 export async function moveFolder(id: string, newParentId: string | null): Promise<void> {
   if (newParentId === id) throw new Error("Không thể chuyển thư mục vào chính nó.");
-  if (newParentId) {
-    const all = await db.folders.filter((f) => f.deletedAt === null).toArray();
-    const isDescendant = (candidateId: string, ancestorId: string): boolean => {
-      let current = all.find((f) => f.id === candidateId);
-      while (current?.parentId) {
-        if (current.parentId === ancestorId) return true;
-        current = all.find((f) => f.id === current!.parentId);
+  await db.transaction("rw", db.folders, async () => {
+    const folder = await db.folders.get(id);
+    if (!folder || folder.deletedAt !== null) throw new Error("Không tìm thấy thư mục cần chuyển.");
+    const all = await db.folders.filter((item) => item.deletedAt === null).toArray();
+    if (newParentId) {
+      const target = all.find((item) => item.id === newParentId);
+      if (!target) throw new Error("Thư mục đích không tồn tại.");
+      let current = target;
+      while (current.parentId) {
+        if (current.parentId === id) throw new Error("Không thể chuyển thư mục vào thư mục con của chính nó.");
+        const next = all.find((item) => item.id === current.parentId);
+        if (!next) break;
+        current = next;
       }
-      return false;
-    };
-    if (isDescendant(newParentId, id)) {
-      throw new Error("Không thể chuyển thư mục vào thư mục con của chính nó.");
     }
-  }
-  await db.folders.update(id, { parentId: newParentId, updatedAt: Date.now() });
+    if (folder.parentId === newParentId) return;
+    const stamp = Date.now();
+    const sortGroup = (parentId: string | null) => all
+      .filter((item) => item.id !== id && item.parentId === parentId)
+      .sort((a, b) => a.order - b.order || a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+    const source = sortGroup(folder.parentId);
+    const target = sortGroup(newParentId);
+    await db.folders.bulkPut([
+      ...source.map((item, index) => ({ ...item, order: index, updatedAt: stamp })),
+      ...target.map((item, index) => ({ ...item, order: index, updatedAt: stamp })),
+      { ...folder, parentId: newParentId, order: target.length, updatedAt: stamp },
+    ]);
+  });
 }
 
 export async function softDeleteFolder(id: string): Promise<void> {
@@ -64,5 +80,5 @@ export async function softDeleteFolder(id: string): Promise<void> {
 
 export async function listFolders(): Promise<Folder[]> {
   const folders = await db.folders.filter((f) => f.deletedAt === null).toArray();
-  return folders.sort((a, b) => a.order - b.order);
+  return folders.sort((a, b) => a.order - b.order || a.createdAt - b.createdAt || a.id.localeCompare(b.id));
 }

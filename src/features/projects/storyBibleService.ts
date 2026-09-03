@@ -17,10 +17,19 @@ function base() {
   return { createdAt: t, updatedAt: t, schemaVersion: 1, deletedAt: null, syncState: "local" as const };
 }
 
+function nextOrder<T extends { order: number }>(items: T[]): number {
+  return items.reduce((max, item) => Math.max(max, item.order), -1) + 1;
+}
+
+function stableOrder<T extends { order: number; createdAt: number; id: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => a.order - b.order || a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+}
+
 // ---------- Nhân vật ----------
 
 export async function createCharacter(projectId: string, name: string): Promise<StoryCharacter> {
-  const order = await db.storyCharacters.filter((c) => c.projectId === projectId && c.deletedAt === null).count();
+  const siblings = await db.storyCharacters.filter((c) => c.projectId === projectId && c.deletedAt === null).toArray();
+  const order = nextOrder(siblings);
   const character: StoryCharacter = {
     id: uuid(),
     projectId,
@@ -52,7 +61,7 @@ export async function deleteCharacter(id: string): Promise<void> {
 
 export async function listCharacters(projectId: string): Promise<StoryCharacter[]> {
   const rows = await db.storyCharacters.filter((c) => c.projectId === projectId && c.deletedAt === null).toArray();
-  return rows.sort((a, b) => a.order - b.order);
+  return stableOrder(rows);
 }
 
 // ---------- Bối cảnh / Địa danh / Cảnh giới / Thế lực ----------
@@ -68,7 +77,8 @@ export const STORY_LOCATION_KIND_LABEL: Record<StoryLocationKind, string> = {
 export const STORY_LOCATION_KIND_ORDER: StoryLocationKind[] = ["era", "location", "realm", "faction"];
 
 export async function createLocation(projectId: string, name: string, kind: StoryLocationKind): Promise<StoryLocation> {
-  const order = await db.storyLocations.filter((l) => l.projectId === projectId && l.deletedAt === null).count();
+  const siblings = await db.storyLocations.filter((l) => l.projectId === projectId && l.deletedAt === null).toArray();
+  const order = nextOrder(siblings);
   const location: StoryLocation = { id: uuid(), projectId, name, kind, description: "", order, ...base() };
   await db.storyLocations.add(location);
   return location;
@@ -87,13 +97,14 @@ export async function deleteLocation(id: string): Promise<void> {
 
 export async function listLocations(projectId: string): Promise<StoryLocation[]> {
   const rows = await db.storyLocations.filter((l) => l.projectId === projectId && l.deletedAt === null).toArray();
-  return rows.sort((a, b) => a.order - b.order);
+  return stableOrder(rows);
 }
 
 // ---------- Từ điển thuật ngữ ----------
 
 export async function createLoreEntry(projectId: string, term: string): Promise<StoryLoreEntry> {
-  const order = await db.storyLoreEntries.filter((l) => l.projectId === projectId && l.deletedAt === null).count();
+  const siblings = await db.storyLoreEntries.filter((l) => l.projectId === projectId && l.deletedAt === null).toArray();
+  const order = nextOrder(siblings);
   const entry: StoryLoreEntry = { id: uuid(), projectId, term, definition: "", order, ...base() };
   await db.storyLoreEntries.add(entry);
   return entry;
@@ -109,13 +120,14 @@ export async function deleteLoreEntry(id: string): Promise<void> {
 
 export async function listLoreEntries(projectId: string): Promise<StoryLoreEntry[]> {
   const rows = await db.storyLoreEntries.filter((l) => l.projectId === projectId && l.deletedAt === null).toArray();
-  return rows.sort((a, b) => a.order - b.order);
+  return stableOrder(rows);
 }
 
 // ---------- Dòng thời gian ----------
 
 export async function createTimelineEvent(projectId: string, title: string): Promise<StoryTimelineEvent> {
-  const order = await db.storyTimelineEvents.filter((e) => e.projectId === projectId && e.deletedAt === null).count();
+  const siblings = await db.storyTimelineEvents.filter((e) => e.projectId === projectId && e.deletedAt === null).toArray();
+  const order = nextOrder(siblings);
   const event: StoryTimelineEvent = { id: uuid(), projectId, title, summary: "", chapterId: null, order, ...base() };
   await db.storyTimelineEvents.add(event);
   return event;
@@ -134,7 +146,7 @@ export async function deleteTimelineEvent(id: string): Promise<void> {
 
 export async function listTimelineEvents(projectId: string): Promise<StoryTimelineEvent[]> {
   const rows = await db.storyTimelineEvents.filter((e) => e.projectId === projectId && e.deletedAt === null).toArray();
-  return rows.sort((a, b) => a.order - b.order);
+  return stableOrder(rows);
 }
 
 // ---------- Xuất "Thư Viện Truyện" dạng Markdown (để dán vào AI làm ngữ cảnh) ----------

@@ -1,43 +1,31 @@
-# Tiểu Nhị — AI local cho Huyền Bút Các
+# Tiểu Nhị — trợ lý AI của Huyền Bút Các
 
-Bản vá này thêm trợ lý **Tiểu Nhị** vào Huyền Bút Các mà không thêm API key và không thêm dependency npm mới.
+Tiểu Nhị đã được tích hợp trực tiếp vào giao diện Huyền Bút Các. Từ bản 0.16.2, nút Tiểu Nhị được React render cạnh **Tàng Thư Mật Cảnh** trên desktop và cạnh nút tài khoản trên mobile; không còn chèn DOM bằng `MutationObserver`.
 
-## AI được chọn
+## Hai chế độ
 
-- Model: `onnx-community/Qwen3-0.6B-ONNX`
-- Quantization: `q4f16`
-- Runtime: Transformers.js `4.2.0` tải động từ jsDelivr
-- Device: WebGPU
-- Model chỉ tải khi người dùng bấm **Khai mở Tiểu Nhị**.
-- File model q4f16 khoảng 570 MB và được trình duyệt cache theo cơ chế của Hugging Face/Transformers.js.
+### Local
+- Model: `onnx-community/Qwen3-0.6B-ONNX`.
+- Quantization: `q4f16`.
+- Runtime: Transformers.js tải động từ jsDelivr.
+- Chạy bằng WebGPU trong Web Worker.
+- Chỉ tải model khi người dùng chủ động chọn AI local; lần đầu khoảng 570 MB.
+- Trên mobile, khi đóng Tiểu Nhị và không dùng tiếp, worker local được giải phóng sau một khoảng chờ để giảm RAM/GPU.
 
-## Hành vi trên điện thoại
+### Online
+- Dùng Puter.js, không nhúng API key bí mật vào repository.
+- Có thể yêu cầu người dùng đăng nhập Puter tùy dịch vụ/hạn mức.
+- Nội dung chat online được gửi tới dịch vụ AI bên ngoài, vì vậy giao diện có thông báo rõ trước khi dùng.
 
-- Không load AI khi app khởi động.
-- Không chạy fallback WASM trên thiết bị thiếu WebGPU để tránh quá chậm/nóng máy.
-- Khi đóng Tiểu Nhị trên màn hình dưới 768 px, worker được tự động terminate sau 90 giây để giải phóng RAM/GPU.
-- Context gửi vào model được giới hạn 10 tin nhắn gần nhất; output tối đa 384 token mỗi lượt.
+## Phạm vi quyền
 
-## Phạm vi bản đầu
+Tiểu Nhị hỗ trợ viết truyện, dàn ý, tóm tắt, brainstorm và phân tích nội dung người dùng đưa vào chat. Bản này **không tự ý đọc, sửa, xóa hoặc lưu** Ghi chú, Tàng Thư hay Dự án.
 
-Tiểu Nhị trò chuyện, hỗ trợ viết, tóm tắt, brainstorm và phân tích nội dung do người dùng cung cấp. Bản đầu **không tự ý đọc/sửa/xóa** Tàng Thư, ghi chú hoặc project. Đây là chủ đích an toàn; tool layer có thể nối ở giai đoạn sau.
+## Kiến trúc 0.16.2
 
-## File thay đổi
+- `src/App.tsx`: render nút mở Tiểu Nhị trực tiếp và lazy-load component AI.
+- `src/features/tieu-nhi/TieuNhiLauncher.tsx`: panel chat và quản lý Local/Online.
+- `src/features/tieu-nhi/tieuNhi.worker.js`: tải/chạy Qwen3 local bằng WebGPU.
+- `src/features/tieu-nhi/tieu-nhi.css`: giao diện desktop/mobile.
 
-- `src/main.tsx`
-- `src/features/tieu-nhi/TieuNhiLauncher.tsx`
-- `src/features/tieu-nhi/tieuNhi.worker.js`
-- `src/features/tieu-nhi/tieu-nhi.css`
-
-## Cài thủ công
-
-Chép ba file trong `src/features/tieu-nhi/` vào repo và thay `src/main.tsx` bằng bản trong gói này. Sau đó chạy:
-
-```bash
-npm ci
-npm run lint
-npm run test
-npm run build
-```
-
-Không cần thêm API key, `.env` hay dependency npm.
+Không cần chạy script `apply-tieu-nhi.*`; các script vá cũ đã được loại khỏi bản 0.16.2 để tránh ghi đè source mới.

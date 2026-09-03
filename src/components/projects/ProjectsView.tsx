@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useProjectsStore } from "../../stores/projectsStore";
 import { exportProjectMarkdown } from "../../features/projects/projectsService";
-import type { ProjectKind } from "../../types/entities";
+import type { ProjectChapter, ProjectKind, ProjectSection } from "../../types/entities";
 import { FocusWriter } from "./FocusWriter";
 import { KanbanBoard } from "./KanbanBoard";
 import { StoryBibleTab } from "./StoryBibleTab";
@@ -120,6 +120,108 @@ function ChapterSynopsis({ chapterId, synopsis }: { chapterId: string; synopsis:
   );
 }
 
+function ChapterOutlineItem({
+  chapter,
+  siblings,
+  sections,
+  allChapters,
+  sectionId,
+}: {
+  chapter: ProjectChapter;
+  siblings: ProjectChapter[];
+  sections: ProjectSection[];
+  allChapters: ProjectChapter[];
+  sectionId: string | null;
+}) {
+  const selectChapter = useProjectsStore((s) => s.selectChapter);
+  const updateChapter = useProjectsStore((s) => s.updateChapter);
+  const moveChapter = useProjectsStore((s) => s.moveChapter);
+  const deleteChapter = useProjectsStore((s) => s.deleteChapter);
+  const [moving, setMoving] = useState(false);
+  const index = siblings.findIndex((item) => item.id === chapter.id);
+
+  const runMove = async (targetSectionId: string | null, targetIndex: number) => {
+    setMoving(true);
+    try {
+      await moveChapter(chapter.id, targetSectionId, targetIndex);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Không thể sắp xếp chương.");
+    } finally {
+      setMoving(false);
+    }
+  };
+
+  const renameChapter = async () => {
+    const title = window.prompt("Đổi tên chương:", chapter.title)?.trim();
+    if (title && title !== chapter.title) await updateChapter(chapter.id, { title });
+  };
+
+  return (
+    <li className="codex-card mb-1.5">
+      <div className="flex items-center gap-2 px-2 py-1.5">
+        <span className="text-[11px] tabular-nums" style={{ color: "var(--color-text-muted)" }}>#{index + 1}</span>
+        <button className="min-w-0 flex-1 text-left text-sm" style={{ color: "var(--color-text)" }} onClick={() => selectChapter(chapter.id)}>
+          <span className="break-words">{chapter.title}</span> <span style={{ color: "var(--color-text-muted)" }}>· {chapter.wordCount} từ</span>
+        </button>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 px-2 pb-2 text-xs">
+        <button type="button" disabled={moving} onClick={() => void renameChapter()} style={{ color: "var(--color-accent)" }}>
+          Sửa tên
+        </button>
+        <button
+          type="button"
+          disabled={moving || index <= 0}
+          onClick={() => void runMove(sectionId, index - 1)}
+          title="Đưa chương lên một vị trí"
+          style={{ opacity: moving || index <= 0 ? 0.4 : 1 }}
+        >
+          ↑ Lên
+        </button>
+        <button
+          type="button"
+          disabled={moving || index < 0 || index >= siblings.length - 1}
+          onClick={() => void runMove(sectionId, index + 1)}
+          title="Đưa chương xuống một vị trí"
+          style={{ opacity: moving || index < 0 || index >= siblings.length - 1 ? 0.4 : 1 }}
+        >
+          ↓ Xuống
+        </button>
+        <label className="flex min-w-0 items-center gap-1" style={{ color: "var(--color-text-muted)" }}>
+          <span>Chuyển:</span>
+          <select
+            value={sectionId ?? "__root__"}
+            disabled={moving}
+            aria-label={'Chuyển vị trí cho ' + chapter.title}
+            className="max-w-[13rem] rounded border px-1.5 py-1 text-xs"
+            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)" }}
+            onChange={(event) => {
+              const targetSectionId = event.target.value === "__root__" ? null : event.target.value;
+              if (targetSectionId === sectionId) return;
+              const targetIndex = allChapters.filter((item) => item.sectionId === targetSectionId && item.id !== chapter.id).length;
+              void runMove(targetSectionId, targetIndex);
+            }}
+          >
+            <option value="__root__">Ngoài Phần</option>
+            {sections.map((section) => <option key={section.id} value={section.id}>{section.title}</option>)}
+          </select>
+        </label>
+        <button
+          type="button"
+          disabled={moving}
+          className="ml-auto"
+          style={{ color: "var(--color-error)" }}
+          onClick={() => {
+            if (window.confirm('Xóa chương “' + chapter.title + '”?')) void deleteChapter(chapter.id);
+          }}
+        >
+          Xóa
+        </button>
+      </div>
+      <ChapterSynopsis chapterId={chapter.id} synopsis={chapter.synopsis} />
+    </li>
+  );
+}
+
 function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
   const sections = useProjectsStore((s) => s.sections);
   const chapters = useProjectsStore((s) => s.chapters);
@@ -127,8 +229,6 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
   const renameSection = useProjectsStore((s) => s.renameSection);
   const deleteSection = useProjectsStore((s) => s.deleteSection);
   const createChapter = useProjectsStore((s) => s.createChapter);
-  const selectChapter = useProjectsStore((s) => s.selectChapter);
-  const deleteChapter = useProjectsStore((s) => s.deleteChapter);
   const [sectionTitle, setSectionTitle] = useState("");
   const [chapterTitle, setChapterTitle] = useState("");
 
@@ -136,6 +236,10 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
 
   return (
     <div className="p-4">
+      <div className="mb-3 rounded-lg border px-3 py-2 text-xs" style={{ borderColor: "var(--color-border)", background: "var(--color-surface-alt)", color: "var(--color-text-muted)" }}>
+        Có thể tạo chương phác thảo trước rồi chỉnh lại sau. Dùng <b>Sửa tên</b>, <b>Lên/Xuống</b> hoặc <b>Chuyển</b> để sắp xếp dàn ý mà không làm mất nội dung chương.
+      </div>
+
       <div className="flex gap-2 mb-3">
         <input
           value={chapterTitle}
@@ -158,18 +262,15 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
       </div>
 
       <ul className="mb-4">
-        {rootChapters.map((c) => (
-          <li key={c.id} className="codex-card mb-1.5">
-            <div className="flex items-center justify-between px-2 py-1.5">
-              <button className="text-left flex-1 text-sm" style={{ color: "var(--color-text)" }} onClick={() => selectChapter(c.id)}>
-                {c.title} <span style={{ color: "var(--color-text-muted)" }}>· {c.wordCount} từ</span>
-              </button>
-              <button onClick={() => { if(window.confirm(`Xóa chương “${c.title}”?`)) void deleteChapter(c.id); }} className="text-xs" style={{ color: "var(--color-error)" }}>
-                Xóa
-              </button>
-            </div>
-            <ChapterSynopsis chapterId={c.id} synopsis={c.synopsis} />
-          </li>
+        {rootChapters.map((chapter) => (
+          <ChapterOutlineItem
+            key={chapter.id}
+            chapter={chapter}
+            siblings={rootChapters}
+            sections={sections}
+            allChapters={chapters}
+            sectionId={null}
+          />
         ))}
       </ul>
 
@@ -194,8 +295,10 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
         </button>
       </div>
 
-      {sections.map((s) => (
-        <div key={s.id} id={`project-section-${s.id}`} className="mb-3 rounded-lg p-2" style={{outline:focusedSectionId===s.id?"2px solid var(--color-focus)":"none"}}>
+      {sections.map((s) => {
+        const sectionChapters = chapters.filter((chapter) => chapter.sectionId === s.id);
+        return (
+        <div key={s.id} id={"project-section-" + s.id} className="mb-3 rounded-lg p-2" style={{outline:focusedSectionId===s.id?"2px solid var(--color-focus)":"none"}}>
           <div className="flex items-center gap-2 mb-1">
             <div className="min-w-0 flex-1 truncate text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
               📖 {s.title}
@@ -217,7 +320,7 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
               style={{ color: "var(--color-error)" }}
               title="Các chương trong phần sẽ được chuyển ra cấp dự án, không bị xóa."
               onClick={() => {
-                if (window.confirm(`Xóa phần “${s.title}”? Các chương bên trong sẽ được giữ lại và chuyển ra ngoài phần.`)) {
+                if (window.confirm('Xóa phần “' + s.title + '”? Các chương bên trong sẽ được giữ lại và chuyển ra ngoài phần.')) {
                   void deleteSection(s.id);
                 }
               }}
@@ -226,21 +329,16 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
             </button>
           </div>
           <ul className="pl-4">
-            {chapters
-              .filter((c) => c.sectionId === s.id)
-              .map((c) => (
-                <li key={c.id} className="codex-card mb-1.5">
-                  <div className="flex items-center justify-between px-2 py-1.5">
-                    <button className="text-left flex-1 text-sm" style={{ color: "var(--color-text)" }} onClick={() => selectChapter(c.id)}>
-                      {c.title} <span style={{ color: "var(--color-text-muted)" }}>· {c.wordCount} từ</span>
-                    </button>
-                    <button onClick={() => { if(window.confirm(`Xóa chương “${c.title}”?`)) void deleteChapter(c.id); }} className="text-xs" style={{ color: "var(--color-error)" }}>
-                      Xóa
-                    </button>
-                  </div>
-                  <ChapterSynopsis chapterId={c.id} synopsis={c.synopsis} />
-                </li>
-              ))}
+            {sectionChapters.map((chapter) => (
+              <ChapterOutlineItem
+                key={chapter.id}
+                chapter={chapter}
+                siblings={sectionChapters}
+                sections={sections}
+                allChapters={chapters}
+                sectionId={s.id}
+              />
+            ))}
           </ul>
           <button
             onClick={async () => {
@@ -253,7 +351,8 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
             + Thêm chương vào phần
           </button>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

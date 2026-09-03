@@ -16,6 +16,7 @@ import { getActiveWorkspaceUserId } from "../../database/db";
 import { unregisterPushSubscription } from "../../features/calendar/notificationService";
 
 type AccountTab = "profile" | "security" | "sync";
+type VaultResetNotice = { tone: "success" | "error"; text: string };
 
 export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: boolean; onClose: () => void; onRecoveryRequired?: () => void }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -28,6 +29,7 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<SyncStatus>(navigator.onLine ? "idle" : "offline");
+  const [syncMessage, setSyncMessage] = useState("");
   const [lastSync, setLastSync] = useState(0);
   const [recovering, setRecovering] = useState(() => isPasswordRecoveryUrl());
   const [recoveryChecking, setRecoveryChecking] = useState(() => isPasswordRecoveryUrl());
@@ -39,21 +41,25 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
   const [vaultConfirm, setVaultConfirm] = useState("");
   const [resettingVault, setResettingVault] = useState(false);
   const [confirmVaultReset, setConfirmVaultReset] = useState(false);
+  const [vaultResetNotice, setVaultResetNotice] = useState<VaultResetNotice | null>(null);
   const sessionRef = useRef(session);
   useEffect(() => { sessionRef.current = session; }, [session]);
 
-  async function runSync(activeSession = session) {
-    if (!activeSession) return;
-    if (getActiveWorkspaceUserId() !== activeSession.user.id) { setStatus("idle"); return; }
-    if (!isVaultUnlocked(activeSession.user.id)) { setStatus("idle"); return; }
+  async function runSync(activeSession = session): Promise<boolean> {
+    if (!activeSession) return false;
+    if (getActiveWorkspaceUserId() !== activeSession.user.id) { setStatus("idle"); return false; }
+    if (!isVaultUnlocked(activeSession.user.id)) { setStatus("idle"); return false; }
     setStatus("syncing");
     try {
       await syncNow(activeSession.user);
       setStatus("synced");
+      setSyncMessage("");
       setLastSync(getLastSync(activeSession.user.id));
+      return true;
     } catch (error) {
       setStatus(navigator.onLine ? "error" : "offline");
-      setMessage(error instanceof Error ? error.message : "Đồng bộ thất bại");
+      setSyncMessage(error instanceof Error ? error.message : "Đồng bộ thất bại");
+      return false;
     }
   }
 
@@ -96,7 +102,7 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
       }
       if (event === "SIGNED_OUT") {
         lockVault(previousUserId);
-        setVaultState("loading"); setStatus("idle"); setLastSync(0);
+        setVaultState("loading"); setStatus("idle"); setSyncMessage(""); setLastSync(0);
         setVaultPassphrase(""); setVaultConfirm("");
       }
     });
@@ -127,7 +133,7 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
     if (!session) return;
     if (vaultPassphrase.length < 12) { setMessage("Mật khẩu Kho cần ít nhất 12 ký tự."); return; }
     if (vaultState === "setup" && vaultPassphrase !== vaultConfirm) { setMessage("Hai mật khẩu Kho chưa giống nhau."); return; }
-    setBusy(true); setMessage("");
+    setBusy(true); setMessage(""); setVaultResetNotice(null);
     try {
       if (vaultState === "setup") await setupVault(session.user, vaultPassphrase);
       else await unlockVault(session.user, vaultPassphrase);
@@ -140,18 +146,29 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
   async function submitVaultReset(event: React.FormEvent) {
     event.preventDefault();
     if (!session) return;
-    if (vaultPassphrase.length < 12) { setMessage("Mật khẩu Kho mới cần ít nhất 12 ký tự."); return; }
-    if (vaultPassphrase !== vaultConfirm) { setMessage("Hai mật khẩu Kho mới chưa giống nhau."); return; }
-    if (!confirmVaultReset) { setMessage("Hãy xác nhận rằng bạn hiểu dữ liệu đám mây mã hóa bằng mật khẩu cũ sẽ bị thay thế."); return; }
-    setBusy(true); setMessage("");
+    const showResetError = (text: string) => {
+      setMessage("");
+      setVaultResetNotice({ tone: "error", text });
+    };
+    if (vaultPassphrase.length < 12) { showResetError("Mật khẩu Kho mới cần ít nhất 12 ký tự."); return; }
+    if (vaultPassphrase !== vaultConfirm) { showResetError("Hai mật khẩu Kho mới chưa giống nhau."); return; }
+    if (!confirmVaultReset) { showResetError("Hãy xác nhận rằng bạn hiểu dữ liệu đám mây mã hóa bằng mật khẩu cũ sẽ bị thay thế."); return; }
+    setBusy(true); setMessage(""); setVaultResetNotice(null);
     try {
       await resetVault(session.user, vaultPassphrase);
       setVaultState("unlocked"); setResettingVault(false); setConfirmVaultReset(false);
       setVaultPassphrase(""); setVaultConfirm("");
-      await runSync(session);
-      setMessage("Đã tạo lại Kho bảo mật và mã hóa dữ liệu trên thiết bị bằng mật khẩu mới.");
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Không thể đặt lại Kho bảo mật"); }
-    finally { setBusy(false); }
+      setVaultResetNotice({ tone: "success", text: "Đã đặt lại Kho bảo mật thành công. Đang kiểm tra đồng bộ dữ liệu…" });
+      const synced = await runSync(session);
+      setVaultResetNotice({
+        tone: "success",
+        text: synced
+          ? "Đã đặt lại Kho bảo mật thành công và đã đồng bộ dữ liệu bằng mật khẩu mới."
+          : "Đã đặt lại Kho bảo mật thành công. Dữ liệu trên thiết bị vẫn được giữ; đồng bộ chưa hoàn tất, hãy kiểm tra tab Đồng bộ.",
+      });
+    } catch (error) {
+      showResetError(error instanceof Error ? error.message : "Không thể đặt lại Kho bảo mật");
+    } finally { setBusy(false); }
   }
 
   async function submit(event: React.FormEvent) {
@@ -280,24 +297,37 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
             <div className="font-semibold">🔐 {vaultState === "setup" ? "Tạo Kho bảo mật" : vaultState === "locked" ? "Mở Kho bảo mật" : vaultState === "unlocked" ? "Kho bảo mật đang mở" : "Đang kiểm tra Kho…"}</div>
             <p className="mt-1 text-sm opacity-75">{vaultState === "setup" ? "Tạo mật khẩu riêng để mã hóa dữ liệu trước khi đồng bộ." : vaultState === "unlocked" ? "Dữ liệu có thể được mã hóa và đồng bộ an toàn." : "Nhập mật khẩu Kho đã tạo trên thiết bị đầu tiên."}</p>
           </div>
+          {vaultResetNotice && <div
+            role={vaultResetNotice.tone === "error" ? "alert" : "status"}
+            aria-live="polite"
+            className="rounded-xl border p-3 text-sm"
+            style={{
+              borderColor: vaultResetNotice.tone === "success" ? "var(--color-accent)" : "var(--color-error)",
+              background: "var(--color-surface-alt)",
+            }}
+          >
+            <div className="font-semibold">{vaultResetNotice.tone === "success" ? "✓ Đặt lại Kho thành công" : "Không thể đặt lại Kho"}</div>
+            <p className="mt-1 opacity-80">{vaultResetNotice.text}</p>
+          </div>}
           {resettingVault ? <form className="space-y-3" onSubmit={submitVaultReset}>
             <div className="rounded-xl border p-3 text-sm" style={{borderColor:"var(--color-warning)",background:"var(--color-surface-alt)"}}><b>Đặt lại Kho bảo mật</b><p className="mt-1 opacity-75">Không thể giải mã bản sao đám mây nếu đã quên mật khẩu cũ. Thao tác này xóa bản mã cũ trên đám mây, giữ dữ liệu đang có trên thiết bị này và mã hóa lại bằng mật khẩu mới.</p></div>
             <input required minLength={12} type="password" autoComplete="new-password" placeholder="Mật khẩu Kho mới (ít nhất 12 ký tự)" value={vaultPassphrase} onChange={e=>setVaultPassphrase(e.target.value)} />
             <input required minLength={12} type="password" autoComplete="new-password" placeholder="Nhập lại mật khẩu Kho mới" value={vaultConfirm} onChange={e=>setVaultConfirm(e.target.value)} />
             <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 h-4 w-4" checked={confirmVaultReset} onChange={e=>setConfirmVaultReset(e.target.checked)} /><span>Tôi đã kiểm tra dữ liệu cần giữ vẫn đang hiển thị trên thiết bị này.</span></label>
             <button disabled={busy} className="account-primary w-full" type="submit">{busy?"Đang tạo lại Kho…":"Đặt lại Kho và đồng bộ"}</button>
-            <button type="button" className="w-full rounded-xl border px-4 py-2" style={{borderColor:"var(--color-border)"}} onClick={()=>{setResettingVault(false);setVaultPassphrase("");setVaultConfirm("");setConfirmVaultReset(false);setMessage("");}}>Quay lại mở Kho</button>
+            <button type="button" className="w-full rounded-xl border px-4 py-2" style={{borderColor:"var(--color-border)"}} onClick={()=>{setResettingVault(false);setVaultPassphrase("");setVaultConfirm("");setConfirmVaultReset(false);setVaultResetNotice(null);setMessage("");}}>Quay lại mở Kho</button>
           </form> : vaultState !== "loading" && vaultState !== "unlocked" && <form className="space-y-3" onSubmit={submitVault}>
             <input required minLength={12} type="password" autoComplete="off" placeholder="Mật khẩu Kho (ít nhất 12 ký tự)" value={vaultPassphrase} onChange={e=>setVaultPassphrase(e.target.value)} />
             {vaultState === "setup" && <input required minLength={12} type="password" autoComplete="off" placeholder="Nhập lại mật khẩu Kho" value={vaultConfirm} onChange={e=>setVaultConfirm(e.target.value)} />}
             <button disabled={busy} className="account-primary w-full" type="submit">{busy?"Đang xử lý mã hóa…":vaultState==="setup"?"Tạo Kho và mã hóa dữ liệu":"Mở Kho và đồng bộ"}</button>
           </form>}
-          {vaultState === "locked" && !resettingVault && <button className="text-sm underline" onClick={()=>{setResettingVault(true);setVaultPassphrase("");setVaultConfirm("");setMessage("");}}>Quên mật khẩu Kho?</button>}
-          {vaultState === "unlocked" && <button className="w-full rounded-xl border px-4 py-2" style={{borderColor:"var(--color-border)"}} onClick={()=>{lockVault(session.user.id);setVaultState("locked");setStatus("idle");}}>🔒 Khóa Kho ngay</button>}
+          {vaultState === "locked" && !resettingVault && <button className="text-sm underline" onClick={()=>{setResettingVault(true);setVaultPassphrase("");setVaultConfirm("");setVaultResetNotice(null);setMessage("");}}>Quên mật khẩu Kho?</button>}
+          {vaultState === "unlocked" && <button className="w-full rounded-xl border px-4 py-2" style={{borderColor:"var(--color-border)"}} onClick={()=>{lockVault(session.user.id);setVaultState("locked");setStatus("idle");setVaultResetNotice(null);}}>🔒 Khóa Kho ngay</button>}
           <p className="text-xs opacity-65">Mật khẩu Kho chỉ tồn tại trong bộ nhớ phiên này. Nếu quên, dữ liệu đám mây không thể giải mã hoặc khôi phục.</p>
         </div>}
           {accountTab === "sync" && <div className="space-y-4">
           <div className="text-sm">Trạng thái: <b>{status === "syncing" ? "Đang đồng bộ…" : status === "synced" ? "Đã đồng bộ" : status === "offline" ? "Ngoại tuyến – sẽ đồng bộ khi có mạng" : status === "error" ? "Có lỗi" : "Sẵn sàng"}</b>{lastSync>0 && <div className="opacity-70 mt-1">Lần cuối: {new Date(lastSync).toLocaleString("vi-VN")}</div>}</div>
+          {syncMessage && <p role="alert" className="rounded-xl border p-3 text-sm" style={{background:"var(--color-surface-alt)",borderColor:"var(--color-error)"}}>{syncMessage}</p>}
           {vaultState !== "unlocked" && <p className="rounded-xl p-3 text-sm" style={{background:"var(--color-surface-alt)"}}>Hãy mở Kho bảo mật trong tab Bảo mật trước khi đồng bộ.</p>}
           <button className="account-primary w-full" disabled={status==="syncing" || vaultState!=="unlocked"} onClick={()=>void runSync()}>↻ Đồng bộ ngay</button>
           </div>}

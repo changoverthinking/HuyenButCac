@@ -31,6 +31,7 @@ interface ProjectsState {
   createChapter: (title: string, sectionId: string | null) => Promise<void>;
   selectChapter: (id: string | null) => void;
   updateChapter: (id: string, patch: Parameters<typeof svc.updateChapter>[1]) => Promise<void>;
+  moveChapter: (id: string, targetSectionId: string | null, targetIndex: number) => Promise<void>;
   deleteChapter: (id: string) => Promise<void>;
 
   createTask: (title: string) => Promise<void>;
@@ -145,6 +146,13 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
     await svc.updateChapter(id, patch);
     const pid = get().selectedProjectId;
     if (pid) set({ chapters: await svc.listChapters(pid) });
+  },
+
+  moveChapter: async (id, targetSectionId, targetIndex) => {
+    const pid = get().selectedProjectId;
+    if (!pid) return;
+    await svc.moveChapter(id, targetSectionId, targetIndex);
+    set({ chapters: await svc.listChapters(pid) });
   },
 
   deleteChapter: async (id) => {

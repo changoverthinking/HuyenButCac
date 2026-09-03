@@ -35,7 +35,7 @@ Chỉ đánh dấu STABLE khi: hoạt động thật, lưu được, reload khô
 | Dexie v2 migration (projects/sections/chapters/tasks/milestones) | STABLE | version 1 giữ nguyên, chỉ thêm bảng |
 | Tạo/chọn dự án, 4 loại (Phần mềm/Game/Công trình/Chung) | STABLE | chưa có icon/bìa/theme riêng cho từng dự án |
 | Cấu trúc Phần→Chương (chưa có "Mục" cấp con của Chương) | IMPLEMENTING | Dự án→Phần→Chương hoạt động; cấp "Mục" trong Chương chưa tách riêng |
-| Kéo sắp xếp chương | IMPLEMENTING | có API `reorderChapter` + test, UI kéo-thả bằng chuột chưa làm (chỉ đổi order qua code) |
+| Sắp xếp/chỉnh sửa chương | STABLE | đổi tên, Lên/Xuống, chuyển giữa Phần/Ngoài Phần; `order` được chuẩn hóa và có regression test |
 | Trình viết tập trung (focus mode) | STABLE | rich text, đếm từ trực tiếp, đồng hồ, autosave 400ms + lưu khi thoát |
 | Tác phẩm hàng trăm nghìn từ | STABLE | lưu theo Phần/Chương riêng; cảnh báo khi một chương vượt 20.000 từ |
 | Mục tiêu số từ / tiến độ ngày / typewriter mode | TODO | |

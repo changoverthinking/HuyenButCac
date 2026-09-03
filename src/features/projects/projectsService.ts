@@ -20,6 +20,14 @@ function base() {
   return { createdAt: t, updatedAt: t, schemaVersion: 1, deletedAt: null, syncState: "local" as const };
 }
 
+function nextOrder<T extends { order: number }>(items: T[]): number {
+  return items.reduce((max, item) => Math.max(max, item.order), -1) + 1;
+}
+
+function stableOrder<T extends { order: number; createdAt: number; id: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => a.order - b.order || a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+}
+
 // ---------- Project ----------
 
 export async function createProject(params: { title: string; kind: ProjectKind }): Promise<Project> {
@@ -103,7 +111,8 @@ export async function listProjects(): Promise<Project[]> {
 // ---------- Section ----------
 
 export async function createSection(projectId: string, title: string): Promise<ProjectSection> {
-  const order = await db.projectSections.filter((s) => s.projectId === projectId && s.deletedAt === null).count();
+  const siblings = await db.projectSections.filter((s) => s.projectId === projectId && s.deletedAt === null).toArray();
+  const order = nextOrder(siblings);
   const section: ProjectSection = { id: uuid(), projectId, title, order, ...base() };
   await db.projectSections.add(section);
   return section;
@@ -111,7 +120,7 @@ export async function createSection(projectId: string, title: string): Promise<P
 
 export async function listSections(projectId: string): Promise<ProjectSection[]> {
   const sections = await db.projectSections.filter((s) => s.projectId === projectId && s.deletedAt === null).toArray();
-  return sections.sort((a, b) => a.order - b.order);
+  return stableOrder(sections);
 }
 
 export async function renameSection(id: string, title: string): Promise<void> {
@@ -158,9 +167,10 @@ export async function createChapter(params: {
   sectionId: string | null;
   title: string;
 }): Promise<ProjectChapter> {
-  const order = await db.projectChapters
+  const siblings = await db.projectChapters
     .filter((c) => c.projectId === params.projectId && c.sectionId === params.sectionId && c.deletedAt === null)
-    .count();
+    .toArray();
+  const order = nextOrder(siblings);
   const chapter: ProjectChapter = {
     id: uuid(),
     projectId: params.projectId,
@@ -207,19 +217,74 @@ export async function softDeleteChapter(id: string): Promise<void> {
   });
 }
 
-export async function listChapters(projectId: string): Promise<ProjectChapter[]> {
-  const chapters = await db.projectChapters.filter((c) => c.projectId === projectId && c.deletedAt === null).toArray();
-  return chapters.sort((a, b) => a.order - b.order);
+function sameChapterSection(chapter: ProjectChapter, sectionId: string | null): boolean {
+  return chapter.sectionId === sectionId;
 }
 
+function sortChapterGroup(chapters: ProjectChapter[]): ProjectChapter[] {
+  return stableOrder(chapters);
+}
+
+export async function listChapters(projectId: string): Promise<ProjectChapter[]> {
+  const chapters = await db.projectChapters.filter((c) => c.projectId === projectId && c.deletedAt === null).toArray();
+  return sortChapterGroup(chapters);
+}
+
+/**
+ * Di chuyển chương tới vị trí mới trong cùng nhóm hoặc sang một Phần khác.
+ * Toàn bộ order của nhóm nguồn/đích được chuẩn hóa về 0..n-1 để tránh trùng thứ tự.
+ */
+export async function moveChapter(id: string, targetSectionId: string | null, targetIndex: number): Promise<void> {
+  await db.transaction("rw", db.projectChapters, db.projectSections, async () => {
+    const chapter = await db.projectChapters.get(id);
+    if (!chapter || chapter.deletedAt !== null) throw new Error("Không tìm thấy chương cần sắp xếp.");
+
+    if (targetSectionId !== null) {
+      const targetSection = await db.projectSections.get(targetSectionId);
+      if (!targetSection || targetSection.deletedAt !== null || targetSection.projectId !== chapter.projectId) {
+        throw new Error("Phần đích không hợp lệ hoặc không thuộc dự án này.");
+      }
+    }
+
+    const allChapters = await db.projectChapters
+      .filter((item) => item.projectId === chapter.projectId && item.deletedAt === null)
+      .toArray();
+    const sourceSectionId = chapter.sectionId;
+    const stamp = now();
+    const normalizedIndex = Number.isFinite(targetIndex) ? Math.trunc(targetIndex) : Number.MAX_SAFE_INTEGER;
+
+    if (sourceSectionId === targetSectionId) {
+      const group = sortChapterGroup(allChapters.filter((item) => sameChapterSection(item, sourceSectionId) && item.id !== id));
+      const insertAt = Math.max(0, Math.min(normalizedIndex, group.length));
+      group.splice(insertAt, 0, { ...chapter, sectionId: targetSectionId });
+      await db.projectChapters.bulkPut(group.map((item, index) => ({ ...item, order: index, updatedAt: stamp })));
+      return;
+    }
+
+    const sourceGroup = sortChapterGroup(allChapters.filter((item) => sameChapterSection(item, sourceSectionId) && item.id !== id));
+    const targetGroup = sortChapterGroup(allChapters.filter((item) => sameChapterSection(item, targetSectionId) && item.id !== id));
+    const insertAt = Math.max(0, Math.min(normalizedIndex, targetGroup.length));
+    targetGroup.splice(insertAt, 0, { ...chapter, sectionId: targetSectionId });
+
+    await db.projectChapters.bulkPut([
+      ...sourceGroup.map((item, index) => ({ ...item, order: index, updatedAt: stamp })),
+      ...targetGroup.map((item, index) => ({ ...item, sectionId: targetSectionId, order: index, updatedAt: stamp })),
+    ]);
+  });
+}
+
+/** @deprecated Dùng moveChapter cho UI mới. Hàm này giữ tương thích nhưng vẫn chuẩn hóa order. */
 export async function reorderChapter(id: string, newOrder: number): Promise<void> {
-  await db.projectChapters.update(id, { order: newOrder, updatedAt: now() });
+  const chapter = await db.projectChapters.get(id);
+  if (!chapter || chapter.deletedAt !== null) throw new Error("Không tìm thấy chương cần sắp xếp.");
+  await moveChapter(id, chapter.sectionId, newOrder);
 }
 
 // ---------- Task (Kanban) ----------
 
 export async function createTask(projectId: string, title: string): Promise<ProjectTask> {
-  const order = await db.projectTasks.filter((t) => t.projectId === projectId && t.deletedAt === null).count();
+  const siblings = await db.projectTasks.filter((t) => t.projectId === projectId && t.deletedAt === null).toArray();
+  const order = nextOrder(siblings);
   const task: ProjectTask = {
     id: uuid(),
     projectId,
@@ -243,7 +308,7 @@ export async function softDeleteTask(id: string): Promise<void> {
 
 export async function listTasks(projectId: string): Promise<ProjectTask[]> {
   const tasks = await db.projectTasks.filter((t) => t.projectId === projectId && t.deletedAt === null).toArray();
-  return tasks.sort((a, b) => a.order - b.order);
+  return stableOrder(tasks);
 }
 
 // ---------- Milestone ----------
