@@ -18,33 +18,61 @@ afterEach(() => {
   if (root) act(() => root?.unmount());
   root = null;
   container.remove();
+  document.body.querySelectorAll(".account-modal-backdrop").forEach((node) => node.remove());
 });
 
 async function renderPanel() {
   root = createRoot(container);
-  await act(async () => { root?.render(<AccountPanel open onClose={() => undefined} />); });
+  await act(async () => {
+    root?.render(<AccountPanel open onClose={() => undefined} />);
+  });
+}
+
+function getAccountDialog(): HTMLElement {
+  const dialog = document.body.querySelector<HTMLElement>(
+    '[role="dialog"][aria-label="Tàng Thư Mật Cảnh"]',
+  );
+  if (!dialog) throw new Error("AccountPanel portal chưa được render vào document.body");
+  return dialog;
 }
 
 describe("AccountPanel login UX", () => {
   it("ẩn/hiện mật khẩu mà không thay đổi giá trị", async () => {
     await renderPanel();
-    const password = container.querySelector<HTMLInputElement>('input[name="password"]')!;
-    const toggle = container.querySelector<HTMLButtonElement>('button[aria-label="Hiện mật khẩu"]')!;
+    const dialog = getAccountDialog();
+    const password = dialog.querySelector<HTMLInputElement>('input[name="password"]');
+    const toggle = dialog.querySelector<HTMLButtonElement>('button[aria-label="Hiện mật khẩu"]');
+
+    expect(password).not.toBeNull();
+    expect(toggle).not.toBeNull();
+
     await act(async () => {
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(password, "mat-khau-an-toan");
-      password.dispatchEvent(new Event("input", { bubbles: true }));
+      const valueSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      valueSetter?.call(password, "mat-khau-an-toan");
+      password?.dispatchEvent(new Event("input", { bubbles: true }));
     });
+
     await act(async () => {
-      toggle.click();
+      toggle?.click();
     });
-    expect(password.type).toBe("text");
-    expect(password.value).toBe("mat-khau-an-toan");
+
+    expect(password?.type).toBe("text");
+    expect(password?.value).toBe("mat-khau-an-toan");
   });
 
   it("điền sẵn email đã ghi nhớ", async () => {
     localStorage.setItem("hbc-remembered-email", "user@example.com");
     await renderPanel();
-    expect(container.querySelector<HTMLInputElement>('input[name="email"]')?.value).toBe("user@example.com");
-    expect(container.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(true);
+    const dialog = getAccountDialog();
+
+    expect(
+      dialog.querySelector<HTMLInputElement>('input[name="email"]')?.value,
+    ).toBe("user@example.com");
+    expect(
+      dialog.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked,
+    ).toBe(true);
   });
 });
