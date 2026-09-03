@@ -1141,3 +1141,67 @@ button:focus-visible, input:focus-visible, select:focus-visible, [contenteditabl
     padding: calc(.85rem + env(safe-area-inset-top)) .85rem calc(1rem + env(safe-area-inset-bottom));
   }
 }
+
+/* 0.18.1 — iOS/PWA native scrolling for Account / Settings.
+   AccountPanel is portalled to document.body. Keep the modal frame fixed and
+   let exactly one inner element own vertical scrolling. */
+.account-modal-backdrop {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.account-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden !important;
+  isolation: isolate;
+  touch-action: auto;
+}
+.account-panel--settings {
+  height: min(92dvh, 58rem);
+  max-height: min(92dvh, 58rem);
+}
+.account-panel-scroll {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+.account-panel-scroll::-webkit-scrollbar { width: .65rem; }
+.account-panel-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb,var(--color-accent) 45%,var(--color-border));
+  background-clip: padding-box;
+}
+
+@media (max-width: 767px) {
+  .account-modal-backdrop {
+    display: block;
+    padding: 0;
+  }
+  .account-panel,
+  .account-panel--settings {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    padding: calc(.85rem + env(safe-area-inset-top)) .85rem calc(1rem + env(safe-area-inset-bottom));
+  }
+  .account-panel-scroll {
+    height: 100%;
+    max-height: 100%;
+    padding-bottom: max(.75rem, env(safe-area-inset-bottom));
+  }
+}
