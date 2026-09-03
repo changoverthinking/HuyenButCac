@@ -45,7 +45,22 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
   const [confirmVaultReset, setConfirmVaultReset] = useState(false);
   const [vaultResetNotice, setVaultResetNotice] = useState<VaultResetNotice | null>(null);
   const sessionRef = useRef(session);
+  const panelRef = useRef<HTMLElement | null>(null);
   useEffect(() => { sessionRef.current = session; }, [session]);
+  useEffect(() => {
+    if (!open) return;
+    const panel = panelRef.current;
+    if (panel && typeof panel.scrollTo === "function") panel.scrollTo({ top: 0, behavior: "auto" });
+  }, [accountTab, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !document.querySelector(".image-adjust-backdrop")) onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
 
   async function runSync(activeSession = session): Promise<boolean> {
     if (!activeSession) return false;
@@ -274,8 +289,18 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
     ? [["profile", "Thông tin"], ["security", "Bảo mật"], ["sync", "Đồng bộ"], ["settings", "Cài đặt"]]
     : [["profile", "Tài khoản"], ["settings", "Cài đặt"]];
 
-  return <div className="fixed inset-0 z-[80] grid place-items-center bg-black/60 p-4" onMouseDown={onClose}>
-    <section className="account-panel immortal-panel max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border p-5 shadow-2xl" onMouseDown={e=>e.stopPropagation()}>
+  return <div className="account-modal-backdrop fixed inset-0 z-[80] grid place-items-center bg-black/60 p-4" onMouseDown={onClose}>
+    <section
+      ref={panelRef}
+      className={`account-panel immortal-panel max-h-[calc(100dvh-2rem)] w-full ${accountTab === "settings" ? "account-panel--settings max-w-3xl" : "max-w-md"} overflow-y-auto rounded-2xl border p-5 shadow-2xl`}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Tàng Thư Mật Cảnh"
+      tabIndex={-1}
+      onMouseDown={e=>e.stopPropagation()}
+      onWheel={e=>e.stopPropagation()}
+      onTouchMove={e=>e.stopPropagation()}
+    >
       <AppearanceLayer target="account" className="account-settings-layer" />
       <div className="relative z-[1]">
         <div className="account-heading flex items-center justify-between mb-4"><div className="flex items-center gap-3"><span className="brand-sigil small">鑰</span><div><h2 className="text-xl font-bold">Tàng Thư Mật Cảnh</h2><p className="text-xs opacity-65">Tài khoản · Bảo mật · Đồng bộ · Cài đặt</p></div></div><button className="mystic-close" onClick={onClose} aria-label="Quay lại" title="Quay lại">←</button></div>

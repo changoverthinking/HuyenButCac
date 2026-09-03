@@ -1101,3 +1101,43 @@ button:focus-visible, input:focus-visible, select:focus-visible, [contenteditabl
 
 /* v0.14.1: Tiên Âm Các chỉ mở từ menu; không hiển thị nút nhạc nổi che nội dung. */
 .music-bubble { display: none !important; }
+
+/* 0.18.0 — modal Tài khoản/Cài đặt: cuộn chuột + vuốt dọc ổn định trên desktop/mobile. */
+.account-modal-backdrop {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: pan-y;
+}
+.account-panel {
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
+}
+.account-panel--settings {
+  max-height: min(92dvh, 58rem);
+}
+.account-panel::-webkit-scrollbar { width: .65rem; }
+.account-panel::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+  background-clip: padding-box;
+}
+.account-tabs {
+  grid-template-columns: repeat(auto-fit, minmax(5.25rem, 1fr));
+}
+@media (max-width: 767px) {
+  .account-modal-backdrop { padding: 0; align-items: stretch; }
+  .account-panel,
+  .account-panel--settings {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    padding: calc(.85rem + env(safe-area-inset-top)) .85rem calc(1rem + env(safe-area-inset-bottom));
+  }
+}

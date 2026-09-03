@@ -4,6 +4,7 @@ import { AdjustedImage } from "../common/AdjustedImage";
 import { ImageAdjustDialog } from "../common/ImageAdjustDialog";
 import { useProjectsStore } from "../../stores/projectsStore";
 import type { Project } from "../../types/entities";
+import { createProject, softDeleteProject, updateProject } from "../../features/projects/projectsService";
 import {
   createLibraryBook,
   deleteLibraryBook,
@@ -19,6 +20,7 @@ import {
   updateLibraryBookInfo,
   type LibraryBook,
   type LibraryProjectMeta,
+  validateCoverFile,
 } from "../../features/library/libraryService";
 import { loadPdfRuntime, type PdfDocumentHandle, type PdfRenderTask } from "../../features/library/pdfRuntime";
 import { DEFAULT_IMAGE_TRANSFORM, normalizeImageTransform, type ImageTransform } from "../../features/appearance/imageTypes";
@@ -72,7 +74,10 @@ function CoverEditorControl({
       <Icon name="image" size={16} />
       <input type="file" accept="image/*" onChange={(event) => {
         const next = event.target.files?.[0] ?? null;
-        if (next) { setFile(next); setOpen(true); }
+        if (next) {
+          try { validateCoverFile(next); setFile(next); setOpen(true); }
+          catch (error) { window.alert(error instanceof Error ? error.message : "Ảnh bìa không hợp lệ."); }
+        }
         event.currentTarget.value = "";
       }} />
     </label>
@@ -117,6 +122,18 @@ function AddBookDialog({
       if (mode === "pdf") {
         if (!pdfFile) throw new Error("Hãy chọn tệp PDF cần thêm.");
         await importPdfBook({ file: pdfFile, title, author, description, coverFile, coverTransform });
+      } else if (mode === "novel") {
+        const cleanTitle = title.trim();
+        if (!cleanTitle) throw new Error("Tên tiểu thuyết không được để trống.");
+        const project = await createProject({ title: cleanTitle, kind: "novel" });
+        try {
+          const projectDescription = [author.trim() ? `Tác giả: ${author.trim()}` : "", description.trim()].filter(Boolean).join("\n\n");
+          if (projectDescription) await updateProject(project.id, { description: projectDescription });
+          if (coverFile) await setLibraryProjectCover(project.id, coverFile, coverTransform);
+        } catch (projectError) {
+          await softDeleteProject(project.id);
+          throw projectError;
+        }
       } else {
         await createLibraryBook({ title, author, description, kind: mode, coverFile, coverTransform });
       }
@@ -157,7 +174,21 @@ function AddBookDialog({
           <label className="library-file-inline">
             <Icon name="image" size={18} />
             <span>{coverFile ? `Bìa: ${coverFile.name}` : "Chọn ảnh bìa (không bắt buộc)"}</span>
-            <input type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0] ?? null; setCoverFile(file); setCoverTransform(DEFAULT_IMAGE_TRANSFORM); if (file) setCoverEditing(true); event.currentTarget.value = ""; }} />
+            <input type="file" accept="image/*" onChange={(event) => {
+              const file = event.target.files?.[0] ?? null;
+              if (file) {
+                try {
+                  validateCoverFile(file);
+                  setMessage("");
+                  setCoverFile(file);
+                  setCoverTransform(DEFAULT_IMAGE_TRANSFORM);
+                  setCoverEditing(true);
+                } catch (error) {
+                  setMessage(error instanceof Error ? error.message : "Ảnh bìa không hợp lệ.");
+                }
+              }
+              event.currentTarget.value = "";
+            }} />
           </label>
           {coverFile && <button type="button" className="library-button secondary compact" onClick={() => setCoverEditing(true)}><Icon name="move" size={15} /> Căn bìa</button>}
         </div>
@@ -413,13 +444,14 @@ export function LibraryView({ onOpenProject }: { onOpenProject: (projectId: stri
   const reload = async () => {
     try {
       const [nextBooks, nextMeta] = await Promise.all([listLibraryBooks(), listLibraryProjectMeta()]);
+      await loadProjects();
       setBooks(nextBooks); setProjectMeta(nextMeta); setMessage("");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Không thể tải Tàng Thư.");
     }
   };
 
-  useEffect(() => { void loadProjects(); void reload(); }, [loadProjects]);
+  useEffect(() => { void reload(); }, [loadProjects]);
 
   const writtenProjects = useMemo(() => projects.filter((project) => project.kind === "novel" && !project.archived && !project.deletedAt), [projects]);
   const normalized = query.trim().toLocaleLowerCase("vi");
@@ -461,7 +493,7 @@ export function LibraryView({ onOpenProject }: { onOpenProject: (projectId: stri
       </div>
 
       {message && <div className="library-notice">{message}</div>}
-      <div className="library-summary"><strong>{filteredBooks.length + filteredProjects.length}</strong><span>mục trong Tàng Thư</span><small>PDF được lưu cục bộ theo tài khoản và có thể mở lại ở trang đã ghim.</small></div>
+      <div className="library-summary"><strong>{filteredBooks.length + filteredProjects.length}</strong><span>mục trong Tàng Thư</span><small>PDF được lưu cục bộ theo workspace; “Tạo tiểu thuyết” tạo thẳng Dự án viết truyện có thể mở và viết tiếp.</small></div>
 
       <div className="library-grid">
         {filteredProjects.map((project) => <ProjectCard key={`project-${project.id}`} project={project} meta={projectMeta.find((item) => item.projectId === project.id)} onOpenProject={onOpenProject} onCoverChanged={reload} />)}

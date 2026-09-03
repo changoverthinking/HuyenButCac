@@ -81,7 +81,7 @@ async function persist(patch: Partial<ThemePreference>) {
   return next;
 }
 
-export const useThemeStore = create<ThemeState>((set) => ({
+export const useThemeStore = create<ThemeState>((set, get) => ({
   themeId: "mac-van-tien-canh",
   followSystem: false,
   reduceMotion: false,
@@ -105,10 +105,9 @@ export const useThemeStore = create<ThemeState>((set) => ({
   },
 
   toggle: async (key) => {
-    set((prev) => {
-      persist({ [key]: !prev[key] }).then(applyToDom);
-      return { [key]: !prev[key] } as Partial<ThemeState>;
-    });
+    const state = await persist({ [key]: !get()[key] });
+    set(state);
+    applyToDom(state);
   },
 
   setFontScale: async (scale) => {

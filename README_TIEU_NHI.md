@@ -1,6 +1,6 @@
-# Tiểu Nhị — AI quản gia Huyền Bút Các 0.17.0
+# Tiểu Nhị — AI quản gia Huyền Bút Các 0.18.0
 
-Tiểu Nhị 0.17.0 nâng từ chatbot độc lập thành trợ lý AI có thể đọc ngữ cảnh Huyền Bút Các, truy xuất tài liệu và đề xuất thao tác dữ liệu có xác nhận.
+Tiểu Nhị 0.18.0 tiếp tục nền 0.17.x, nâng từ chatbot độc lập thành trợ lý AI có thể đọc ngữ cảnh Huyền Bút Các, truy xuất tài liệu và đề xuất thao tác dữ liệu có xác nhận.
 
 ## Chế độ Local
 
@@ -42,7 +42,7 @@ Ghi chú khóa vẫn tuân theo cơ chế hiện tại: nếu chưa được m�
 
 - Lịch sử chat và memory được lưu lâu dài trong IndexedDB riêng theo workspace.
 - Database: `huyen-but-cac-tieu-nhi-v1-<workspace>`.
-- Memory AI không tự đồng bộ cloud ở 0.17.0; tránh thay đổi schema sync/E2EE chính và tránh phát tán dữ liệu AI không cần thiết.
+- Memory AI không tự đồng bộ cloud ở 0.18.0; tránh thay đổi schema sync/E2EE chính và tránh phát tán dữ liệu AI không cần thiết.
 - Đổi tài khoản tự động tách lịch sử/memory theo workspace.
 
 ## RAG tài liệu

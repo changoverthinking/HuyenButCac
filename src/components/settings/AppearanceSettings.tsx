@@ -4,8 +4,9 @@ import { ImageAdjustDialog } from "../common/ImageAdjustDialog";
 import { AdjustedImage } from "../common/AdjustedImage";
 import { useThemeStore, THEME_LIST } from "../../stores/themeStore";
 import { useAppearanceStore } from "../../stores/appearanceStore";
-import type { AppearanceTarget } from "../../features/appearance/appearanceService";
+import { validateAppearanceImage, type AppearanceTarget } from "../../features/appearance/appearanceService";
 import { DEFAULT_IMAGE_TRANSFORM, type ImageTransform } from "../../features/appearance/imageTypes";
+import { MusicSettings } from "../music/MusicPlayer";
 
 const TARGETS: Array<{ target: AppearanceTarget; label: string; description: string; aspectRatio: string; avatar?: boolean; showOpacity?: boolean }> = [
   { target: "app-background", label: "Nền chung toàn ứng dụng", description: "Hiển thị phía sau các khu vực làm việc.", aspectRatio: "16 / 9" },
@@ -54,6 +55,7 @@ export function AppearanceSettings() {
   const clearImage = useAppearanceStore((state) => state.clearImage);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [message, setMessage] = useState("");
+  const [section, setSection] = useState<"theme" | "music" | "images">("theme");
 
   useEffect(() => { void loadAppearance(); }, [loadAppearance]);
   useEffect(() => () => { if (editor?.file) URL.revokeObjectURL(editor.sourceUrl); }, [editor]);
@@ -61,8 +63,14 @@ export function AppearanceSettings() {
   const selectedTheme = useMemo(() => THEME_LIST.find((item) => item.id === themeId), [themeId]);
 
   const openFile = (target: AppearanceTarget, file: File, meta: typeof TARGETS[number]) => {
-    const previous = assets[target]?.transform ?? DEFAULT_IMAGE_TRANSFORM;
-    setEditor({ target, file, sourceUrl: fileUrl(file), transform: previous, title: `Căn ảnh — ${meta.label}`, aspectRatio: meta.aspectRatio, showOpacity: meta.showOpacity !== false });
+    try {
+      validateAppearanceImage(file);
+      const previous = assets[target]?.transform ?? DEFAULT_IMAGE_TRANSFORM;
+      setMessage("");
+      setEditor({ target, file, sourceUrl: fileUrl(file), transform: previous, title: `Căn ảnh — ${meta.label}`, aspectRatio: meta.aspectRatio, showOpacity: meta.showOpacity !== false });
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Ảnh không hợp lệ.");
+    }
   };
 
   const openExisting = (target: AppearanceTarget, meta: typeof TARGETS[number]) => {
@@ -90,9 +98,15 @@ export function AppearanceSettings() {
 
   return (
     <div className="appearance-settings">
-      <section className="appearance-settings-section">
+      <nav className="appearance-settings-nav" aria-label="Nhóm Cài đặt">
+        <button type="button" className={section === "theme" ? "is-active" : ""} onClick={() => setSection("theme")}><Icon name="spark" size={15} /> Giao diện</button>
+        <button type="button" className={section === "music" ? "is-active" : ""} onClick={() => setSection("music")}><Icon name="music" size={15} /> Tiên Âm Các</button>
+        <button type="button" className={section === "images" ? "is-active" : ""} onClick={() => setSection("images")}><Icon name="image" size={15} /> Ảnh & icon</button>
+      </nav>
+
+      {section === "theme" && <section className="appearance-settings-section">
         <h3>Giao diện</h3>
-        <p>Toàn bộ chọn theme và ảnh nền được chuyển vào Cài đặt. Theme hiện tại: <b>{selectedTheme?.label ?? themeId}</b>.</p>
+        <p>Theme, độ tương phản, cỡ chữ và chuyển động đều được quản lý tại đây. Theme hiện tại: <b>{selectedTheme?.label ?? themeId}</b>.</p>
         <div className="appearance-theme-grid">
           {THEME_LIST.map((theme) => (
             <button type="button" key={theme.id} className={theme.id === themeId ? "is-active" : ""} onClick={() => void setTheme(theme.id)}>
@@ -105,11 +119,13 @@ export function AppearanceSettings() {
         <label className="flex items-center justify-between gap-3 text-sm"><span>Tương phản cao</span><input type="checkbox" checked={highContrast} onChange={() => void toggleThemeOption("highContrast")} /></label>
         <label className="grid gap-1 text-sm"><span>Cỡ chữ: {Math.round(fontScale * 100)}%</span><input type="range" min="0.85" max="1.35" step="0.05" value={fontScale} onChange={(event) => void setFontScale(Number(event.target.value))} /></label>
         {legacyBackgroundUrl && <div className="appearance-global-note">Ứng dụng còn một ảnh nền kiểu cũ. Khi chọn “Nền chung toàn ứng dụng” mới, nền cũ sẽ tự được xóa. <button type="button" className="underline" onClick={() => void clearLegacyBackground()}>Xóa nền cũ ngay</button>.</div>}
-      </section>
+      </section>}
 
-      <section className="appearance-settings-section">
+      {section === "music" && <MusicSettings />}
+
+      {section === "images" && <section className="appearance-settings-section">
         <h3>Ảnh giao diện từng tab</h3>
-        <p>Mỗi ảnh có thể để phủ kín, hiện toàn ảnh hoặc tự căn. Chế độ Tự căn cho phép kéo, phóng to, chỉnh vị trí và độ mờ.</p>
+        <p>Mỗi ảnh có thể phủ kín, hiện toàn ảnh hoặc tự căn. Chế độ Tự căn hỗ trợ kéo, phóng to, chỉnh vị trí, độ mờ và độ hiện.</p>
         <div className="appearance-target-list">
           {TARGETS.map((meta) => {
             const asset = assets[meta.target];
@@ -129,7 +145,7 @@ export function AppearanceSettings() {
             );
           })}
         </div>
-      </section>
+      </section>}
 
       {message && <p className="rounded-lg border p-2 text-sm" style={{ borderColor: "var(--color-border)", background: "var(--color-surface-alt)" }}>{message}</p>}
       {editor && <ImageAdjustDialog open sourceUrl={editor.sourceUrl} title={editor.title} aspectRatio={editor.aspectRatio} initialTransform={editor.transform} showOpacity={editor.showOpacity} onCancel={() => setEditor(null)} onSave={saveEditor} />}

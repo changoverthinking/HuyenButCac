@@ -114,7 +114,7 @@ export function ResponsiveSidebar({
       )}
 
       <div className="responsive-sidebar-footer">
-        {!collapsed && <button className="responsive-sidebar-tool" onClick={() => { window.dispatchEvent(new CustomEvent("hbc-toggle-music")); onNavigate?.(); }}><Icon name="music" size={17} /><span>Tiên Âm Các</span></button>}
+        {!collapsed && <p className="responsive-sidebar-message">Tiên Âm Các đã chuyển vào Tài khoản → Cài đặt.</p>}
         {onToggleCollapse && (
           <button type="button" className="responsive-sidebar-collapse" onClick={onToggleCollapse} aria-label={collapsed ? "Mở rộng thanh công cụ" : "Thu gọn thanh công cụ"} title={collapsed ? "Mở rộng" : "Thu gọn"}>
             <Icon name={collapsed ? "chevron-right" : "chevron-left"} size={17} />{!collapsed && <span>Thu gọn công cụ</span>}

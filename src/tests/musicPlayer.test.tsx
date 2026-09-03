@@ -39,43 +39,23 @@ async function renderPlayer() {
   });
 }
 
-describe("MusicPlayer — mở và đóng Tiên Âm Các", () => {
-  it("không còn nút nhạc nổi; vẫn mở từ menu và đóng bằng nút desktop", async () => {
+describe("Tiên Âm Các — giao diện trong Cài đặt", () => {
+  it("không còn player nổi và hiển thị thư viện nhạc dạng nhúng", async () => {
     await renderPlayer();
-
-    // Theo yêu cầu UI mới, nút nổi "Mở Tiên Âm Các" đã bị loại bỏ hoàn toàn.
-    expect(container.querySelector('button[aria-label="Mở Tiên Âm Các"]')).toBeNull();
-    expect(container.querySelector('button[aria-label="Đóng Tiên Âm Các"]')).toBeNull();
-
-    // Sidebar/menu phát sự kiện này để mở Tiên Âm Các.
-    await act(async () => {
-      window.dispatchEvent(new CustomEvent("hbc-toggle-music"));
-    });
-    expect(container.querySelector('button[aria-label="Đóng Tiên Âm Các"]')).not.toBeNull();
-
-    await act(async () => {
-      container
-        .querySelector<HTMLButtonElement>('button[aria-label="Đóng Tiên Âm Các"]')
-        ?.click();
-    });
-
-    expect(container.querySelector('button[aria-label="Đóng Tiên Âm Các"]')).toBeNull();
-    expect(container.querySelector('button[aria-label="Mở Tiên Âm Các"]')).toBeNull();
+    expect(container.querySelector(".music-player")).toBeNull();
+    expect(container.querySelector(".music-settings-section")).not.toBeNull();
+    expect(container.textContent).toContain("Tiên Âm Các");
+    expect(container.querySelector('input[type="file"][multiple]')).not.toBeNull();
   });
 
-  it("đồng bộ với nút Tiên Âm Các ở sidebar và phím Escape", async () => {
+  it("có đầy đủ điều khiển phát, bài trước/sau, tua, lặp, ngẫu nhiên và âm lượng", async () => {
     await renderPlayer();
-
-    await act(async () => {
-      window.dispatchEvent(new CustomEvent("hbc-toggle-music"));
-    });
-    expect(container.querySelector('button[aria-label="Đóng Tiên Âm Các"]')).not.toBeNull();
-
-    await act(async () => {
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
-    });
-
-    expect(container.querySelector('button[aria-label="Đóng Tiên Âm Các"]')).toBeNull();
-    expect(container.querySelector('button[aria-label="Mở Tiên Âm Các"]')).toBeNull();
+    expect(container.querySelector('button[aria-label="Phát"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Bài trước"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Bài tiếp theo"]')).not.toBeNull();
+    expect(container.querySelector('input[aria-label="Tua bài hát"]')).not.toBeNull();
+    expect(container.querySelector('input[aria-label="Âm lượng"]')).not.toBeNull();
+    expect(container.textContent).toContain("Ngẫu nhiên");
+    expect(container.textContent).toContain("Không lặp");
   });
 });

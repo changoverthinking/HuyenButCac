@@ -18,6 +18,7 @@ import {
   listLibraryBooks,
   type LibraryBook,
 } from "../library/libraryService";
+import { loadPdfRuntime } from "../library/pdfRuntime";
 
 export type TieuNhiScope = "notes" | "projects" | "library" | "memory";
 export type TieuNhiModeName = "local" | "online";
@@ -271,24 +272,25 @@ async function replaceIndexedSource(input: {
   return chunks.length;
 }
 
-const PDF_JS_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.149/build/pdf.mjs";
-const PDF_WORKER_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.149/build/pdf.worker.mjs";
 const JSZIP_URL = "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm";
 
 async function extractPdfText(blob: Blob, onProgress?: (done: number, total: number) => void) {
-  const pdfjs = await import(/* @vite-ignore */ PDF_JS_URL) as any;
-  if (pdfjs.GlobalWorkerOptions) pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL;
-  const data = new Uint8Array(await blob.arrayBuffer());
+  const pdfjs = await loadPdfRuntime();
+  const data = await blob.arrayBuffer();
   const document = await pdfjs.getDocument({ data }).promise;
   const pages: string[] = [];
-  for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
-    const page = await document.getPage(pageNumber);
-    const content = await page.getTextContent();
-    const text = content.items.map((item: { str?: string }) => item.str ?? "").join(" ");
-    pages.push(`[Trang ${pageNumber}]\n${text}`);
-    onProgress?.(pageNumber, document.numPages);
+  try {
+    for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+      const page = await document.getPage(pageNumber);
+      const content = await page.getTextContent();
+      const text = content.items.map((item: { str?: string }) => item.str ?? "").join(" ");
+      pages.push(`[Trang ${pageNumber}]\n${text}`);
+      onProgress?.(pageNumber, document.numPages);
+    }
+    return pages.join("\n\n");
+  } finally {
+    await document.destroy?.();
   }
-  return pages.join("\n\n");
 }
 
 function xmlText(xml: string) {
@@ -391,7 +393,23 @@ export async function indexAttachment(file: File, onProgress?: (done: number, to
   return { sourceId, chunkCount };
 }
 
+async function cleanupOrphanLibraryIndexes() {
+  const database = aiDb();
+  const books = await listLibraryBooks();
+  const validIds = new Set(books.filter((book) => Boolean(book.pdfBlob)).map((book) => book.id));
+  const indexes = await database.indexes.where("sourceType").equals("library-pdf").toArray();
+  const stale = indexes.filter((index) => !validIds.has(index.sourceId));
+  if (!stale.length) return;
+  await database.transaction("rw", database.chunks, database.indexes, async () => {
+    for (const index of stale) {
+      await database.chunks.where("[sourceType+sourceId]").equals(["library-pdf", index.sourceId]).delete();
+      await database.indexes.delete(index.id);
+    }
+  });
+}
+
 export async function listTieuNhiIndexes() {
+  await cleanupOrphanLibraryIndexes();
   return aiDb().indexes.orderBy("indexedAt").reverse().toArray();
 }
 
@@ -404,10 +422,39 @@ export async function removeTieuNhiIndex(sourceType: TieuNhiDocumentChunk["sourc
 }
 
 async function searchIndexedChunks(query: string, limit: number) {
-  const all = await aiDb().chunks.toArray();
-  return all
+  await cleanupOrphanLibraryIndexes();
+  const candidates: WorkspaceContextHit[] = [];
+  // Chỉ tìm PDF thuộc Tàng Thư. Tệp đính kèm cũ không được tự động trở thành
+  // nguồn RAG lâu dài; chúng chỉ được dùng khi người dùng đính kèm trong lượt chat.
+  await aiDb().chunks.where("sourceType").equals("library-pdf").each((chunk) => {
+    const score = scoreText(query, chunk.title, chunk.text);
+    if (score <= 0) return;
+    candidates.push({
+      source: "library",
+      sourceId: chunk.sourceId,
+      title: chunk.title,
+      text: excerptAroundQuery(query, chunk.text),
+      score,
+      metadata: { chunk: chunk.chunkIndex + 1 },
+    });
+    // Giữ bộ nhớ ổn định với thư viện rất lớn thay vì toArray() toàn bộ nội dung.
+    if (candidates.length > Math.max(40, limit * 8)) {
+      candidates.sort((a, b) => b.score - a.score);
+      candidates.length = Math.max(20, limit * 4);
+    }
+  });
+  return candidates.sort((a, b) => b.score - a.score).slice(0, limit);
+}
+
+export async function searchAttachmentContext(query: string, sourceIds: string[], limit = 8): Promise<WorkspaceContextHit[]> {
+  if (!sourceIds.length) return [];
+  const uniqueIds = [...new Set(sourceIds)];
+  const groups = await Promise.all(uniqueIds.map((sourceId) =>
+    aiDb().chunks.where("[sourceType+sourceId]").equals(["attachment", sourceId]).toArray(),
+  ));
+  return groups.flat()
     .map((chunk) => ({
-      source: chunk.sourceType === "library-pdf" ? "library" as const : "attachment" as const,
+      source: "attachment" as const,
       sourceId: chunk.sourceId,
       title: chunk.title,
       text: excerptAroundQuery(query, chunk.text),
@@ -419,27 +466,9 @@ async function searchIndexedChunks(query: string, limit: number) {
     .slice(0, limit);
 }
 
-export async function searchAttachmentContext(query: string, sourceIds: string[], limit = 8): Promise<WorkspaceContextHit[]> {
-  if (!sourceIds.length) return [];
-  const allowed = new Set(sourceIds);
-  const all = await aiDb().chunks.where("sourceType").equals("attachment").toArray();
-  return all
-    .filter((chunk) => allowed.has(chunk.sourceId))
-    .map((chunk) => ({
-      source: "attachment" as const,
-      sourceId: chunk.sourceId,
-      title: chunk.title,
-      text: excerptAroundQuery(query, chunk.text),
-      score: scoreText(query, chunk.title, chunk.text),
-      metadata: { chunk: chunk.chunkIndex + 1 },
-    }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
-}
-
 async function noteContext(query: string) {
   const notes = await listActiveNotes();
-  return notes.slice(0, 20).map<WorkspaceContextHit>((note) => ({
+  return notes.map<WorkspaceContextHit>((note) => ({
     source: "notes",
     sourceId: note.id,
     title: note.title,

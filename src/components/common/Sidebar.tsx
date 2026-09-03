@@ -133,8 +133,7 @@ export function Sidebar({ onNavigate, onOpenNotes }: { onNavigate?: () => void; 
       </div>
 
       <div className="relative z-[1] p-2 border-t" style={{ borderColor: "var(--color-border)" }}>
-        <button className="w-full text-left px-3 py-2 rounded-lg text-sm" style={{color:"var(--color-text-muted)"}} onClick={()=>{window.dispatchEvent(new CustomEvent("hbc-toggle-music"));onNavigate?.();}}>♫ Tiên Âm Các</button>
-        <p className="px-3 pt-1 text-[11px] opacity-55">Giao diện và ảnh nền đã chuyển vào Tài khoản → Cài đặt.</p>
+        <p className="px-3 pt-1 text-[11px] opacity-55">Giao diện, ảnh nền và Tiên Âm Các nằm trong Tài khoản → Cài đặt.</p>
       </div>
     </aside>
   );

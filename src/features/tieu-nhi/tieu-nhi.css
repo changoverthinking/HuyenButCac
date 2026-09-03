@@ -25,3 +25,7 @@
 @keyframes tieu-nhi-spin{to{transform:rotate(360deg)}}
 @media(max-width:767px){.tieu-nhi-backdrop{position:fixed;inset:0;z-index:9991;display:block;border:0;background:rgba(0,0,0,.28)}.tieu-nhi-panel{inset:0;bottom:0;width:100%;height:100dvh;border:0;border-radius:0}.tieu-nhi-header{padding-top:calc(.72rem + env(safe-area-inset-top))}.tieu-nhi-composer{padding-bottom:calc(.62rem + env(safe-area-inset-bottom))}.tieu-nhi-header-actions>button:not(.tieu-nhi-icon-button){font-size:.61rem;padding:.38rem .42rem}.tieu-nhi-mode-grid{grid-template-columns:1fr}.tieu-nhi-mode-grid button{min-height:auto}.tieu-nhi-action-card{flex-direction:column}.tieu-nhi-action-card>div:last-child{align-self:flex-end}.tieu-nhi-toggle-grid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.tieu-nhi-spinner{animation-duration:1.6s}.tieu-nhi-progress span{transition:none}}
+
+/* 0.18.0 — danh sách chat/cài đặt AI cuộn bằng wheel và vuốt dọc, không truyền scroll ra canvas phía sau. */
+.tieu-nhi-messages,.tieu-nhi-settings{overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.tieu-nhi-attachments{overscroll-behavior-inline:contain;touch-action:pan-x}

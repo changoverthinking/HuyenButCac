@@ -3,7 +3,7 @@ import { useThemeStore } from "./stores/themeStore";
 import { useAppearanceStore } from "./stores/appearanceStore";
 import { UpdatePrompt } from "./components/common/UpdatePrompt";
 import { NotesModeView } from "./components/notes-mode/NotesModeView";
-import { MusicPlayer } from "./components/music/MusicPlayer";
+import { MusicProvider } from "./components/music/MusicPlayer";
 import { ResponsiveSidebar } from "./components/common/ResponsiveSidebar";
 import { Icon, type IconName } from "./components/common/Icons";
 import { AppearanceIcon, AppearanceLayer } from "./components/common/AdjustedImage";
@@ -11,7 +11,6 @@ import "./features/appearance/appearance.css";
 import { useProjectsStore } from "./stores/projectsStore";
 import { useNotesStore } from "./stores/notesStore";
 import { useFoldersStore } from "./stores/foldersStore";
-import { AccountPanel } from "./components/auth/AccountPanel";
 import { APP_CONFIG } from "./app/appConfig";
 import { supabase } from "./features/auth/supabase";
 import { isPasswordRecoveryUrl } from "./features/auth/authFlow";
@@ -26,6 +25,7 @@ const MindMapView = lazy(() => import("./components/mind-map/MindMapView").then(
 const WhiteboardView = lazy(() => import("./components/whiteboard/WhiteboardView").then((module) => ({ default: module.WhiteboardView })));
 const CalendarView = lazy(() => import("./components/calendar/CalendarView").then((module) => ({ default: module.CalendarView })));
 const LibraryView = lazy(() => import("./components/library/LibraryView").then((module) => ({ default: module.LibraryView })));
+const AccountPanel = lazy(() => import("./components/auth/AccountPanel").then((module) => ({ default: module.AccountPanel })));
 const TieuNhiLauncher = lazy(() => import("./features/tieu-nhi/TieuNhiLauncher").then((module) => ({ default: module.TieuNhiLauncher })));
 
 type Mode = "notes" | "library" | "projects" | "mindmap" | "whiteboard" | "calendar";
@@ -220,6 +220,7 @@ export default function App() {
   const searchNotes = (query: string) => { void setSearchQuery(query); navigate("notes"); };
 
   return (
+    <MusicProvider>
     <div className="app-shell app-shell--figma flex w-screen overflow-hidden" data-mode={mode}>
       <UpdatePrompt />
       <AppRail mode={mode} setMode={navigate} collapsed={railCollapsed} setCollapsed={setRailCollapsed} online={online} onAccount={openAccount} onTieuNhi={openTieuNhi} />
@@ -246,13 +247,13 @@ export default function App() {
             </Suspense>
           </div>
         </div>
-        <MusicPlayer />
-        <AccountPanel open={accountOpen} onClose={() => setAccountOpen(false)} onRecoveryRequired={openRecovery} />
+        <Suspense fallback={null}><AccountPanel open={accountOpen} onClose={() => setAccountOpen(false)} onRecoveryRequired={openRecovery} /></Suspense>
         {tieuNhiLoaded && <Suspense fallback={null}><TieuNhiLauncher open={tieuNhiOpen} onOpenChange={setTieuNhiOpen} /></Suspense>}
         <nav className="mobile-bottom-nav md:hidden flex justify-around border-t py-1 shrink-0" style={{ paddingBottom: "max(.25rem, env(safe-area-inset-bottom))" }}>
           {MODE_TABS.map((tab) => <button key={tab.id} type="button" onClick={() => navigate(tab.id)} className={`mobile-nav-item flex flex-col items-center px-3 py-1.5 text-xs ${mode === tab.id ? "is-active" : ""}`} aria-current={mode === tab.id ? "page" : undefined}><Icon name={tab.icon} size={18} />{tab.label}</button>)}
         </nav>
       </section>
     </div>
+    </MusicProvider>
   );
 }

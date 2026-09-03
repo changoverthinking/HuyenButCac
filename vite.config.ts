@@ -20,7 +20,7 @@ export default defineConfig({
         theme_color: "#0b1418",
         background_color: "#0b1418",
         display: "standalone",
-        orientation: "portrait",
+        orientation: "any",
         start_url: `/${APP_CONFIG.repository}/`,
         scope: `/${APP_CONFIG.repository}/`,
         icons: [
@@ -38,6 +38,35 @@ export default defineConfig({
         clientsClaim: true,
         skipWaiting: false,
         importScripts: ["push-sw.js"],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/npm\/pdfjs-dist@/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "hbc-pdf-runtime-v1",
+              expiration: { maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/npm\/jszip@/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "hbc-document-runtime-v1",
+              expiration: { maxEntries: 6, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/npm\/@huggingface\/transformers@/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "hbc-ai-runtime-v1",
+              expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
     }),
   ],

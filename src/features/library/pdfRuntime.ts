@@ -6,6 +6,7 @@ export type PdfViewport = { width: number; height: number };
 export type PdfRenderTask = { promise: Promise<void>; cancel: () => void };
 export type PdfPageHandle = {
   getViewport: (params: { scale: number }) => PdfViewport;
+  getTextContent: () => Promise<{ items: Array<{ str?: string }> }>;
   render: (params: {
     canvasContext: CanvasRenderingContext2D;
     viewport: PdfViewport;

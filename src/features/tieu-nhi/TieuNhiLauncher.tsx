@@ -4,6 +4,7 @@ import { AppearanceIcon, AppearanceLayer } from "../../components/common/Adjuste
 import { Icon } from "../../components/common/Icons";
 import { useNotesStore } from "../../stores/notesStore";
 import { useProjectsStore } from "../../stores/projectsStore";
+import { getActiveWorkspaceUserId } from "../../database/db";
 import {
   clearTieuNhiMessages,
   describeTieuNhiAction,
@@ -375,6 +376,8 @@ export function TieuNhiLauncher({
   const hasWebGpuApi = useMemo(() => typeof navigator !== "undefined" && "gpu" in navigator, []);
 
   const refreshAiData = useCallback(async () => {
+    const ticket = ++stateLoadRef.current;
+    const workspaceAtStart = getActiveWorkspaceUserId() ?? null;
     const [savedMessages, savedPermissions, savedModel, savedMemories, savedIndexes, books] = await Promise.all([
       loadTieuNhiMessages(50),
       getTieuNhiSetting<PermissionState>("permissions", DEFAULT_PERMISSIONS),
@@ -383,6 +386,7 @@ export function TieuNhiLauncher({
       listTieuNhiIndexes(),
       listLibraryBooks(),
     ]);
+    if (ticket !== stateLoadRef.current || (getActiveWorkspaceUserId() ?? null) !== workspaceAtStart) return;
     setMessages(savedMessages.map((item: TieuNhiStoredMessage) => ({ id: item.id, role: item.role, content: item.content, createdAt: item.createdAt, mode: item.mode })));
     setPermissions({
       scopes: Array.isArray(savedPermissions?.scopes) ? savedPermissions.scopes.filter((scope): scope is TieuNhiScope => ["notes", "projects", "library", "memory"].includes(scope)) : DEFAULT_PERMISSIONS.scopes,
@@ -396,21 +400,25 @@ export function TieuNhiLauncher({
 
   useEffect(() => {
     if (!open) return;
-    const ticket = ++stateLoadRef.current;
-    void refreshAiData().catch((loadError) => {
-      if (ticket === stateLoadRef.current) setError(errorMessage(loadError, "Không đọc được dữ liệu Tiểu Nhị."));
-    });
+    void refreshAiData().catch((loadError) => setError(errorMessage(loadError, "Không đọc được dữ liệu Tiểu Nhị.")));
   }, [open, refreshAiData]);
 
   useEffect(() => {
     const onWorkspaceChanged = () => {
       generationRef.current += 1;
+      stateLoadRef.current += 1;
       workerRef.current?.terminate();
       workerRef.current = null;
       setMode(null);
       setStatus("idle");
+      setMessages([]);
+      setMemories([]);
+      setIndexes([]);
+      setLibraryBooks([]);
       setPendingActions([]);
       setAttachments([]);
+      setPermissions(DEFAULT_PERMISSIONS);
+      setOnlineModel(DEFAULT_ONLINE_MODEL);
       if (open) void refreshAiData();
     };
     window.addEventListener("hbc-workspace-changed", onWorkspaceChanged);
@@ -604,8 +612,9 @@ export function TieuNhiLauncher({
     return `Công cụ “${name}” không được hỗ trợ.`;
   }, [permissions, queueAction]);
 
-  const sendOnlineWithTools = useCallback(async (context: PuterChatMessage[]) => {
+  const sendOnlineWithTools = useCallback(async (context: PuterChatMessage[], generationId: number) => {
     const puter = await loadPuter();
+    if (generationRef.current !== generationId) return "";
     const sharedUiContext = permissions.shareWorkspaceWithOnline ? activeUiContext : "";
     const toolMessages: PuterChatMessage[] = [{ role: "system", content: `${BASE_SYSTEM_PROMPT}${sharedUiContext}` }, ...context];
     const tools = buildTools();
@@ -618,11 +627,13 @@ export function TieuNhiLauncher({
         max_tokens: 1400,
         temperature: 0.55,
       }) as PuterResponse;
+      if (generationRef.current !== generationId) return "";
       const assistant = response?.message;
       const toolCalls = assistant?.tool_calls ?? [];
       if (!toolCalls.length) return assistant?.content?.trim() || "Tôi đã xử lý yêu cầu nhưng dịch vụ không trả về nội dung văn bản.";
       toolMessages.push({ role: "assistant", content: assistant?.content ?? null, tool_calls: toolCalls });
       for (const call of toolCalls) {
+        if (generationRef.current !== generationId) return "";
         let result: string;
         try {
           result = await executeTool(call.function.name, parseJsonArguments(call.function.arguments));
@@ -652,6 +663,7 @@ export function TieuNhiLauncher({
   const sendMessage = useCallback(async (raw: string) => {
     const content = raw.trim();
     if (!content || status !== "ready" || !mode) return;
+    const generationId = ++generationRef.current;
     const userMessage: ChatMessage = { id: makeId("user"), role: "user", content, createdAt: Date.now(), mode };
     const nextUiMessages = [...messages, userMessage].slice(-80);
     setMessages(nextUiMessages);
@@ -680,12 +692,19 @@ export function TieuNhiLauncher({
       for (const file of documentFiles) {
         setIndexingLabel(`Đang đọc ${file.name}`);
         setIndexingProgress(0);
-        const indexed = await indexAttachment(file, (done, total) => setIndexingProgress(total ? Math.round((done / total) * 100) : 0));
+        const indexed = await indexAttachment(file, (done, total) => {
+          if (generationRef.current !== generationId) throw new Error("__TIEU_NHI_CANCELLED__");
+          setIndexingProgress(total ? Math.round((done / total) * 100) : 0);
+        });
+        if (generationRef.current !== generationId) return;
         explicitAttachmentIds.push(indexed.sourceId);
       }
       const explicitAttachmentHits = await searchAttachmentContext(content, explicitAttachmentIds, 8);
+      if (generationRef.current !== generationId) return;
       if (documentFiles.length) {
-        setIndexes(await listTieuNhiIndexes());
+        const nextIndexes = await listTieuNhiIndexes();
+        if (generationRef.current !== generationId) return;
+        setIndexes(nextIndexes);
         setIndexingLabel(""); setIndexingProgress(0);
       }
 
@@ -697,7 +716,8 @@ export function TieuNhiLauncher({
           const lastUser = [...recentContext].reverse().find((item) => item.role === "user");
           if (lastUser && typeof lastUser.content === "string") lastUser.content += contextToPrompt(explicitAttachmentHits);
         }
-        const answer = image ? await sendOnlineVision(`${content}${contextToPrompt(explicitAttachmentHits)}`, image) : await sendOnlineWithTools(recentContext);
+        const answer = image ? await sendOnlineVision(`${content}${contextToPrompt(explicitAttachmentHits)}`, image) : await sendOnlineWithTools(recentContext, generationId);
+        if (generationRef.current !== generationId) return;
         appendAssistant(answer, true);
         setAttachments([]);
         setStatus("ready");
@@ -705,12 +725,14 @@ export function TieuNhiLauncher({
       }
 
       const hits = await searchWorkspaceContext(content, permissions.scopes, 7);
+      if (generationRef.current !== generationId) return;
       const activeTitles = [
         notesInUi.find((item) => item.id === selectedNoteId)?.title,
         projectsInUi.find((item) => item.id === selectedProjectId)?.title,
         chaptersInUi.find((item) => item.id === selectedChapterId)?.title,
       ].filter((value): value is string => Boolean(value));
       const activeHits = activeTitles.length ? await searchWorkspaceContext(activeTitles.join(" "), permissions.scopes, 6) : [];
+      if (generationRef.current !== generationId) return;
       const uniqueHits = new Map<string, (typeof hits)[number]>();
       for (const hit of [...explicitAttachmentHits, ...activeHits, ...hits]) uniqueHits.set(`${hit.source}:${hit.sourceId}:${hit.title}`, hit);
       const combinedHits = [...uniqueHits.values()].slice(0, 10);
@@ -723,6 +745,7 @@ export function TieuNhiLauncher({
       setAttachments([]);
     } catch (sendError) {
       setIndexingLabel(""); setIndexingProgress(0);
+      if (generationRef.current !== generationId || (sendError instanceof Error && sendError.message === "__TIEU_NHI_CANCELLED__")) return;
       appendAssistant(`Tiểu Nhị chưa xử lý được yêu cầu: ${errorMessage(sendError, "Lỗi không xác định.")}`, true);
       setStatus("ready");
     }
@@ -730,6 +753,8 @@ export function TieuNhiLauncher({
 
   const stopGeneration = useCallback(() => {
     generationRef.current += 1;
+    setIndexingLabel("");
+    setIndexingProgress(0);
     if (mode === "local") {
       workerRef.current?.postMessage({ type: "interrupt" });
       const partial = localAssistantBufferRef.current.trim();

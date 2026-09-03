@@ -4,9 +4,11 @@ import { db, switchWorkspace } from "../database/db";
 import { listActiveNotes } from "../features/notes/notesService";
 import {
   executeTieuNhiWriteAction,
+  indexAttachment,
   listTieuNhiMemories,
   makeWriteAction,
   rememberTieuNhi,
+  searchAttachmentContext,
   searchWorkspaceContext,
   tieuNhiDatabaseNameForWorkspace,
 } from "../features/tieu-nhi/tieuNhiDataService";
@@ -63,6 +65,53 @@ describe("Tiểu Nhị data layer", () => {
     expect(notes).toHaveLength(1);
     expect(notes[0].title).toBe("Ghi chú AI");
     expect(notes[0].contentText).toContain("Nội dung do Tiểu Nhị đề xuất");
+  });
+
+
+  it("RAG vẫn tìm được ghi chú cũ khi workspace có hơn 20 ghi chú", async () => {
+    localStorage.setItem("hbc-legacy-workspace-migrated-to", "test-skip-legacy");
+    const userId = `tn-rag-many-${Date.now()}-${Math.random()}`;
+    registerWorkspace(userId);
+    await switchWorkspace(userId);
+
+    const baseTime = Date.now() - 100_000;
+    await db.notes.add({
+      id: crypto.randomUUID(),
+      title: "Mật lệnh cổ nhất",
+      contentHtml: "<p>Huyền Thiên Ấn được cất dưới đáy Vô Tận Uyên.</p>",
+      contentText: "Huyền Thiên Ấn được cất dưới đáy Vô Tận Uyên.",
+      folderId: null, tags: [], pinned: false, favorite: false, locked: false,
+      lockSalt: null, lockPayload: null, archived: false,
+      createdAt: baseTime, updatedAt: baseTime, schemaVersion: 1, deletedAt: null, syncState: "local",
+    });
+    for (let index = 0; index < 25; index += 1) {
+      const stamp = baseTime + 1_000 + index;
+      await db.notes.add({
+        id: crypto.randomUUID(), title: `Ghi chú mới ${index}`, contentHtml: `<p>Nội dung ${index}</p>`,
+        contentText: `Nội dung thông thường ${index}`, folderId: null, tags: [], pinned: false, favorite: false,
+        locked: false, lockSalt: null, lockPayload: null, archived: false, createdAt: stamp, updatedAt: stamp,
+        schemaVersion: 1, deletedAt: null, syncState: "local",
+      });
+    }
+
+    const hits = await searchWorkspaceContext("Huyền Thiên Ấn ở đâu?", ["notes"], 5);
+    expect(hits.some((hit) => hit.title === "Mật lệnh cổ nhất")).toBe(true);
+  });
+
+  it("tệp đính kèm cũ không tự động bị trộn vào RAG Tàng Thư", async () => {
+    localStorage.setItem("hbc-legacy-workspace-migrated-to", "test-skip-legacy");
+    const userId = `tn-attachment-scope-${Date.now()}-${Math.random()}`;
+    registerWorkspace(userId);
+    await switchWorkspace(userId);
+
+    const file = new File(["Bí mật Thiên Ngoại Thạch chỉ có trong tệp đính kèm."], "private.txt", { type: "text/plain", lastModified: 123 });
+    const indexed = await indexAttachment(file);
+
+    const libraryHits = await searchWorkspaceContext("Thiên Ngoại Thạch", ["library"], 5);
+    expect(libraryHits).toHaveLength(0);
+
+    const explicitHits = await searchAttachmentContext("Thiên Ngoại Thạch", [indexed.sourceId], 5);
+    expect(explicitHits.some((hit) => hit.title === "private.txt")).toBe(true);
   });
 
   it("RAG tìm được ghi chú theo từ khóa rời thay vì bắt buộc khớp cả câu", async () => {

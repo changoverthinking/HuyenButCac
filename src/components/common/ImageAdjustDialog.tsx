@@ -28,12 +28,25 @@ export function ImageAdjustDialog({
 }) {
   const [value, setValue] = useState<ImageTransform>(() => normalizeImageTransform(initialTransform));
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const previewRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{ pointerId: number; x: number; y: number; offsetX: number; offsetY: number } | null>(null);
 
   useEffect(() => {
-    if (open) setValue(normalizeImageTransform(initialTransform));
+    if (open) {
+      setValue(normalizeImageTransform(initialTransform));
+      setSaveError("");
+    }
   }, [initialTransform, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onCancel();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onCancel]);
 
   const helper = useMemo(() => value.fitMode === "manual" ? "Kéo trực tiếp trên ảnh để căn vị trí." : value.fitMode === "contain" ? "Hiện toàn bộ ảnh; có thể còn khoảng trống trong khung." : "Ảnh tự phủ kín khung và không bị méo.", [value.fitMode]);
   if (!open || !sourceUrl) return null;
@@ -50,7 +63,9 @@ export function ImageAdjustDialog({
     if (!drag || drag.pointerId !== event.pointerId || !box) return;
     const dx = ((event.clientX - drag.x) / Math.max(box.width, 1)) * 100;
     const dy = ((event.clientY - drag.y) / Math.max(box.height, 1)) * 100;
-    update({ offsetX: clamp(drag.offsetX + dx, 0, 100), offsetY: clamp(drag.offsetY + dy, 0, 100) });
+    // object-position chạy ngược hướng chuyển động của bitmap khi ảnh lớn hơn khung.
+    // Trừ delta để thao tác "kéo ảnh" bám đúng theo ngón tay/chuột của người dùng.
+    update({ offsetX: clamp(drag.offsetX - dx, 0, 100), offsetY: clamp(drag.offsetY - dy, 0, 100) });
   };
   const pointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
@@ -81,7 +96,14 @@ export function ImageAdjustDialog({
         </div>
 
         <div className="image-adjust-quick"><button type="button" onClick={() => update({ blur: 0 })}>Ảnh nét</button><button type="button" onClick={() => update({ blur: 6 })}>Ảnh mờ</button><button type="button" onClick={() => setValue({ ...DEFAULT_IMAGE_TRANSFORM, opacity: showOpacity ? 1 : value.opacity })}><Icon name="refresh" size={15} /> Đặt lại</button></div>
-        <footer className="image-adjust-actions"><button type="button" onClick={onCancel}>Hủy</button><button type="button" className="primary" disabled={saving} onClick={() => { setSaving(true); Promise.resolve(onSave(value)).finally(() => setSaving(false)); }}>{saving ? "Đang lưu…" : "Lưu căn chỉnh"}</button></footer>
+        {saveError && <p className="image-adjust-save-error" role="alert">{saveError}</p>}
+        <footer className="image-adjust-actions"><button type="button" onClick={onCancel}>Hủy</button><button type="button" className="primary" disabled={saving} onClick={() => {
+          setSaving(true);
+          setSaveError("");
+          void Promise.resolve().then(() => onSave(value)).catch((error) => {
+            setSaveError(error instanceof Error ? error.message : "Không thể lưu ảnh.");
+          }).finally(() => setSaving(false));
+        }}>{saving ? "Đang lưu…" : "Lưu căn chỉnh"}</button></footer>
       </section>
     </div>
   );
