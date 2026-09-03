@@ -475,13 +475,26 @@ export function TieuNhiLauncher({
         setStatus("ready"); setLoadingText(""); setProgress(100); setError("");
         break;
       case "start": {
-        setStatus("generating");
-        const id = makeId("assistant");
-        activeAssistantIdRef.current = id;
-        localAssistantBufferRef.current = "";
-        setMessages((current) => [...current, { id, role: "assistant", content: "", createdAt: Date.now(), mode: "local" }].slice(-80));
-        break;
-      }
+  setStatus("generating");
+
+  const id = makeId("assistant");
+  activeAssistantIdRef.current = id;
+  localAssistantBufferRef.current = "";
+
+  const assistantMessage: ChatMessage = {
+    id,
+    role: "assistant",
+    content: "",
+    createdAt: Date.now(),
+    mode: "local",
+  };
+
+  setMessages((current) =>
+    [...current, assistantMessage].slice(-80)
+  );
+
+  break;
+}
       case "update":
         if (typeof payload.tps === "number") setTps(payload.tps);
         if (typeof payload.numTokens === "number") setNumTokens(payload.numTokens);
