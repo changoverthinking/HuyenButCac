@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "./Icons";
 import { DEFAULT_IMAGE_TRANSFORM, normalizeImageTransform, type ImageTransform } from "../../features/appearance/imageTypes";
 import { AdjustedImage } from "./AdjustedImage";
@@ -31,13 +32,15 @@ export function ImageAdjustDialog({
   const [saveError, setSaveError] = useState("");
   const previewRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{ pointerId: number; x: number; y: number; offsetX: number; offsetY: number } | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const pendingDragRef = useRef<{ offsetX: number; offsetY: number } | null>(null);
 
   useEffect(() => {
     if (open) {
       setValue(normalizeImageTransform(initialTransform));
       setSaveError("");
     }
-  }, [initialTransform, open]);
+  }, [initialTransform, open, sourceUrl]);
 
   useEffect(() => {
     if (!open) return;
@@ -48,43 +51,77 @@ export function ImageAdjustDialog({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onCancel]);
 
+  useEffect(() => () => {
+    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+  }, []);
+
   const helper = useMemo(() => value.fitMode === "manual" ? "Kéo trực tiếp trên ảnh để căn vị trí." : value.fitMode === "contain" ? "Hiện toàn bộ ảnh; có thể còn khoảng trống trong khung." : "Ảnh tự phủ kín khung và không bị méo.", [value.fitMode]);
-  if (!open || !sourceUrl) return null;
+  if (!open || !sourceUrl || typeof document === "undefined") return null;
 
   const update = (patch: Partial<ImageTransform>) => setValue((current) => normalizeImageTransform({ ...current, ...patch }));
+
+  const flushPendingDrag = () => {
+    frameRef.current = null;
+    const next = pendingDragRef.current;
+    if (!next) return;
+    pendingDragRef.current = null;
+    update(next);
+  };
+
   const pointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (value.fitMode !== "manual") return;
+    event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, offsetX: value.offsetX, offsetY: value.offsetY };
   };
+
   const pointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     const box = previewRef.current?.getBoundingClientRect();
     if (!drag || drag.pointerId !== event.pointerId || !box) return;
+    event.preventDefault();
     const dx = ((event.clientX - drag.x) / Math.max(box.width, 1)) * 100;
     const dy = ((event.clientY - drag.y) / Math.max(box.height, 1)) * 100;
-    // object-position chạy ngược hướng chuyển động của bitmap khi ảnh lớn hơn khung.
-    // Trừ delta để thao tác "kéo ảnh" bám đúng theo ngón tay/chuột của người dùng.
-    update({ offsetX: clamp(drag.offsetX - dx, 0, 100), offsetY: clamp(drag.offsetY - dy, 0, 100) });
-  };
-  const pointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
+    pendingDragRef.current = {
+      offsetX: clamp(drag.offsetX - dx, 0, 100),
+      offsetY: clamp(drag.offsetY - dy, 0, 100),
+    };
+    if (frameRef.current === null) frameRef.current = requestAnimationFrame(flushPendingDrag);
   };
 
-  return (
+  const pointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    dragRef.current = null;
+    if (frameRef.current !== null) {
+      cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+    const pending = pendingDragRef.current;
+    pendingDragRef.current = null;
+    if (pending) update(pending);
+  };
+
+  const dialog = (
     <div className="image-adjust-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
-      <section className="image-adjust-dialog" role="dialog" aria-modal="true" aria-label={title}>
+      <section className="image-adjust-dialog" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}>
         <header className="image-adjust-heading"><div><small>CHỈNH ẢNH</small><h2>{title}</h2></div><button type="button" onClick={onCancel} aria-label="Đóng"><Icon name="close" /></button></header>
-        <div ref={previewRef} className={`image-adjust-preview ${value.fitMode === "manual" ? "is-draggable" : ""}`} style={{ aspectRatio }} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp}>
+        <div
+          ref={previewRef}
+          className={`image-adjust-preview ${value.fitMode === "manual" ? "is-draggable" : ""}`}
+          style={{ aspectRatio }}
+          onPointerDown={pointerDown}
+          onPointerMove={pointerMove}
+          onPointerUp={pointerUp}
+          onPointerCancel={pointerUp}
+        >
           <AdjustedImage src={sourceUrl} transform={value} alt="Xem trước ảnh" />
           <span className="image-adjust-frame" aria-hidden="true" />
         </div>
         <p className="image-adjust-help">{helper}</p>
 
         <div className="image-adjust-fit" role="group" aria-label="Cách khớp ảnh">
-          {([[
-            "cover", "Phủ kín"
-          ], ["contain", "Toàn ảnh"], ["manual", "Tự căn"]] as const).map(([id, label]) => <button type="button" key={id} className={value.fitMode === id ? "is-active" : ""} onClick={() => update({ fitMode: id, zoom: id === "manual" ? Math.max(1, value.zoom) : 1 })}>{label}</button>)}
+          {([["cover", "Phủ kín"], ["contain", "Toàn ảnh"], ["manual", "Tự căn"]] as const).map(([id, label]) => <button type="button" key={id} className={value.fitMode === id ? "is-active" : ""} onClick={() => update({ fitMode: id, zoom: id === "manual" ? Math.max(1, value.zoom) : 1 })}>{label}</button>)}
         </div>
 
         <div className="image-adjust-controls">
@@ -107,4 +144,8 @@ export function ImageAdjustDialog({
       </section>
     </div>
   );
+
+  // Portal tách trình chỉnh ảnh khỏi modal Tàng Thư/Cài đặt phía dưới,
+  // tránh việc chọn ảnh làm thay đổi scroll/focus của khung cha trên iOS.
+  return createPortal(dialog, document.body);
 }

@@ -12,15 +12,28 @@ export function adjustedImageStyle(transform?: Partial<ImageTransform> | null): 
     display: "block",
     objectFit: value.fitMode === "contain" ? "contain" : "cover",
     objectPosition: `${value.offsetX}% ${value.offsetY}%`,
-    transform: `scale(${manual ? value.zoom : 1})`,
-    transformOrigin: `${value.offsetX}% ${value.offsetY}%`,
+    transform: manual ? `scale(${value.zoom})` : "none",
+    // Giữ tâm scale cố định. Trước đây transformOrigin chạy theo offsetX/offsetY,
+    // nên khi người dùng vừa kéo ảnh vừa zoom thì điểm neo cũng di chuyển và ảnh bị giật/nhảy.
+    transformOrigin: "50% 50%",
     filter: value.blur > 0 ? `blur(${value.blur}px)` : undefined,
     opacity: value.opacity,
+    userSelect: "none",
+    pointerEvents: "none",
   };
 }
 
 export function AdjustedImage({ src, transform, alt = "", className }: { src: string; transform?: Partial<ImageTransform> | null; alt?: string; className?: string }) {
-  return <img src={src} alt={alt} className={className} style={adjustedImageStyle(transform)} />;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      style={adjustedImageStyle(transform)}
+      draggable={false}
+      onDragStart={(event) => event.preventDefault()}
+    />
+  );
 }
 
 export function AppearanceLayer({ target, className = "" }: { target: AppearanceTarget; className?: string }) {
