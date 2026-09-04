@@ -7,6 +7,7 @@ import { useAppearanceStore } from "../../stores/appearanceStore";
 import { validateAppearanceImage, type AppearanceTarget } from "../../features/appearance/appearanceService";
 import { DEFAULT_IMAGE_TRANSFORM, type ImageTransform } from "../../features/appearance/imageTypes";
 import { MusicSettings } from "../music/MusicPlayer";
+import { SafeUpdateSettings } from "./SafeUpdateSettings";
 
 const TARGETS: Array<{ target: AppearanceTarget; label: string; description: string; aspectRatio: string; avatar?: boolean; showOpacity?: boolean }> = [
   { target: "app-background", label: "Nền chung toàn ứng dụng", description: "Hiển thị phía sau các khu vực làm việc.", aspectRatio: "16 / 9" },
@@ -55,7 +56,7 @@ export function AppearanceSettings() {
   const clearImage = useAppearanceStore((state) => state.clearImage);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [message, setMessage] = useState("");
-  const [section, setSection] = useState<"theme" | "music" | "images">("theme");
+  const [section, setSection] = useState<"theme" | "music" | "images" | "update">("theme");
 
   useEffect(() => { void loadAppearance(); }, [loadAppearance]);
   useEffect(() => () => { if (editor?.file) URL.revokeObjectURL(editor.sourceUrl); }, [editor]);
@@ -102,6 +103,7 @@ export function AppearanceSettings() {
         <button type="button" className={section === "theme" ? "is-active" : ""} onClick={() => setSection("theme")}><Icon name="spark" size={15} /> Giao diện</button>
         <button type="button" className={section === "music" ? "is-active" : ""} onClick={() => setSection("music")}><Icon name="music" size={15} /> Tiên Âm Các</button>
         <button type="button" className={section === "images" ? "is-active" : ""} onClick={() => setSection("images")}><Icon name="image" size={15} /> Ảnh & icon</button>
+        <button type="button" className={section === "update" ? "is-active" : ""} onClick={() => setSection("update")}><Icon name="refresh" size={15} /> Cập nhật an toàn</button>
       </nav>
 
       {section === "theme" && <section className="appearance-settings-section">
@@ -146,6 +148,8 @@ export function AppearanceSettings() {
           })}
         </div>
       </section>}
+
+      {section === "update" && <SafeUpdateSettings />}
 
       {message && <p className="rounded-lg border p-2 text-sm" style={{ borderColor: "var(--color-border)", background: "var(--color-surface-alt)" }}>{message}</p>}
       {editor && <ImageAdjustDialog open sourceUrl={editor.sourceUrl} title={editor.title} aspectRatio={editor.aspectRatio} initialTransform={editor.transform} showOpacity={editor.showOpacity} onCancel={() => setEditor(null)} onSave={saveEditor} />}
