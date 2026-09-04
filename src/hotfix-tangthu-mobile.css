@@ -1,0 +1,111 @@
+/*
+ * Huyền Bút Các — hotfix Tàng Thư trên iPhone/mobile
+ * Chỉ sửa:
+ * 1) form tạo sách/tiểu thuyết không bị bottom-nav che;
+ * 2) input không bị Safari tự zoom khi focus;
+ * 3) các ô nhập có chiều cao gọn, dễ bấm;
+ * 4) banner cập nhật PWA hiện phía trên bottom-nav.
+ */
+
+/* Banner cập nhật phải nổi trên thanh điều hướng. */
+.hbc-update-prompt {
+  z-index: 240 !important;
+}
+
+@media (max-width: 767px) {
+  /* iOS Safari tự zoom khi font-size input < 16px. */
+  .library-modal input:not([type="file"]):not([type="checkbox"]):not([type="radio"]),
+  .library-modal textarea,
+  .library-modal select,
+  .library-search input,
+  .library-card-edit input,
+  .library-card-edit textarea {
+    font-size: 16px !important;
+    line-height: 1.35 !important;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Không để các ô Tên/Tác giả phình thành khung quá cao. */
+  .library-modal .library-field > input {
+    width: 100% !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    padding: 0.62rem 0.72rem !important;
+  }
+
+  .library-modal .library-field > textarea {
+    width: 100% !important;
+    min-height: 96px !important;
+    max-height: 220px !important;
+    padding: 0.62rem 0.72rem !important;
+    resize: vertical;
+  }
+
+  .library-modal .library-field {
+    gap: 0.3rem !important;
+  }
+
+  /*
+   * App có bottom-nav khoảng 4.35rem.
+   * Chừa vùng phía dưới để nút Hủy/Tạo không bị thanh nav che.
+   */
+  .library-modal-backdrop {
+    z-index: 190 !important;
+    padding:
+      0.5rem
+      0.5rem
+      calc(4.9rem + env(safe-area-inset-bottom))
+      0.5rem !important;
+    align-items: stretch !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  .library-modal {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding: 0.85rem !important;
+    gap: 0.65rem !important;
+    border-radius: 0.85rem !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  /* Nút Tạo luôn nhìn thấy khi cuộn form. */
+  .library-modal-actions {
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 4 !important;
+    margin: 0.25rem -0.85rem -0.85rem !important;
+    padding:
+      0.72rem
+      0.85rem
+      calc(0.72rem + env(safe-area-inset-bottom))
+      0.85rem !important;
+    border-top: 1px solid var(--color-border) !important;
+    background: color-mix(in srgb, var(--color-surface) 97%, transparent) !important;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+
+  .library-modal-actions .library-button {
+    min-height: 44px !important;
+    font-size: 0.9rem !important;
+  }
+
+  /* Banner "Đã có bản cập nhật mới" nằm trên bottom-nav. */
+  .hbc-update-prompt {
+    left: 0.5rem !important;
+    right: 0.5rem !important;
+    bottom: calc(4.9rem + env(safe-area-inset-bottom)) !important;
+    width: auto !important;
+    max-width: none !important;
+    transform: none !important;
+  }
+}

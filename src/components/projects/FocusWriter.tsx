@@ -79,7 +79,15 @@ export function FocusWriter({
       className={`focus-writer fixed inset-0 ${viewportFullscreen ? "z-[120] overflow-hidden" : "z-[60]"} flex flex-col`}
       style={{
         background: "var(--color-editor-bg)",
-        ...(viewportFullscreen ? { width: "100vw", height: "100dvh" } : {}),
+        ...(viewportFullscreen
+          ? {
+              width: "100vw",
+              maxWidth: "100vw",
+              height: "100dvh",
+              maxHeight: "100dvh",
+              overflow: "hidden",
+            }
+          : {}),
       }}
     >
       <div
@@ -147,7 +155,13 @@ export function FocusWriter({
         </div>
       )}
 
-      <div className={`flex-1 ${viewportFullscreen ? "min-h-0 " : ""}overflow-y-auto`}>
+      <div
+        className={
+          viewportFullscreen
+            ? "flex-1 min-h-0 min-w-0 flex overflow-hidden"
+            : "flex-1 overflow-y-auto"
+        }
+      >
         <div
           ref={(node) => {
             editorRef.current = node;
@@ -158,16 +172,29 @@ export function FocusWriter({
           }}
           className={
             viewportFullscreen
-              ? "hbc-editor min-h-full w-full box-border px-5 sm:px-8 lg:px-12 py-8 sm:py-10 text-lg leading-relaxed"
+              ? "hbc-editor flex-1 min-w-0 w-full max-w-full box-border overflow-y-auto overflow-x-hidden px-5 sm:px-8 lg:px-12 py-8 sm:py-10 text-lg leading-relaxed"
               : "hbc-editor max-w-[68ch] mx-auto py-16 px-6 text-lg leading-relaxed"
           }
           style={{
             color: "var(--color-text)",
             ...(viewportFullscreen
               ? {
+                  // Ghi đè .hbc-editor { min-height: 200px } trong index.css.
+                  // Editor là flex item nên chiếm toàn bộ phần màn hình còn lại.
+                  minHeight: 0,
+                  width: "100%",
+                  maxWidth: "100%",
                   borderRadius: 0,
                   boxShadow: "none",
                   background: "var(--color-editor-bg)",
+                  overflowX: "hidden",
+                  overflowY: "auto",
+                  whiteSpace: "pre-wrap",
+                  overflowWrap: "anywhere",
+                  wordBreak: "break-word",
+                  hyphens: "auto",
+                  WebkitOverflowScrolling: "touch",
+                  paddingBottom: "max(2rem, env(safe-area-inset-bottom))",
                 }
               : {}),
           }}

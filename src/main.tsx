@@ -4,6 +4,7 @@ import './index.css'
 import './themes/festival-themes.css'
 import './app-enhancements.css'
 import './media-fixes.css'
+import './hotfix-tangthu-mobile.css'
 import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(
