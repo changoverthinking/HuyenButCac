@@ -1,64 +1,96 @@
 # Huyền Học Các trong tab Vạn Niên
 
-## Phạm vi bản cập nhật
+## Kiến trúc tích hợp
 
-Bản này thêm một module Huyền Học vào **bên trong vùng cuộn Vạn Niên**, không thay thế `CalendarView` và không sửa schema IndexedDB/Supabase.
+Huyền Học được mount vào `.van-nien-scroll` bằng `HuyenHocBridge`. `CalendarView.tsx` không bị sửa, nên phần lịch âm, lịch hẹn và notification hiện tại được giữ nguyên. Module dùng CSS riêng `src/metaphysics.css` và logic riêng dưới `src/features/metaphysics/`.
 
-### Đã hoàn thành
+## 1. Can Chi · Ngũ Hành
 
-- Can Chi & Ngũ Hành: 10 Can, 12 Chi, 60 Hoa Giáp, 30 Nạp Âm, Tam hợp, Lục hợp, Lục xung, tương sinh/tương khắc.
-- Bát Trạch: cung phi 1900–2099, Đông/Tây Tứ Mệnh, đủ 4 hướng cát + 4 hướng hung và kiểm tra hướng nhà.
-- Tướng Số: catalog tra cứu thủ công, không nhận diện ảnh và không suy luận đặc điểm cá nhân bằng AI.
-- Tử Vi foundation: dùng `solarToLunar` có sẵn của Vạn Niên; xác định giờ Chi, Cung Mệnh, Cung Thân và an khung 12 cung.
-- Huyền Không foundation: Tam Nguyên Cửu Vận và Vận tinh bàn cơ sở theo quỹ đạo Lạc Thư.
-- Responsive cho desktop/mobile.
-- Tuyên bố rõ đây là nội dung tra cứu văn hóa, không phải dự đoán khoa học.
+- 10 Thiên Can và 12 Địa Chi.
+- Lục Thập Hoa Giáp, 30 Nạp Âm.
+- Ngũ Hành tương sinh/tương khắc.
+- Tam Hợp, Lục Hợp, Lục Xung, Lục Hại, Lục Phá, Tam Hình/Tương Hình/Tự Hình.
+- Thiên Can Ngũ Hợp và các cặp Can tương xung cơ bản.
+- Tra năm dương lịch → Can Chi, con giáp, Nạp Âm.
 
-### Cố ý chưa bật
+## 2. Bát Trạch
 
-- Ngũ Hành Cục + 14 Chính Tinh + phụ tinh/Tứ Hóa của Tử Vi.
-- Sơn tinh/Hướng tinh của Huyền Không.
+- Cung phi nam/nữ 1900–2099.
+- Đông Tứ Mệnh / Tây Tứ Mệnh.
+- Sinh Khí, Diên Niên, Thiên Y, Phục Vị.
+- Tuyệt Mệnh, Ngũ Quỷ, Lục Sát, Họa Hại.
+- Kiểm tra hướng nhà theo 8 phương.
 
-Hai phần trên phụ thuộc trường phái và bộ quy tắc cần được cố định + đối chiếu bằng lá số/bàn mẫu trước khi đưa vào production. Không có dữ liệu giả hoặc thuật toán phỏng đoán trong bản này.
+Người sinh sát Lập Xuân cần đối chiếu năm khí tiết trước khi áp dụng thực tế.
 
-## File thay đổi
+## 3. Tướng Số
 
-- `src/main.tsx` — thêm CSS và `HuyenHocBridge`.
-- `src/metaphysics.css` — CSS riêng, không sửa stylesheet cũ.
+Catalog tra cứu theo đặc điểm, không upload/nhận diện khuôn mặt và không dùng AI để suy đoán tính cách từ ảnh.
 
-## File mới
+## 4. Tử Vi Đẩu Số
 
+### Đã triển khai
+
+- Dùng `solarToLunar` hiện có của Vạn Niên.
+- Xử lý giờ Chi, Cung Mệnh, Cung Thân và 12 cung chức.
+- Profile tháng nhuận: giữ tháng / chia ngày 15 / chuyển tháng sau.
+- Ngũ Hành Cục.
+- 14 Chính Tinh theo hai tinh hệ Tử Vi / Thiên Phủ.
+- Độ sáng chính tinh theo profile tham khảo đã ghi trong code.
+- Tả Phụ, Hữu Bật, Văn Xương, Văn Khúc, Khôi Việt, Lộc Tồn, Kình Dương, Đà La, Hỏa Tinh, Linh Tinh, Địa Không, Địa Kiếp.
+- Tứ Hóa với profile riêng (`luc-ban-trieu`, `vuong-dinh-chi`).
+- Vòng Tràng Sinh, Thái Tuế, Bác Sĩ.
+- Tuần, Triệt.
+- Mệnh chủ, Thân chủ.
+- Đại Hạn, Tiểu Hạn.
+- Lưu Thái Tuế, Lưu Lộc Tồn và Lưu Tứ Hóa theo năm xem.
+
+### Nguyên tắc
+
+Không sinh đoạn “luận số” dài tự động. Các bảng có dị bản được tách profile, không nhập chung thành một đáp án giả định duy nhất.
+
+## 5. Huyền Không Phi Tinh
+
+### Hạ Quái
+
+- Tam Nguyên Cửu Vận (mốc chu kỳ 1864, mỗi Vận 20 năm).
+- 24 Sơn, mỗi Sơn 15°.
+- Vận tinh, Sơn tinh, Hướng tinh.
+- Thuận/nghịch theo nguyên long quy chiếu; sao 5 dùng số Vận để xét chiều phi nhưng vẫn giữ 5 nhập Trung.
+- Nhận dạng Vượng Sơn Vượng Hướng, Song Tinh Đáo Hướng, Song Tinh Đáo Sơn, Thượng Sơn Hạ Thủy, Phục Ngâm và Phản Ngâm.
+
+### Thế Quái / 替卦
+
+- 9° giữa mỗi Sơn (±4.5° từ tâm): Hạ Quái.
+- Hai mép còn lại: tự động lập Thế Quái theo profile `shen-shi`.
+- Bảng替星 trong profile:
+  - Tý/Quý/Giáp/Thân → 1.
+  - Nhâm/Mão/Ất/Mùi/Khôn → 2.
+  - Càn/Hợi/Thìn/Tốn/Tỵ/Tuất → 6.
+  - Dậu/Tân/Sửu/Cấn/Bính → 7.
+  - Dần/Ngọ/Canh/Đinh → 9.
+- Với sao 5: giữ nguyên sao 5 nhập Trung; số Vận được dùng để xác định quy chiếu/thuận nghịch.
+- UI có tùy chọn tắt替星 để đối chiếu Hạ Quái cưỡng chế, nhưng không dùng đó làm mặc định.
+
+### Benchmark khóa regression
+
+- Vận 8, Tý sơn – Ngọ hướng, chính hướng 180°: khớp đủ 9 cung Hạ Quái.
+- Vận 8, Tý sơn – Ngọ hướng kiêm, độ hướng 185°: cung Nam = **Sơn 1 · Hướng 7 · Vận 3 (173)**.
+
+## File liên quan
+
+- `src/main.tsx`
+- `src/metaphysics.css`
 - `src/components/metaphysics/HuyenHocBridge.tsx`
 - `src/components/metaphysics/HuyenHocPanel.tsx`
 - `src/features/metaphysics/canChi.ts`
 - `src/features/metaphysics/batTrach.ts`
 - `src/features/metaphysics/tuongSo.ts`
 - `src/features/metaphysics/tuViFoundation.ts`
+- `src/features/metaphysics/tuViEngine.ts`
 - `src/features/metaphysics/huyenKhong.ts`
 - `src/tests/metaphysics.test.ts`
-- `docs/HUYEN_HOC_VAN_NIEN.md`
 
-## Cách cập nhật
+## Tuyên bố
 
-Giải nén ZIP vào thư mục gốc của repository và cho phép ghi đè `src/main.tsx`. Các file khác đều là file mới.
-
-Sau khi cập nhật trên máy có dependencies của dự án:
-
-```bash
-npm test
-npm run lint
-npm run build
-```
-
-## Quy tắc dữ liệu Bát Trạch đang dùng
-
-- 1900–1999: rút gọn 2 số cuối năm; nam `10 - số`, nữ `5 + số`.
-- Từ 2000: nam `9 - số`, nữ `6 + số`, tiếp tục rút gọn; quái 5 quy nam → Khôn (2), nữ → Cấn (8).
-- Người sinh sát Lập Xuân cần xét năm khí tiết trước khi áp dụng thực tế.
-
-## Tử Vi foundation
-
-- Tháng Giêng khởi tại Dần.
-- Từ cung tháng: đếm nghịch theo giờ để an Mệnh, đếm thuận theo giờ để an Thân.
-- Từ Cung Mệnh an đủ 12 cung chức theo vòng cố định.
-- Chưa an sao nên giao diện ghi rõ trạng thái này, không tạo cảm giác đã có lá số hoàn chỉnh.
+Đây là module tra cứu văn hóa dựa trên các hệ thống lý thuyết cổ truyền. Nội dung không phải dự đoán khoa học và chỉ nên dùng để tham khảo văn hóa, giải trí hoặc hỗ trợ sáng tác.

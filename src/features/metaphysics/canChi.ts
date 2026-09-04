@@ -70,6 +70,13 @@ const TAM_HOP: Array<{ branches: string[]; bureau: string }> = [
 
 const LUC_HOP = [["Tý", "Sửu"], ["Dần", "Hợi"], ["Mão", "Tuất"], ["Thìn", "Dậu"], ["Tỵ", "Thân"], ["Ngọ", "Mùi"]];
 const LUC_XUNG = [["Tý", "Ngọ"], ["Sửu", "Mùi"], ["Dần", "Thân"], ["Mão", "Dậu"], ["Thìn", "Tuất"], ["Tỵ", "Hợi"]];
+const LUC_HAI = [["Tý", "Mùi"], ["Sửu", "Ngọ"], ["Dần", "Tỵ"], ["Mão", "Thìn"], ["Thân", "Hợi"], ["Dậu", "Tuất"]];
+const LUC_PHA = [["Tý", "Dậu"], ["Sửu", "Thìn"], ["Dần", "Hợi"], ["Mão", "Ngọ"], ["Tỵ", "Thân"], ["Mùi", "Tuất"]];
+const TAM_HINH = [["Dần", "Tỵ", "Thân"], ["Sửu", "Tuất", "Mùi"]];
+const TUONG_HINH_PAIRS = [["Tý", "Mão"]];
+const TU_HINH = ["Thìn", "Ngọ", "Dậu", "Hợi"];
+const THIEN_CAN_NGU_HOP = [["Giáp", "Kỷ"], ["Ất", "Canh"], ["Bính", "Tân"], ["Đinh", "Nhâm"], ["Mậu", "Quý"]];
+const THIEN_CAN_XUNG = [["Giáp", "Canh"], ["Ất", "Tân"], ["Bính", "Nhâm"], ["Đinh", "Quý"]];
 
 const GENERATES: Record<FiveElement, FiveElement> = { Kim: "Thủy", Thủy: "Mộc", Mộc: "Hỏa", Hỏa: "Thổ", Thổ: "Kim" };
 const CONTROLS: Record<FiveElement, FiveElement> = { Kim: "Mộc", Mộc: "Thổ", Thổ: "Thủy", Thủy: "Hỏa", Hỏa: "Kim" };
@@ -103,14 +110,22 @@ export function getBranchRelation(branchA: string, branchB: string) {
   const a = EARTHLY_BRANCHES_INFO.find((item) => item.name === branchA);
   const b = EARTHLY_BRANCHES_INFO.find((item) => item.name === branchB);
   if (!a || !b) return { labels: ["Không xác định"], elementRelation: "Không đủ dữ liệu." };
-  if (a.name === b.name) return { labels: ["Đồng chi"], elementRelation: `Cùng hành ${a.element}.` };
+  if (a.name === b.name) {
+    const labels = ["Đồng chi"];
+    if (TU_HINH.includes(a.name)) labels.push("Tự hình");
+    return { labels, elementRelation: `Cùng hành ${a.element}.` };
+  }
 
   const labels: string[] = [];
   const tamHop = TAM_HOP.find((group) => group.branches.includes(a.name) && group.branches.includes(b.name));
   if (tamHop) labels.push(`Tam hợp · ${tamHop.bureau}`);
   if (LUC_HOP.some((pair) => pairMatches(pair, a.name, b.name))) labels.push("Lục hợp");
   if (LUC_XUNG.some((pair) => pairMatches(pair, a.name, b.name))) labels.push("Lục xung");
-  if (labels.length === 0) labels.push("Không thuộc Tam hợp/Lục hợp/Lục xung cơ bản");
+  if (LUC_HAI.some((pair) => pairMatches(pair, a.name, b.name))) labels.push("Lục hại");
+  if (LUC_PHA.some((pair) => pairMatches(pair, a.name, b.name))) labels.push("Lục phá");
+  if (TAM_HINH.some((group) => group.includes(a.name) && group.includes(b.name))) labels.push("Tam hình");
+  if (TUONG_HINH_PAIRS.some((pair) => pairMatches(pair, a.name, b.name))) labels.push("Tương hình");
+  if (labels.length === 0) labels.push("Không thuộc nhóm hợp/xung/hại/phá/hình cơ bản");
 
   let elementRelation = `Đồng hành ${a.element}.`;
   if (a.element !== b.element) {
@@ -121,6 +136,18 @@ export function getBranchRelation(branchA: string, branchB: string) {
     else elementRelation = `${a.element} và ${b.element}.`;
   }
   return { labels, elementRelation };
+}
+
+export function getStemRelation(stemA: string, stemB: string) {
+  const a = HEAVENLY_STEMS_INFO.find((item) => item.name === stemA);
+  const b = HEAVENLY_STEMS_INFO.find((item) => item.name === stemB);
+  if (!a || !b) return { labels: ["Không xác định"], elementRelation: "Không đủ dữ liệu." };
+  if (a.name === b.name) return { labels: ["Đồng Can"], elementRelation: `Cùng ${a.yinYang} ${a.element}.` };
+  const labels: string[] = [];
+  if (THIEN_CAN_NGU_HOP.some((pair) => pairMatches(pair, a.name, b.name))) labels.push("Thiên Can Ngũ Hợp");
+  if (THIEN_CAN_XUNG.some((pair) => pairMatches(pair, a.name, b.name))) labels.push("Thiên Can tương xung");
+  if (labels.length === 0) labels.push("Không thuộc Ngũ Hợp/tương xung cơ bản");
+  return { labels, elementRelation: getFiveElementRelation(a.element, b.element) };
 }
 
 export function getFiveElementRelation(source: FiveElement, target: FiveElement) {
