@@ -1,14 +1,16 @@
 {
   "name": "huyen-but-cac",
   "private": true,
-  "version": "0.18.0",
+  "version": "0.19.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint src",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "vapid:generate": "node scripts/generate-vapid.mjs",
+    "audit:static": "node scripts/static-audit.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",

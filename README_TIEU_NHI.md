@@ -85,3 +85,10 @@ Local dùng metadata này để ưu tiên RAG. Online chỉ nhận metadata màn
 - Local Qwen3 0.6B ưu tiên nhẹ và riêng tư, không phải model suy luận mạnh.
 - Online phụ thuộc model/hạn mức mà Puter cung cấp cho tài khoản người dùng.
 - AI không tự động chạy nền, không tự sửa/xóa dữ liệu, không tự gửi toàn bộ thư viện lên mạng.
+
+
+## 0.19.0 — bảo vệ dữ liệu
+
+- History, memory và document index của Tiểu Nhị vẫn không auto-merge realtime giữa thiết bị.
+- Tuy nhiên 0.19.0 đã đưa toàn bộ DB Tiểu Nhị vào backup/restore workspace; khi người dùng đăng nhập và mở Kho bảo mật, snapshot này được mã hóa AES-256-GCM ở client và có thể lưu vào Supabase Storage private.
+- Điều này bổ sung đường khôi phục mà không thay đổi schema/RAG/tool-calling hiện hữu của Tiểu Nhị.
