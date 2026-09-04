@@ -263,6 +263,28 @@
 }
 
 @media (max-width: 767px) {
+  /*
+   * iOS Safari tự zoom viewport khi focus control có font-size < 16px.
+   * Áp dụng cho toàn app để ngày/giờ Tử Vi, lịch, dự án, tìm kiếm...
+   * không làm giao diện nhảy/phóng to khi nhập liệu.
+   */
+  .app-shell--figma input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+  .app-shell--figma select,
+  .app-shell--figma textarea {
+    min-width: 0;
+    max-width: 100%;
+    font-size: 16px !important;
+    line-height: 1.35;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  .app-shell--figma input[type="date"],
+  .app-shell--figma input[type="time"],
+  .app-shell--figma input[type="datetime-local"] {
+    min-height: 44px;
+  }
+
   .app-shell.app-shell--figma {
     background-attachment: scroll;
     background-position: center, center, center, center;

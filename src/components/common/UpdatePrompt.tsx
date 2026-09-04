@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 
 export function UpdatePrompt() {
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
+  const [updating, setUpdating] = useState(false);
 
   const {
     needRefresh: [needRefresh],
@@ -41,20 +42,27 @@ export function UpdatePrompt() {
 
   if (!needRefresh) return null;
 
+  const applyUpdate = async () => {
+    if (updating) return;
+    setUpdating(true);
+    try {
+      await updateServiceWorker(true);
+    } catch {
+      // Nếu trình duyệt chặn reload/cập nhật, cho phép người dùng thử lại.
+      setUpdating(false);
+    }
+  };
+
   return (
-    <div
-      className="hbc-update-prompt fixed bottom-4 left-1/2 -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 border"
-      style={{ background: "var(--color-surface)", borderColor: "var(--color-accent)" }}
-    >
-      <span style={{ color: "var(--color-text)" }} className="text-sm">
-        Đã có bản cập nhật mới.
-      </span>
+    <div className="hbc-update-prompt" role="status" aria-live="polite" aria-atomic="true">
+      <span className="hbc-update-copy">Đã có bản cập nhật mới.</span>
       <button
-        className="px-3 py-1.5 rounded text-sm font-medium whitespace-nowrap"
-        style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}
-        onClick={() => updateServiceWorker(true)}
+        type="button"
+        className="hbc-update-action"
+        disabled={updating}
+        onClick={() => void applyUpdate()}
       >
-        Cập nhật ngay
+        {updating ? "Đang cập nhật…" : "Cập nhật ngay"}
       </button>
     </div>
   );

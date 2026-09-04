@@ -223,9 +223,13 @@ function TuViModule() {
     try {
       const [year, month, day] = date.split("-").map(Number);
       const [hour] = time.split(":").map(Number);
-      if (!year || !month || !day || Number.isNaN(hour)) return null;
-      // Profile mặc định: 23:00–23:59 coi là đầu ngày mới trong Tử Vi.
+      if (!year || !month || !day || !Number.isInteger(hour) || hour < 0 || hour > 23) return null;
+
+      // Không để Date tự chuẩn hóa ngày không hợp lệ (ví dụ 31/02 -> tháng kế tiếp).
       const civil = new Date(year, month - 1, day, 12);
+      if (civil.getFullYear() !== year || civil.getMonth() !== month - 1 || civil.getDate() !== day) return null;
+
+      // Profile mặc định: 23:00–23:59 coi là đầu ngày mới trong Tử Vi.
       if (ziHourNextDay && hour === 23) civil.setDate(civil.getDate() + 1);
       const lunar = solarToLunar(civil.getDate(), civil.getMonth() + 1, civil.getFullYear());
       const chartMonth = resolveTuViLunarMonth(lunar.month, lunar.day, lunar.isLeap, leapProfile);
@@ -244,12 +248,13 @@ function TuViModule() {
     }
   }, [date, time, gender, hoaProfile, hoaLinhProfile, leapProfile, ziHourNextDay]);
 
-  if (!parsed) return <div className="hh-module-body"><p>Ngày giờ sinh chưa hợp lệ.</p></div>;
-  const palaceByBranch = new Map(parsed.chart.palaces.map((item) => [item.branch, item]));
-  const annual = annualYear >= parsed.lunar.year ? buildAnnualTransit({ birthLunarYear: parsed.lunar.year, targetLunarYear: annualYear, gender, hoaProfile }) : null;
+  const palaceByBranch = parsed ? new Map(parsed.chart.palaces.map((item) => [item.branch, item])) : null;
+  const annual = parsed && annualYear >= parsed.lunar.year
+    ? buildAnnualTransit({ birthLunarYear: parsed.lunar.year, targetLunarYear: annualYear, gender, hoaProfile })
+    : null;
 
   return <div className="hh-module-body">
-    <div className="hh-form-row hh-form-row-3">
+    <div className="hh-form-row hh-form-row-3 hh-tuvi-input-row">
       <label>Ngày sinh dương lịch<input type="date" min="1800-01-01" max="2199-12-31" value={date} onChange={(e) => setDate(e.target.value)} /></label>
       <label>Giờ sinh<input type="time" value={time} onChange={(e) => setTime(e.target.value)} /></label>
       <label>Giới tính<select value={gender} onChange={(e) => setGender(e.target.value as TuViGender)}><option value="male">Nam</option><option value="female">Nữ</option></select></label>
@@ -266,48 +271,54 @@ function TuViModule() {
       <label className="hh-check"><input type="checkbox" checked={ziHourNextDay} onChange={(e) => setZiHourNextDay(e.target.checked)} /> 23:00–23:59 (đầu giờ Tý) tính sang ngày âm lịch kế tiếp</label>
     </details>
 
-    <div className="hh-tuvi-summary">
-      <span><small>Âm lịch</small><strong>{parsed.lunar.day}/{parsed.lunar.month}{parsed.lunar.isLeap ? " nhuận" : ""}/{parsed.lunar.year}</strong></span>
-      <span><small>Năm</small><strong>{parsed.chart.year.canChi}</strong></span>
-      <span><small>Giờ Chi</small><strong>{parsed.chart.foundation.hourBranch}</strong></span>
-      <span><small>Mệnh / Thân</small><strong>{parsed.chart.foundation.menhBranch} / {parsed.chart.foundation.thanBranch}</strong></span>
-      <span><small>Ngũ Hành Cục</small><strong>{parsed.chart.cuc.name}</strong></span>
-      <span><small>Mệnh chủ / Thân chủ</small><strong>{parsed.chart.menhChu} / {parsed.chart.thanChu}</strong></span>
-    </div>
-    {parsed.lunar.isLeap && <p className="hh-note">Tháng nhuận đang dùng tháng {parsed.chartMonth} để an Mệnh và sao theo profile đã chọn.</p>}
-    {parsed.shiftedZiDay && <p className="hh-note">Ca sinh đầu giờ Tý đã được chuyển sang ngày âm lịch kế tiếp theo cấu hình hiện tại.</p>}
-    {annual ? <div className="hh-annual-strip">
-      <span><small>Lưu niên</small><strong>{annualYear} · {annual.year.canChi}</strong></span>
-      <span><small>Tuổi mụ</small><strong>{annual.ageNominal}</strong></span>
-      <span><small>Tiểu Hạn tại</small><strong>{annual.minorLimitPalace}</strong></span>
-      <span><small>Lưu Thái Tuế</small><strong>{annual.luuThaiTue}</strong></span>
-      <span><small>Lưu Lộc Tồn</small><strong>{annual.luuLocTon}</strong></span>
-      <span><small>Lưu Tứ Hóa</small><strong>{annual.transformations.map((x) => `${x.transformation.replace("Hóa ", "")}:${x.starName}`).join(" · ")}</strong></span>
-    </div> : <p className="hh-note">Năm xem Lưu niên phải từ năm sinh âm lịch trở đi.</p>}
-
-    <div className="hh-tuvi-board-scroll">
-    <div className="hh-tuvi-board hh-tuvi-board-full">
-      {Object.entries(TU_VI_GRID_POSITION).map(([branch, pos]) => {
-        const palace = palaceByBranch.get(branch as typeof parsed.chart.foundation.menhBranch);
-        return <div key={branch} className="hh-tuvi-palace hh-tuvi-palace-full" style={{ gridRow: pos.row, gridColumn: pos.col }}>
-          <div className="hh-palace-head"><span>{branch}</span><strong>{palace?.name}</strong><div>{palace?.isMenh && <em>MỆNH</em>}{palace?.isThan && <em>THÂN</em>}{palace?.voids.map((item) => <i key={item} className="hh-void-badge">{item}</i>)}</div></div>
-          <div className="hh-main-stars">{palace?.mainStars.map((star) => <StarLine key={`${branch}-${star.name}`} star={star} />)}</div>
-          <div className="hh-aux-stars">{palace?.auxiliaryStars.map((star) => <StarLine key={`${branch}-${star.name}`} star={star} />)}</div>
-          <div className="hh-palace-meta"><span>{palace?.trangSinh}</span>{palace?.minorLimit && <small>Tiểu hạn {palace.minorLimit}</small>}{palace?.decade && <small>Đại hạn {palace.decade.fromAge}–{palace.decade.toAge}</small>}</div>
-        </div>;
-      })}
-      <div className="hh-tuvi-center">
-        <strong>TỬ VI ĐẨU SỐ</strong>
-        <span>{parsed.chart.cuc.name}</span>
-        <small>{parsed.chart.year.canChi} · {gender === "male" ? "Nam" : "Nữ"}</small>
-        <small>Tứ Hóa: {hoaProfile === "luc-ban-trieu" ? "Lục Bân Triệu" : "Vương Đình Chi"}</small>
-        <small>Hỏa/Linh: {hoaLinhProfile === "truyen-thong" ? "Truyền thống" : "Vũ Thiên"}</small>
+    {!parsed ? <div className="hh-validation-message" role="alert">
+      <strong>Ngày giờ sinh chưa hợp lệ.</strong>
+      <span>Hãy nhập đủ ngày, tháng, năm và giờ. Biểu mẫu vẫn được giữ nguyên để bạn chỉnh tiếp mà không làm màn hình nhảy.</span>
+    </div> : <>
+      <div className="hh-tuvi-summary">
+        <span><small>Âm lịch</small><strong>{parsed.lunar.day}/{parsed.lunar.month}{parsed.lunar.isLeap ? " nhuận" : ""}/{parsed.lunar.year}</strong></span>
+        <span><small>Năm</small><strong>{parsed.chart.year.canChi}</strong></span>
+        <span><small>Giờ Chi</small><strong>{parsed.chart.foundation.hourBranch}</strong></span>
+        <span><small>Mệnh / Thân</small><strong>{parsed.chart.foundation.menhBranch} / {parsed.chart.foundation.thanBranch}</strong></span>
+        <span><small>Ngũ Hành Cục</small><strong>{parsed.chart.cuc.name}</strong></span>
+        <span><small>Mệnh chủ / Thân chủ</small><strong>{parsed.chart.menhChu} / {parsed.chart.thanChu}</strong></span>
       </div>
-    </div>
-    </div>
-    <div className="hh-safety-box"><strong>Thuật toán đang dùng</strong><p>Đã an Ngũ Hành Cục, 14 Chính Tinh, Tả/Hữu, Xương/Khúc, Khôi/Việt, Lộc Tồn–Kình–Đà, Hỏa/Linh, Không/Kiếp, Tứ Hóa, Tràng Sinh, vòng Thái Tuế, vòng Bác Sĩ, Tuần/Triệt, Đại Hạn, Tiểu Hạn, Lưu Thái Tuế/Lộc Tồn/Tứ Hóa và Mệnh/Thân chủ. Các dị bản có tranh chấp được tách thành profile; ứng dụng không tự sinh lời phán đoán dài.</p></div>
+      {parsed.lunar.isLeap && <p className="hh-note">Tháng nhuận đang dùng tháng {parsed.chartMonth} để an Mệnh và sao theo profile đã chọn.</p>}
+      {parsed.shiftedZiDay && <p className="hh-note">Ca sinh đầu giờ Tý đã được chuyển sang ngày âm lịch kế tiếp theo cấu hình hiện tại.</p>}
+      {annual ? <div className="hh-annual-strip">
+        <span><small>Lưu niên</small><strong>{annualYear} · {annual.year.canChi}</strong></span>
+        <span><small>Tuổi mụ</small><strong>{annual.ageNominal}</strong></span>
+        <span><small>Tiểu Hạn tại</small><strong>{annual.minorLimitPalace}</strong></span>
+        <span><small>Lưu Thái Tuế</small><strong>{annual.luuThaiTue}</strong></span>
+        <span><small>Lưu Lộc Tồn</small><strong>{annual.luuLocTon}</strong></span>
+        <span><small>Lưu Tứ Hóa</small><strong>{annual.transformations.map((x) => `${x.transformation.replace("Hóa ", "")}:${x.starName}`).join(" · ")}</strong></span>
+      </div> : <p className="hh-note">Năm xem Lưu niên phải từ năm sinh âm lịch trở đi.</p>}
+
+      <div className="hh-tuvi-board-scroll">
+        <div className="hh-tuvi-board hh-tuvi-board-full">
+          {Object.entries(TU_VI_GRID_POSITION).map(([branch, pos]) => {
+            const palace = palaceByBranch?.get(branch as typeof parsed.chart.foundation.menhBranch);
+            return <div key={branch} className="hh-tuvi-palace hh-tuvi-palace-full" style={{ gridRow: pos.row, gridColumn: pos.col }}>
+              <div className="hh-palace-head"><span>{branch}</span><strong>{palace?.name}</strong><div>{palace?.isMenh && <em>MỆNH</em>}{palace?.isThan && <em>THÂN</em>}{palace?.voids.map((item) => <i key={item} className="hh-void-badge">{item}</i>)}</div></div>
+              <div className="hh-main-stars">{palace?.mainStars.map((star) => <StarLine key={`${branch}-${star.name}`} star={star} />)}</div>
+              <div className="hh-aux-stars">{palace?.auxiliaryStars.map((star) => <StarLine key={`${branch}-${star.name}`} star={star} />)}</div>
+              <div className="hh-palace-meta"><span>{palace?.trangSinh}</span>{palace?.minorLimit && <small>Tiểu hạn {palace.minorLimit}</small>}{palace?.decade && <small>Đại hạn {palace.decade.fromAge}–{palace.decade.toAge}</small>}</div>
+            </div>;
+          })}
+          <div className="hh-tuvi-center">
+            <strong>TỬ VI ĐẨU SỐ</strong>
+            <span>{parsed.chart.cuc.name}</span>
+            <small>{parsed.chart.year.canChi} · {gender === "male" ? "Nam" : "Nữ"}</small>
+            <small>Tứ Hóa: {hoaProfile === "luc-ban-trieu" ? "Lục Bân Triệu" : "Vương Đình Chi"}</small>
+            <small>Hỏa/Linh: {hoaLinhProfile === "truyen-thong" ? "Truyền thống" : "Vũ Thiên"}</small>
+          </div>
+        </div>
+      </div>
+      <div className="hh-safety-box"><strong>Thuật toán đang dùng</strong><p>Đã an Ngũ Hành Cục, 14 Chính Tinh, Tả/Hữu, Xương/Khúc, Khôi/Việt, Lộc Tồn–Kình–Đà, Hỏa/Linh, Không/Kiếp, Tứ Hóa, Tràng Sinh, vòng Thái Tuế, vòng Bác Sĩ, Tuần/Triệt, Đại Hạn, Tiểu Hạn, Lưu Thái Tuế/Lộc Tồn/Tứ Hóa và Mệnh/Thân chủ. Các dị bản có tranh chấp được tách thành profile; ứng dụng không tự sinh lời phán đoán dài.</p></div>
+    </>}
   </div>;
 }
+
 
 function PhiTinhModule() {
   const [year, setYear] = useState(new Date().getFullYear());
