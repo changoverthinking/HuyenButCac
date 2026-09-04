@@ -15,6 +15,16 @@ import {
   type ReplacementProfile,
 } from "../../features/metaphysics/huyenKhong";
 import {
+  ICHING_HEXAGRAMS,
+  ICHING_SOURCES,
+  ICHING_TRIGRAMS,
+  MOVING_LINE_POSITION_NOTES,
+  buildIChingCast,
+  castThreeCoins,
+  getHexagramByNumber,
+  type IChingCast,
+} from "../../features/metaphysics/kinhDich";
+import {
   PHYSIOGNOMY_AREAS,
   PHYSIOGNOMY_CATALOG,
   PHYSIOGNOMY_SOURCES,
@@ -32,14 +42,21 @@ import {
   type TuViStar,
 } from "../../features/metaphysics/tuViEngine";
 import { TU_VI_GRID_POSITION } from "../../features/metaphysics/tuViFoundation";
+import {
+  TU_VI_STAR_DEFINITIONS,
+  TU_VI_STAR_SOURCES,
+  getTuViStarDefinition,
+} from "../../features/metaphysics/tuViStarDefinitions";
 
-type ModuleId = "can-chi" | "bat-trach" | "tuong-so" | "tu-vi" | "phi-tinh";
+
+type ModuleId = "can-chi" | "bat-trach" | "tuong-so" | "tu-vi" | "kinh-dich" | "phi-tinh";
 
 const MODULES: Array<{ id: ModuleId; label: string; short: string }> = [
   { id: "can-chi", label: "Can Chi · Ngũ Hành", short: "Can Chi" },
   { id: "bat-trach", label: "Phong Thủy Bát Trạch", short: "Bát Trạch" },
   { id: "tuong-so", label: "Tướng Số", short: "Tướng Số" },
   { id: "tu-vi", label: "Tử Vi Đẩu Số", short: "Tử Vi" },
+  { id: "kinh-dich", label: "Kinh Dịch · 64 Quẻ", short: "64 Quẻ" },
   { id: "phi-tinh", label: "Huyền Không Phi Tinh", short: "Phi Tinh" },
 ];
 
@@ -200,12 +217,18 @@ function TuongSoModule() {
   </div>;
 }
 
-function StarLine({ star }: { star: TuViStar }) {
-  return <div className={`hh-star-line ${star.category}`}>
+function StarLine({ star, onSelect }: { star: TuViStar; onSelect?: (star: TuViStar) => void }) {
+  const definition = getTuViStarDefinition(star.name);
+  const content = <>
     <strong>{star.name}</strong>
     {star.brightness && <small>{star.brightness}</small>}
     {star.transformation && <em>{star.transformation}</em>}
-  </div>;
+  </>;
+
+  if (!definition || !onSelect) return <div className={`hh-star-line ${star.category}`}>{content}</div>;
+  return <button type="button" className={`hh-star-line hh-star-line-button ${star.category}`} onClick={() => onSelect(star)} title="Chạm để xem định nghĩa sao">
+    {content}
+  </button>;
 }
 
 function TuViModule() {
@@ -218,6 +241,8 @@ function TuViModule() {
   const [leapProfile, setLeapProfile] = useState<LeapMonthProfile>("chia-15");
   const [ziHourNextDay, setZiHourNextDay] = useState(true);
   const [annualYear, setAnnualYear] = useState(now.getFullYear());
+  const [selectedStar, setSelectedStar] = useState<TuViStar | null>(null);
+  const [starQuery, setStarQuery] = useState("");
 
   const parsed = useMemo(() => {
     try {
@@ -252,6 +277,13 @@ function TuViModule() {
   const annual = parsed && annualYear >= parsed.lunar.year
     ? buildAnnualTransit({ birthLunarYear: parsed.lunar.year, targetLunarYear: annualYear, gender, hoaProfile })
     : null;
+  const selectedDefinition = selectedStar ? getTuViStarDefinition(selectedStar.name) : null;
+  const selectedTransformation = selectedStar?.transformation ? getTuViStarDefinition(selectedStar.transformation) : null;
+  const normalizedStarQuery = starQuery.trim().toLocaleLowerCase("vi");
+  const starMatches = useMemo(() => TU_VI_STAR_DEFINITIONS.filter((item) => {
+    if (!normalizedStarQuery) return true;
+    return [item.name, item.group, item.meaning, ...item.keywords].join(" ").toLocaleLowerCase("vi").includes(normalizedStarQuery);
+  }), [normalizedStarQuery]);
 
   return <div className="hh-module-body">
     <div className="hh-form-row hh-form-row-3 hh-tuvi-input-row">
@@ -294,14 +326,27 @@ function TuViModule() {
         <span><small>Lưu Tứ Hóa</small><strong>{annual.transformations.map((x) => `${x.transformation.replace("Hóa ", "")}:${x.starName}`).join(" · ")}</strong></span>
       </div> : <p className="hh-note">Năm xem Lưu niên phải từ năm sinh âm lịch trở đi.</p>}
 
+      <div className="hh-tuvi-helpbar"><strong>Đọc lá số</strong><span>Chạm vào tên sao có định nghĩa để mở phần giải thích. Trên điện thoại lá số chuyển thành thẻ 2 cột để chữ không bị bẻ từng ký tự.</span></div>
+      {selectedDefinition && <article className="hh-star-inspector">
+        <div className="hh-star-inspector-head"><div><small>{selectedDefinition.group}</small><h4>{selectedDefinition.name}</h4></div><button type="button" onClick={() => setSelectedStar(null)} aria-label="Đóng định nghĩa sao">×</button></div>
+        <div className="hh-star-keywords">{selectedDefinition.keywords.map((keyword) => <span key={keyword}>{keyword}</span>)}</div>
+        <p>{selectedDefinition.meaning}</p>
+        {selectedStar?.brightness && <p className="hh-star-context"><strong>Trạng thái trên lá số:</strong> {selectedStar.brightness}{selectedStar.transformation ? ` · ${selectedStar.transformation}` : ""}. Miếu/Vượng/Đắc/Bình/Hãm là lớp đánh giá vị trí truyền thống, không thay thế việc đọc toàn cung và tam phương tứ chính.</p>}
+        {selectedTransformation && <div className="hh-star-transform-note"><strong>{selectedTransformation.name}</strong><span>{selectedTransformation.meaning}</span></div>}
+        <div className="hh-star-source-links">{selectedDefinition.sourceIds.map((sourceId) => {
+          const source = TU_VI_STAR_SOURCES.find((item) => item.id === sourceId);
+          return source ? <a key={sourceId} href={source.url} target="_blank" rel="noreferrer">{source.title} ↗</a> : null;
+        })}</div>
+      </article>}
+
       <div className="hh-tuvi-board-scroll">
         <div className="hh-tuvi-board hh-tuvi-board-full">
           {Object.entries(TU_VI_GRID_POSITION).map(([branch, pos]) => {
             const palace = palaceByBranch?.get(branch as typeof parsed.chart.foundation.menhBranch);
             return <div key={branch} className="hh-tuvi-palace hh-tuvi-palace-full" style={{ gridRow: pos.row, gridColumn: pos.col }}>
               <div className="hh-palace-head"><span>{branch}</span><strong>{palace?.name}</strong><div>{palace?.isMenh && <em>MỆNH</em>}{palace?.isThan && <em>THÂN</em>}{palace?.voids.map((item) => <i key={item} className="hh-void-badge">{item}</i>)}</div></div>
-              <div className="hh-main-stars">{palace?.mainStars.map((star) => <StarLine key={`${branch}-${star.name}`} star={star} />)}</div>
-              <div className="hh-aux-stars">{palace?.auxiliaryStars.map((star) => <StarLine key={`${branch}-${star.name}`} star={star} />)}</div>
+              <div className="hh-main-stars">{palace?.mainStars.map((star) => <StarLine key={`${branch}-${star.name}`} star={star} onSelect={setSelectedStar} />)}</div>
+              <div className="hh-aux-stars">{palace?.auxiliaryStars.map((star) => <StarLine key={`${branch}-${star.name}`} star={star} onSelect={setSelectedStar} />)}</div>
               <div className="hh-palace-meta"><span>{palace?.trangSinh}</span>{palace?.minorLimit && <small>Tiểu hạn {palace.minorLimit}</small>}{palace?.decade && <small>Đại hạn {palace.decade.fromAge}–{palace.decade.toAge}</small>}</div>
             </div>;
           })}
@@ -314,11 +359,144 @@ function TuViModule() {
           </div>
         </div>
       </div>
-      <div className="hh-safety-box"><strong>Thuật toán đang dùng</strong><p>Đã an Ngũ Hành Cục, 14 Chính Tinh, Tả/Hữu, Xương/Khúc, Khôi/Việt, Lộc Tồn–Kình–Đà, Hỏa/Linh, Không/Kiếp, Tứ Hóa, Tràng Sinh, vòng Thái Tuế, vòng Bác Sĩ, Tuần/Triệt, Đại Hạn, Tiểu Hạn, Lưu Thái Tuế/Lộc Tồn/Tứ Hóa và Mệnh/Thân chủ. Các dị bản có tranh chấp được tách thành profile; ứng dụng không tự sinh lời phán đoán dài.</p></div>
+
+      <details className="hh-reference hh-star-dictionary">
+        <summary>Từ điển sao Tử Vi ({TU_VI_STAR_DEFINITIONS.length} mục)</summary>
+        <label className="hh-dictionary-search">Tìm sao / ý nghĩa<input type="search" value={starQuery} onChange={(e) => setStarQuery(e.target.value)} placeholder="Ví dụ: Thái Dương, quý nhân, hao tán…" /></label>
+        <div className="hh-star-dictionary-grid">{starMatches.map((item) => <article key={item.name}>
+          <div><small>{item.group}</small><strong>{item.name}</strong></div>
+          <p>{item.meaning}</p>
+          <div className="hh-star-keywords">{item.keywords.map((keyword) => <span key={keyword}>{keyword}</span>)}</div>
+        </article>)}</div>
+        <div className="hh-source-list hh-tuvi-source-list">{TU_VI_STAR_SOURCES.map((source) => <article key={source.id}><div><strong>{source.id} · {source.title}</strong></div><a href={source.url} target="_blank" rel="noreferrer">Mở tài liệu đối chiếu ↗</a></article>)}</div>
+      </details>
+
+      <details className="hh-reference hh-tuvi-glossary">
+        <summary>Chú giải ký hiệu trên lá số</summary>
+        <div className="hh-glossary-grid">
+          <article><strong>Miếu · Vượng · Đắc · Bình · Hãm</strong><p>Mức độ đắc địa truyền thống của chính tinh tại từng Địa Chi. Đây là một lớp đánh giá sức biểu hiện của sao, không phải thang điểm tốt/xấu độc lập.</p></article>
+          <article><strong>Tuần · Triệt</strong><p>Hai dạng Không Vong được dùng như “điểm chặn/điểm biến đổi” trong nhiều trường phái. Khi gặp cần đọc cùng cung, chính tinh, hạn và tam phương tứ chính.</p></article>
+          <article><strong>Mệnh · Thân</strong><p>Cung Mệnh là trục khởi đầu để đọc cấu trúc lá số; Cung Thân bổ sung nơi đời sống dễ dồn trọng tâm và thường được đọc phối hợp với Mệnh.</p></article>
+          <article><strong>Tràng Sinh</strong><p>Vòng 12 trạng thái khí như Tràng Sinh, Mộc Dục, Quan Đới… dùng để mô tả chu kỳ sinh–trưởng–thịnh–suy của Ngũ Hành Cục.</p></article>
+          <article><strong>Đại Hạn · Tiểu Hạn</strong><p>Đại Hạn chia các giai đoạn 10 năm; Tiểu Hạn là một lớp vận theo năm. Không nên đọc hạn tách khỏi lá số gốc và lưu niên.</p></article>
+          <article><strong>Tứ Hóa</strong><p>Hóa Lộc, Quyền, Khoa, Kỵ là bốn trạng thái biến hóa gắn vào sao theo Thiên Can. Bản app cho phép chọn profile trường phái ở phần cấu hình.</p></article>
+        </div>
+      </details>
+
+      <div className="hh-safety-box"><strong>Thuật toán đang dùng</strong><p>Đã an Ngũ Hành Cục, 14 Chính Tinh, Tả/Hữu, Xương/Khúc, Khôi/Việt, Lộc Tồn–Kình–Đà, Hỏa/Linh, Không/Kiếp, Tứ Hóa, Tràng Sinh, vòng Thái Tuế, vòng Bác Sĩ, Tuần/Triệt, Đại Hạn, Tiểu Hạn, Lưu Thái Tuế/Lộc Tồn/Tứ Hóa và Mệnh/Thân chủ. Phần định nghĩa sao là lớp tra cứu truyền thống, không phải kết luận định mệnh từ một sao đơn lẻ.</p></div>
     </>}
   </div>;
 }
 
+function HexagramFigure({ code, movingLines = [] }: { code: string; movingLines?: number[] }) {
+  const lines = code.split("").map((value, index) => ({ value, position: index + 1 })).reverse();
+  return <div className="hh-hex-figure" aria-label="Hình sáu hào">
+    {lines.map((line) => <div key={line.position} className={`hh-hex-line ${movingLines.includes(line.position) ? "is-moving" : ""}`} title={`Hào ${line.position}${movingLines.includes(line.position) ? " · động" : ""}`}>
+      {line.value === "1" ? <span className="is-yang" /> : <span className="is-yin"><i /><i /></span>}
+      {movingLines.includes(line.position) && <b>{line.position}</b>}
+    </div>)}
+  </div>;
+}
+
+function KinhDichModule() {
+  const [selectedNumber, setSelectedNumber] = useState(1);
+  const [query, setQuery] = useState("");
+  const [cast, setCast] = useState<IChingCast | null>(null);
+  const [manualLines, setManualLines] = useState<Array<6 | 7 | 8 | 9>>([7, 7, 7, 7, 7, 7]);
+  const selected = getHexagramByNumber(selectedNumber) ?? ICHING_HEXAGRAMS[0];
+  const activeHexagram = cast?.primary ?? selected;
+  const normalizedQuery = query.trim().toLocaleLowerCase("vi");
+  const matches = useMemo(() => ICHING_HEXAGRAMS.filter((item) => {
+    if (!normalizedQuery) return true;
+    return [String(item.number), item.chinese, item.hanViet, item.theme, item.meaning, item.whenCast, ...item.keywords].join(" ").toLocaleLowerCase("vi").includes(normalizedQuery);
+  }), [normalizedQuery]);
+  const upper = ICHING_TRIGRAMS[activeHexagram.upper];
+  const lower = ICHING_TRIGRAMS[activeHexagram.lower];
+
+  const selectHexagram = (number: number) => {
+    setSelectedNumber(number);
+    setCast(null);
+  };
+  const castRandom = () => {
+    const next = castThreeCoins();
+    setCast(next);
+    setSelectedNumber(next.primary.number);
+  };
+  const buildManual = () => {
+    const next = buildIChingCast(manualLines);
+    setCast(next);
+    setSelectedNumber(next.primary.number);
+  };
+  const updateManualLine = (index: number, value: 6 | 7 | 8 | 9) => {
+    setManualLines((current) => current.map((line, lineIndex) => lineIndex === index ? value : line));
+  };
+
+  return <div className="hh-module-body hh-iching-module">
+    <div className="hh-iching-toolbar">
+      <label>Tìm trong 64 quẻ<input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Số quẻ, tên quẻ, ý nghĩa…" /></label>
+      <button type="button" className="hh-primary-action" onClick={castRandom}>Gieo 3 đồng xu × 6</button>
+    </div>
+
+    <div className="hh-iching-main">
+      <div className="hh-iching-visual">
+        <span className="hh-hex-unicode">{activeHexagram.symbol}</span>
+        <HexagramFigure code={activeHexagram.code} movingLines={cast?.movingLines ?? []} />
+      </div>
+      <div className="hh-iching-reading">
+        <span className="hh-kicker">QUẺ {activeHexagram.number}/64 · {activeHexagram.chinese}</span>
+        <h4>{activeHexagram.hanViet}</h4>
+        <div className="hh-trigram-pair">
+          <span><small>Thượng quái</small><strong>{upper.symbol} {upper.name} · {upper.image}</strong><em>{upper.element} · {upper.nature}</em></span>
+          <span><small>Hạ quái</small><strong>{lower.symbol} {lower.name} · {lower.image}</strong><em>{lower.element} · {lower.nature}</em></span>
+        </div>
+        <div className="hh-iching-meaning"><strong>Ý nghĩa / định nghĩa</strong><p>{activeHexagram.meaning}</p></div>
+        <div className="hh-iching-cast-reading"><strong>Khi ra quẻ này</strong><p>{activeHexagram.whenCast}</p></div>
+        <div className="hh-star-keywords">{activeHexagram.keywords.map((keyword) => <span key={keyword}>{keyword}</span>)}</div>
+      </div>
+    </div>
+
+    {cast && <div className="hh-cast-result">
+      <div className="hh-cast-result-head"><strong>Kết quả gieo quẻ</strong><button type="button" onClick={() => setCast(null)}>Trở về tra cứu</button></div>
+      <div className="hh-cast-lines">{cast.lines.map((value, index) => {
+        const moving = value === 6 || value === 9;
+        const label = value === 6 ? "Lão Âm" : value === 7 ? "Thiếu Dương" : value === 8 ? "Thiếu Âm" : "Lão Dương";
+        return <span key={index}><small>Hào {index + 1}</small><strong>{value} · {label}</strong>{moving && <em>Động</em>}</span>;
+      })}</div>
+      {cast.movingLines.length > 0 ? <>
+        <div className="hh-changing-hexagram"><div><small>Quẻ chủ</small><strong>{cast.primary.number}. {cast.primary.hanViet}</strong></div><span>→</span><div><small>Quẻ biến</small><strong>{cast.changed?.number}. {cast.changed?.hanViet}</strong></div></div>
+        <div className="hh-moving-notes">{cast.movingLines.map((position) => <p key={position}><strong>Hào {position} động:</strong> {MOVING_LINE_POSITION_NOTES[position - 1]} Khi luận chi tiết cần đọc hào từ của chính quẻ ở vị trí này; phần mềm không biến một hào riêng lẻ thành phán quyết tuyệt đối.</p>)}</div>
+        {cast.changed && <div className="hh-iching-changed-reading"><strong>Ý nghĩa quẻ biến · {cast.changed.hanViet}</strong><p>{cast.changed.meaning}</p><p><b>Xu hướng sau biến:</b> {cast.changed.whenCast}</p></div>}
+      </> : <p className="hh-note">Không có hào động: tập trung đọc quẻ chủ và hoàn cảnh hiện tại, không có quẻ biến.</p>}
+    </div>}
+
+    <details className="hh-advanced hh-manual-cast">
+      <summary>Nhập 6 hào từ một lần gieo bên ngoài</summary>
+      <p className="hh-note">Nhập từ Hào 1 (dưới cùng) đến Hào 6 (trên cùng): 6 = Lão Âm, 7 = Thiếu Dương, 8 = Thiếu Âm, 9 = Lão Dương.</p>
+      <div className="hh-manual-lines">{manualLines.map((value, index) => <label key={index}>Hào {index + 1}<select value={value} onChange={(e) => updateManualLine(index, Number(e.target.value) as 6 | 7 | 8 | 9)}><option value={6}>6 · Lão Âm (động)</option><option value={7}>7 · Thiếu Dương</option><option value={8}>8 · Thiếu Âm</option><option value={9}>9 · Lão Dương (động)</option></select></label>)}</div>
+      <button type="button" className="hh-primary-action" onClick={buildManual}>Lập quẻ từ 6 hào</button>
+    </details>
+
+    <details className="hh-reference hh-trigram-library">
+      <summary>Bát Quái căn bản · định nghĩa 8 quái</summary>
+      <div className="hh-trigram-grid">{Object.values(ICHING_TRIGRAMS).map((trigram) => <article key={trigram.name}>
+        <span>{trigram.symbol}</span><div><strong>{trigram.name} · {trigram.chinese}</strong><small>{trigram.image} · {trigram.element}</small><p>{trigram.nature}</p></div>
+      </article>)}</div>
+    </details>
+
+    <div className="hh-hexagram-library">
+      <div className="hh-library-head"><div><span className="hh-kicker">VĂN VƯƠNG QUÁI TỰ</span><h4>Thư viện 64 quẻ</h4></div><strong>{matches.length}/64</strong></div>
+      <div className="hh-hexagram-grid">{matches.map((item) => <button type="button" key={item.number} className={selectedNumber === item.number && !cast ? "is-active" : ""} onClick={() => selectHexagram(item.number)}>
+        <span>{item.symbol}</span><div><small>{item.number}. {item.chinese}</small><strong>{item.hanViet}</strong><em>{item.theme}</em></div>
+      </button>)}</div>
+    </div>
+
+    <details className="hh-reference hh-iching-sources">
+      <summary>Nguồn & cách đối chiếu</summary>
+      <div className="hh-source-list">{ICHING_SOURCES.map((source) => <article key={source.id}><div><strong>{source.id} · {source.title}</strong></div><a href={source.url} target="_blank" rel="noreferrer">Mở nguồn ↗</a></article>)}</div>
+    </details>
+    <div className="hh-safety-box"><strong>Cách dùng</strong><p>64 quẻ được sắp theo thứ tự Văn Vương. “Gieo 3 đồng xu” mô phỏng phép gieo truyền thống bằng số ngẫu nhiên trong trình duyệt; phần luận là diễn giải văn hóa từ tượng quẻ, không phải dự báo khoa học và không nên thay thế quyết định y khoa, pháp lý hay tài chính.</p></div>
+  </div>;
+}
 
 function PhiTinhModule() {
   const [year, setYear] = useState(new Date().getFullYear());
@@ -364,12 +542,13 @@ function PhiTinhModule() {
 export function HuyenHocPanel() {
   const [active, setActive] = useState<ModuleId>("can-chi");
   return <section className="huyen-hoc-cac" aria-label="Huyền Học Các">
-    <header className="hh-header"><div><span className="hh-kicker">VẠN NIÊN · HUYỀN HỌC VIỆT NAM</span><h3>Huyền Học Các</h3><p>Tra cứu và lập bàn có cấu trúc: Can Chi, Ngũ Hành, Bát Trạch, Tử Vi và Huyền Không Phi Tinh.</p></div><div className="hh-seal" aria-hidden="true">玄</div></header>
+    <header className="hh-header"><div><span className="hh-kicker">VẠN NIÊN · HUYỀN HỌC VIỆT NAM</span><h3>Huyền Học Các</h3><p>Tra cứu có cấu trúc: Can Chi, Ngũ Hành, Bát Trạch, Tướng Số, Tử Vi, Kinh Dịch 64 Quẻ và Huyền Không Phi Tinh.</p></div><div className="hh-seal" aria-hidden="true">玄</div></header>
     <nav className="hh-tabs" aria-label="Các module Huyền Học">{MODULES.map((item) => <button type="button" key={item.id} className={active === item.id ? "is-active" : ""} onClick={() => setActive(item.id)}><span>{item.short}</span><small>{item.label}</small></button>)}</nav>
     {active === "can-chi" && <CanChiModule />}
     {active === "bat-trach" && <BatTrachModule />}
     {active === "tuong-so" && <TuongSoModule />}
     {active === "tu-vi" && <TuViModule />}
+    {active === "kinh-dich" && <KinhDichModule />}
     {active === "phi-tinh" && <PhiTinhModule />}
     <footer className="hh-disclaimer">Huyền Học Các là công cụ tra cứu văn hóa dựa trên các hệ thống lý thuyết cổ truyền. Nội dung không phải dự đoán khoa học và chỉ nên dùng để tham khảo văn hóa, giải trí hoặc hỗ trợ sáng tác.</footer>
   </section>;
