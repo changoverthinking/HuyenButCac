@@ -1,10 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useProjectsStore } from "../../stores/projectsStore";
 import type { ProjectChapter } from "../../types/entities";
 import { RichTextToolbar } from "../editor/RichTextToolbar";
 import { sanitizeRichHtml } from "../../features/security/htmlSanitizer";
 
-export function FocusWriter({ chapter, onExit }: { chapter: ProjectChapter; onExit: () => void }) {
+export function FocusWriter({
+  chapter,
+  onExit,
+  viewportFullscreen = false,
+}: {
+  chapter: ProjectChapter;
+  onExit: () => void;
+  viewportFullscreen?: boolean;
+}) {
   const updateChapter = useProjectsStore((s) => s.updateChapter);
   const editorRef = useRef<HTMLDivElement>(null);
   const editorInitialized = useRef(false);
@@ -64,13 +73,46 @@ export function FocusWriter({ chapter, onExit }: { chapter: ProjectChapter; onEx
 
   const minutes = Math.floor(elapsedSec / 60);
   const seconds = elapsedSec % 60;
-  return (
-    <div className="focus-writer fixed inset-0 z-[60] flex flex-col" style={{ background: "var(--color-editor-bg)" }}>
-      <div className="flex items-center justify-between px-6 py-3 border-b" style={{ borderColor: "var(--color-border)" }}>
-        <button onClick={async () => { try { await flushSave(); setSaveState("saved"); onExit(); } catch { setSaveState("saving"); } }} className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+
+  const writer = (
+    <div
+      className={`focus-writer fixed inset-0 ${viewportFullscreen ? "z-[120] overflow-hidden" : "z-[60]"} flex flex-col`}
+      style={{
+        background: "var(--color-editor-bg)",
+        ...(viewportFullscreen ? { width: "100vw", height: "100dvh" } : {}),
+      }}
+    >
+      <div
+        className={
+          viewportFullscreen
+            ? "shrink-0 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 sm:px-6 py-2.5 sm:py-3 border-b"
+            : "flex items-center justify-between px-6 py-3 border-b"
+        }
+        style={{ borderColor: "var(--color-border)" }}
+      >
+        <button
+          onClick={async () => {
+            try {
+              await flushSave();
+              setSaveState("saved");
+              onExit();
+            } catch {
+              setSaveState("saving");
+            }
+          }}
+          className={viewportFullscreen ? "text-sm whitespace-nowrap" : "text-sm"}
+          style={{ color: "var(--color-text-muted)" }}
+        >
           ← Thoát chế độ tập trung
         </button>
-        <div className="text-sm flex gap-4" style={{ color: "var(--color-text-muted)" }}>
+        <div
+          className={
+            viewportFullscreen
+              ? "ml-auto text-xs sm:text-sm flex flex-wrap justify-end gap-x-3 gap-y-1"
+              : "text-sm flex gap-4"
+          }
+          style={{ color: "var(--color-text-muted)" }}
+        >
           <span>{liveWordCount.toLocaleString("vi-VN")} từ</span>
           <span>
             {minutes}:{seconds.toString().padStart(2, "0")}
@@ -78,19 +120,57 @@ export function FocusWriter({ chapter, onExit }: { chapter: ProjectChapter; onEx
           <span>{saveState === "saving" ? "Đang lưu…" : "Đã lưu"}</span>
         </div>
       </div>
-      <div className="border-b overflow-x-auto" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
-        <RichTextToolbar editorRef={editorRef} onFormat={scheduleSave} />
+
+      <div
+        className={`${viewportFullscreen ? "shrink-0 " : ""}border-b overflow-x-auto`}
+        style={{
+          borderColor: "var(--color-border)",
+          background: "var(--color-surface)",
+          ...(viewportFullscreen ? { WebkitOverflowScrolling: "touch" } : {}),
+        }}
+      >
+        {viewportFullscreen ? (
+          <div className="min-w-max">
+            <RichTextToolbar editorRef={editorRef} onFormat={scheduleSave} />
+          </div>
+        ) : (
+          <RichTextToolbar editorRef={editorRef} onFormat={scheduleSave} />
+        )}
       </div>
+
       {liveWordCount > 20000 && (
-        <div className="px-6 py-2 text-xs text-center" style={{ color: "var(--color-warning)", background: "var(--color-surface-alt)" }}>
+        <div
+          className={`${viewportFullscreen ? "shrink-0 " : ""}px-6 py-2 text-xs text-center`}
+          style={{ color: "var(--color-warning)", background: "var(--color-surface-alt)" }}
+        >
           Chương này đã vượt 20.000 từ. Nên tách thành chương mới để mở và lưu nhanh hơn; toàn bộ tiểu thuyết vẫn có thể chứa hàng trăm nghìn từ.
         </div>
       )}
-      <div className="flex-1 overflow-y-auto">
+
+      <div className={`flex-1 ${viewportFullscreen ? "min-h-0 " : ""}overflow-y-auto`}>
         <div
-          ref={(node)=>{editorRef.current=node;if(node&&!editorInitialized.current){node.innerHTML=sanitizeRichHtml(chapter.contentHtml);editorInitialized.current=true;}}}
-          className="hbc-editor max-w-[68ch] mx-auto py-16 px-6 text-lg leading-relaxed"
-          style={{ color: "var(--color-text)" }}
+          ref={(node) => {
+            editorRef.current = node;
+            if (node && !editorInitialized.current) {
+              node.innerHTML = sanitizeRichHtml(chapter.contentHtml);
+              editorInitialized.current = true;
+            }
+          }}
+          className={
+            viewportFullscreen
+              ? "hbc-editor min-h-full w-full box-border px-5 sm:px-8 lg:px-12 py-8 sm:py-10 text-lg leading-relaxed"
+              : "hbc-editor max-w-[68ch] mx-auto py-16 px-6 text-lg leading-relaxed"
+          }
+          style={{
+            color: "var(--color-text)",
+            ...(viewportFullscreen
+              ? {
+                  borderRadius: 0,
+                  boxShadow: "none",
+                  background: "var(--color-editor-bg)",
+                }
+              : {}),
+          }}
           contentEditable
           suppressContentEditableWarning
           data-placeholder="Bắt đầu viết chương này…"
@@ -99,4 +179,6 @@ export function FocusWriter({ chapter, onExit }: { chapter: ProjectChapter; onEx
       </div>
     </div>
   );
+
+  return viewportFullscreen && typeof document !== "undefined" ? createPortal(writer, document.body) : writer;
 }

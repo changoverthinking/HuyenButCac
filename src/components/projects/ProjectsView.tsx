@@ -126,12 +126,14 @@ function ChapterOutlineItem({
   sections,
   allChapters,
   sectionId,
+  rootSectionLabel,
 }: {
   chapter: ProjectChapter;
   siblings: ProjectChapter[];
   sections: ProjectSection[];
   allChapters: ProjectChapter[];
   sectionId: string | null;
+  rootSectionLabel: string;
 }) {
   const selectChapter = useProjectsStore((s) => s.selectChapter);
   const updateChapter = useProjectsStore((s) => s.updateChapter);
@@ -201,7 +203,7 @@ function ChapterOutlineItem({
               void runMove(targetSectionId, targetIndex);
             }}
           >
-            <option value="__root__">Ngoài Phần</option>
+            <option value="__root__">{rootSectionLabel}</option>
             {sections.map((section) => <option key={section.id} value={section.id}>{section.title}</option>)}
           </select>
         </label>
@@ -223,6 +225,8 @@ function ChapterOutlineItem({
 }
 
 function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
+  const selectedProjectId = useProjectsStore((s) => s.selectedProjectId);
+  const projects = useProjectsStore((s) => s.projects);
   const sections = useProjectsStore((s) => s.sections);
   const chapters = useProjectsStore((s) => s.chapters);
   const createSection = useProjectsStore((s) => s.createSection);
@@ -232,68 +236,116 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
   const [sectionTitle, setSectionTitle] = useState("");
   const [chapterTitle, setChapterTitle] = useState("");
 
+  const selectedProject = projects.find((project) => project.id === selectedProjectId);
+  const isNovel = selectedProject?.kind === "novel";
+  const sectionLabel = isNovel ? "Quyển" : "Phần";
+  const sectionLabelLower = isNovel ? "quyển" : "phần";
+  const rootSectionLabel = isNovel ? "Chưa xếp Quyển" : "Ngoài Phần";
   const rootChapters = chapters.filter((c) => c.sectionId === null);
+
+  const sectionCreator = (
+    <div className="flex gap-2 mb-3">
+      <input
+        value={sectionTitle}
+        onChange={(e) => setSectionTitle(e.target.value)}
+        placeholder={isNovel ? "Tên quyển mới…" : "Tên phần mới…"}
+        className="flex-1 px-2 py-1.5 rounded border text-sm"
+        style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)" }}
+      />
+      <button
+        onClick={async () => {
+          if (!sectionTitle.trim()) return;
+          await createSection(sectionTitle.trim());
+          setSectionTitle("");
+        }}
+        className="px-3 py-1.5 rounded text-sm whitespace-nowrap"
+        style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}
+      >
+        + {sectionLabel}
+      </button>
+    </div>
+  );
 
   return (
     <div className="p-4">
       <div className="mb-3 rounded-lg border px-3 py-2 text-xs" style={{ borderColor: "var(--color-border)", background: "var(--color-surface-alt)", color: "var(--color-text-muted)" }}>
-        Có thể tạo chương phác thảo trước rồi chỉnh lại sau. Dùng <b>Sửa tên</b>, <b>Lên/Xuống</b> hoặc <b>Chuyển</b> để sắp xếp dàn ý mà không làm mất nội dung chương.
+        {isNovel ? (
+          <>
+            Tạo <b>Quyển</b> trước, sau đó thêm các <b>Chương</b> bên trong từng Quyển. Chương có thể đổi tên, sắp xếp, chuyển sang Quyển khác hoặc xóa mà không ảnh hưởng các Quyển/Chương còn lại.
+          </>
+        ) : (
+          <>
+            Có thể tạo chương phác thảo trước rồi chỉnh lại sau. Dùng <b>Sửa tên</b>, <b>Lên/Xuống</b> hoặc <b>Chuyển</b> để sắp xếp dàn ý mà không làm mất nội dung chương.
+          </>
+        )}
       </div>
 
-      <div className="flex gap-2 mb-3">
-        <input
-          value={chapterTitle}
-          onChange={(e) => setChapterTitle(e.target.value)}
-          placeholder="Tên chương mới (không thuộc phần)…"
-          className="flex-1 px-2 py-1.5 rounded border text-sm"
-          style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)" }}
-        />
-        <button
-          onClick={async () => {
-            if (!chapterTitle.trim()) return;
-            await createChapter(chapterTitle.trim(), null);
-            setChapterTitle("");
-          }}
-          className="px-3 py-1.5 rounded text-sm"
-          style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}
-        >
-          + Chương
-        </button>
-      </div>
+      {isNovel && sectionCreator}
 
-      <ul className="mb-4">
-        {rootChapters.map((chapter) => (
-          <ChapterOutlineItem
-            key={chapter.id}
-            chapter={chapter}
-            siblings={rootChapters}
-            sections={sections}
-            allChapters={chapters}
-            sectionId={null}
-          />
-        ))}
-      </ul>
+      {!isNovel && (
+        <>
+          <div className="flex gap-2 mb-3">
+            <input
+              value={chapterTitle}
+              onChange={(e) => setChapterTitle(e.target.value)}
+              placeholder="Tên chương mới (không thuộc phần)…"
+              className="flex-1 px-2 py-1.5 rounded border text-sm"
+              style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)" }}
+            />
+            <button
+              onClick={async () => {
+                if (!chapterTitle.trim()) return;
+                await createChapter(chapterTitle.trim(), null);
+                setChapterTitle("");
+              }}
+              className="px-3 py-1.5 rounded text-sm"
+              style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}
+            >
+              + Chương
+            </button>
+          </div>
 
-      <div className="flex gap-2 mb-3">
-        <input
-          value={sectionTitle}
-          onChange={(e) => setSectionTitle(e.target.value)}
-          placeholder="Tên phần mới…"
-          className="flex-1 px-2 py-1.5 rounded border text-sm"
-          style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)" }}
-        />
-        <button
-          onClick={async () => {
-            if (!sectionTitle.trim()) return;
-            await createSection(sectionTitle.trim());
-            setSectionTitle("");
-          }}
-          className="px-3 py-1.5 rounded text-sm"
-          style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}
-        >
-          + Phần
-        </button>
-      </div>
+          <ul className="mb-4">
+            {rootChapters.map((chapter) => (
+              <ChapterOutlineItem
+                key={chapter.id}
+                chapter={chapter}
+                siblings={rootChapters}
+                sections={sections}
+                allChapters={chapters}
+                sectionId={null}
+                rootSectionLabel={rootSectionLabel}
+              />
+            ))}
+          </ul>
+
+          {sectionCreator}
+        </>
+      )}
+
+      {isNovel && rootChapters.length > 0 && (
+        <div className="mb-4 rounded-lg border p-2" style={{ borderColor: "var(--color-border)" }}>
+          <div className="px-1 pb-2 text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
+            Chương chưa xếp Quyển
+          </div>
+          <p className="px-1 pb-2 text-xs" style={{ color: "var(--color-text-muted)" }}>
+            Đây là các chương đã có từ bố cục cũ. Dùng mục <b>Chuyển</b> để đưa từng chương vào Quyển mong muốn; nội dung chương được giữ nguyên.
+          </p>
+          <ul>
+            {rootChapters.map((chapter) => (
+              <ChapterOutlineItem
+                key={chapter.id}
+                chapter={chapter}
+                siblings={rootChapters}
+                sections={sections}
+                allChapters={chapters}
+                sectionId={null}
+                rootSectionLabel={rootSectionLabel}
+              />
+            ))}
+          </ul>
+        </div>
+      )}
 
       {sections.map((s) => {
         const sectionChapters = chapters.filter((chapter) => chapter.sectionId === s.id);
@@ -308,7 +360,7 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
               className="shrink-0 text-xs"
               style={{ color: "var(--color-text-muted)" }}
               onClick={() => {
-                const title = window.prompt("Đổi tên phần:", s.title)?.trim();
+                const title = window.prompt(`Đổi tên ${sectionLabelLower}:`, s.title)?.trim();
                 if (title && title !== s.title) void renameSection(s.id, title);
               }}
             >
@@ -318,14 +370,14 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
               type="button"
               className="shrink-0 text-xs"
               style={{ color: "var(--color-error)" }}
-              title="Các chương trong phần sẽ được chuyển ra cấp dự án, không bị xóa."
+              title={`Các chương trong ${sectionLabelLower} sẽ được chuyển ra cấp dự án, không bị xóa.`}
               onClick={() => {
-                if (window.confirm('Xóa phần “' + s.title + '”? Các chương bên trong sẽ được giữ lại và chuyển ra ngoài phần.')) {
+                if (window.confirm(`Xóa ${sectionLabelLower} “${s.title}”? Các chương bên trong sẽ được giữ lại và chuyển ra ngoài ${sectionLabelLower}.`)) {
                   void deleteSection(s.id);
                 }
               }}
             >
-              Xóa phần
+              Xóa {sectionLabelLower}
             </button>
           </div>
           <ul className="pl-4">
@@ -337,18 +389,19 @@ function OutlineTab({focusedSectionId}:{focusedSectionId:string|null}) {
                 sections={sections}
                 allChapters={chapters}
                 sectionId={s.id}
+                rootSectionLabel={rootSectionLabel}
               />
             ))}
           </ul>
           <button
             onClick={async () => {
-              const t = prompt("Tên chương mới trong phần này:");
+              const t = prompt(`Tên chương mới trong ${sectionLabelLower} này:`);
               if (t?.trim()) await createChapter(t.trim(), s.id);
             }}
             className="text-xs ml-4 mt-1"
             style={{ color: "var(--color-text-muted)" }}
           >
-            + Thêm chương vào phần
+            + Thêm chương vào {sectionLabelLower}
           </button>
         </div>
         );
@@ -417,7 +470,14 @@ export function ProjectsView({focusedSectionId=null}:{focusedSectionId?:string|n
   if (!selectedProjectId) return <ProjectPicker />;
 
   if (selectedChapter) {
-    return <FocusWriter key={selectedChapter.id} chapter={selectedChapter} onExit={() => selectChapter(null)} />;
+    return (
+      <FocusWriter
+        key={selectedChapter.id}
+        chapter={selectedChapter}
+        viewportFullscreen={selectedProject?.kind === "novel"}
+        onExit={() => selectChapter(null)}
+      />
+    );
   }
 
   return (
