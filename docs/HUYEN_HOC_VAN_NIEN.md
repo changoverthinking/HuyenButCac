@@ -2,7 +2,7 @@
 
 ## Kiến trúc tích hợp
 
-Huyền Học được mount vào `.van-nien-scroll` bằng `HuyenHocBridge`. `CalendarView.tsx` không bị sửa, nên phần lịch âm, lịch hẹn và notification hiện tại được giữ nguyên. Module dùng CSS riêng `src/metaphysics.css` và logic riêng dưới `src/features/metaphysics/`.
+Từ 0.19.0, `CalendarView.tsx` lazy-load `HuyenHocPanel` trực tiếp bằng `React.lazy`/`Suspense` và bọc `AppErrorBoundary`. Không còn `HuyenHocBridge`, `MutationObserver` hay polling DOM. Vì `CalendarView` bản thân cũng được lazy-load từ `App.tsx`, code/dữ liệu Huyền Học không nằm trên entry path khi người dùng chỉ mở Ghi chú/Tàng Thư. Module vẫn dùng CSS riêng `src/metaphysics.css` và logic riêng dưới `src/features/metaphysics/`.
 
 ## 1. Can Chi · Ngũ Hành
 
@@ -49,7 +49,14 @@ Catalog tra cứu theo đặc điểm, không upload/nhận diện khuôn mặt 
 
 Không sinh đoạn “luận số” dài tự động. Các bảng có dị bản được tách profile, không nhập chung thành một đáp án giả định duy nhất.
 
-## 5. Huyền Không Phi Tinh
+## 5. Kinh Dịch · 64 Quẻ
+
+- Đủ 64 quẻ theo thứ tự Văn Vương.
+- Gieo ba đồng xu 6 lần hoặc nhập thủ công 6 hào.
+- Hiển thị quẻ chủ, hào động, quẻ biến, thượng/hạ quái và ý nghĩa tra cứu.
+- Dữ liệu/nguồn chi tiết xem `docs/KINH_DICH_64_QUE_SOURCES.md`.
+
+## 6. Huyền Không Phi Tinh
 
 ### Hạ Quái
 
@@ -80,8 +87,9 @@ Không sinh đoạn “luận số” dài tự động. Các bảng có dị b�
 ## File liên quan
 
 - `src/main.tsx`
+- `src/components/calendar/CalendarView.tsx`
 - `src/metaphysics.css`
-- `src/components/metaphysics/HuyenHocBridge.tsx`
+- `src/components/common/AppErrorBoundary.tsx`
 - `src/components/metaphysics/HuyenHocPanel.tsx`
 - `src/features/metaphysics/canChi.ts`
 - `src/features/metaphysics/batTrach.ts`

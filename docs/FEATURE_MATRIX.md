@@ -1,4 +1,4 @@
-# FEATURE MATRIX — Huyền Bút Các 0.18.0
+# FEATURE MATRIX — Huyền Bút Các 0.19.0
 
 Trạng thái: TODO | IMPLEMENTING | TESTING | STABLE | BLOCKED
 
@@ -47,7 +47,8 @@ Trạng thái: TODO | IMPLEMENTING | TESTING | STABLE | BLOCKED
 | Last page + pinned page | STABLE | nhớ vị trí đọc local |
 | Cover image | STABLE | crop/zoom/position/blur từ 0.17.x |
 | Project cover | STABLE | crop/zoom/position/blur |
-| Sync Tàng Thư đa thiết bị | TODO | cần metadata sync + blob strategy |
+| Full backup/restore Tàng Thư | STABLE | snapshot giữ metadata + PDF Blob + bìa; cloud backup E2EE khi mở Kho |
+| Sync Tàng Thư realtime/auto-merge đa thiết bị | TODO | 0.19 dùng snapshot full-workspace thay vì auto-merge blob |
 
 ## 4. Tiểu Nhị AI
 | Hạng mục | Trạng thái | Ghi chú |
@@ -60,7 +61,8 @@ Trạng thái: TODO | IMPLEMENTING | TESTING | STABLE | BLOCKED
 | Long-term memory/history | TESTING | local DB tách workspace |
 | Write action confirmation | STABLE | create/update/delete soft phải confirm |
 | Avatar Tiểu Nhị tùy chỉnh | STABLE | ảnh 1:1 crop/zoom/blur |
-| AI memory/index sync cloud | TODO | |
+| AI memory/index full cloud backup | STABLE | nằm trong full-workspace backup E2EE |
+| AI memory/index realtime sync cloud | TODO | |
 
 ## 5. Sơ đồ tư duy
 | Hạng mục | Trạng thái | Ghi chú |
@@ -87,7 +89,8 @@ Trạng thái: TODO | IMPLEMENTING | TESTING | STABLE | BLOCKED
 | Reduce motion/high contrast/font scale | STABLE | |
 | Ảnh nền chung + từng tab | STABLE | cover/contain/manual, crop/zoom/blur/opacity |
 | Ảnh tab công cụ/account/Tiểu Nhị | STABLE | |
-| Sync ảnh giao diện giữa thiết bị | TODO | local-only |
+| Backup ảnh giao diện giữa thiết bị | STABLE | full-workspace backup E2EE |
+| Sync ảnh giao diện realtime | TODO | snapshot backup chưa phải auto-merge |
 | MP3 player + Media Session | STABLE | local-only media |
 
 ## 8. Bảo mật / Sync
@@ -95,7 +98,7 @@ Trạng thái: TODO | IMPLEMENTING | TESTING | STABLE | BLOCKED
 |---|---|---|
 | Workspace isolation | STABLE | regression tests |
 | Note lock AES-GCM + PBKDF2 | STABLE | |
-| Supabase E2EE sync | TESTING | snapshot/fingerprint + RLS |
+| Supabase E2EE sync | TESTING | delta upload; remote cursor khi server 0.19 hỗ trợ, fallback full-pull an toàn |
 | Vault reset | TESTING | RPC/migration theo hướng dẫn |
 | PIN/biometric | TODO | |
 | Realtime collaboration | TODO | Yjs/CRDT chưa triển khai |
@@ -116,5 +119,5 @@ Trạng thái: TODO | IMPLEMENTING | TESTING | STABLE | BLOCKED
 | GitHub Actions build/lint/test/deploy | STABLE |
 | iPhone/iPad Safari QA thật | TODO |
 | Accessibility audit | TODO |
-| Full workspace backup/restore | TODO |
-| Main bundle cold-start optimization | IMPLEMENTING |
+| Full workspace backup/restore | STABLE |
+| Main bundle cold-start optimization | TESTING | Huyền Học lazy khỏi entry path; cần số đo CI 0.19 |

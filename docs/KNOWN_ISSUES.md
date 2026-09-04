@@ -1,19 +1,18 @@
-# KNOWN ISSUES — 0.18.0
+# KNOWN ISSUES — 0.19.0
 
-Các mục dưới đây là giới hạn còn tồn tại sau audit 0.18.0; không phải lỗi build hiện tại.
+Các mục dưới đây là giới hạn còn lại sau lớp Data Safety & Stability 0.19.0; không phải lỗi build đã biết.
 
 ## Dữ liệu / đồng bộ
 
-- **Tàng Thư local-only:** metadata sách/PDF, PDF Blob, ảnh bìa, bookmark trang đọc và cover dự án đang nằm trong IndexedDB Tàng Thư riêng; chưa tự đồng bộ giữa thiết bị.
-- **Media local-only:** MP3, ảnh giao diện từng tab và avatar Tiểu Nhị chưa đồng bộ cloud. Xóa dữ liệu website/PWA có thể làm mất các media này.
-- **Tiểu Nhị local-only:** history, memory và document index của Tiểu Nhị tách theo workspace nhưng chưa sync E2EE lên Supabase.
-- Dữ liệu local thông thường trong IndexedDB chưa mã hóa toàn bộ at-rest. Ghi chú khóa có AES-GCM; dữ liệu đưa lên Supabase được E2EE bằng Kho bảo mật.
-- Chưa có export/import một gói backup toàn workspace.
+- **Đã có full backup/restore** cho DB chính, Tàng Thư/PDF, media/ảnh giao diện và Tiểu Nhị; tài khoản đã mở Kho có thể lưu bản backup E2EE lên bucket private Supabase.
+- Tàng Thư/PDF/media/Tiểu Nhị **chưa realtime/auto-merge giữa nhiều thiết bị**. 0.19.0 dùng snapshot E2EE toàn workspace cho nhóm dữ liệu này; core notes/projects/calendar/mindmap/whiteboard vẫn dùng record sync.
+- Dữ liệu local thông thường trong IndexedDB chưa mã hóa toàn bộ at-rest. Ghi chú khóa có AES-GCM; payload cloud và full cloud backup được E2EE bằng Kho bảo mật.
+- Full backup JSON cục bộ ưu tiên khả năng phục hồi Blob nên có thể dùng nhiều RAM với workspace media rất lớn. Với dữ liệu lớn nên dùng cloud backup nén/E2EE và kiểm soát quota.
 
-## Tính năng còn thiếu
+## Editor / tính năng nâng cao
 
+- Toolbar rich-text vẫn dùng `document.execCommand` để giữ tương thích format + undo/redo của nội dung hiện có. Migration sang editor engine mới phải là một release riêng có conversion/regression test, không ghép vào bản Data Safety.
 - Thư mục nhiều cấp có API `moveFolder` chống vòng lặp nhưng chưa có drag/drop UI hoàn chỉnh.
-- Editor vẫn dựa vào `document.execCommand` cho toolbar rich-text; API này deprecated. Chưa có table, ảnh inline và template ghi chú.
 - Dự án chưa có daily word goal, typewriter mode, timeline/calendar project view và export PDF/DOCX/HTML/JSON/ZIP.
 - Story Bible chưa có search toàn cục, kéo-thả reorder và auto-link nhân vật/thuật ngữ từ nội dung chương.
 - Mind Map chưa có export PNG/PDF/OPML và history undo/redo đầy đủ.
@@ -24,14 +23,14 @@ Các mục dưới đây là giới hạn còn tồn tại sau audit 0.18.0; kh�
 
 ## PWA / thiết bị
 
-- `VITE_WEB_PUSH_VAPID_PUBLIC_KEY` chưa được cấu hình trên GitHub Actions tại thời điểm audit; reminder local vẫn hoạt động nhưng Web Push khi app đóng chưa chạy đầy đủ.
-- PDF.js, JSZip và Transformers.js được tải động từ CDN. 0.17.1 cache runtime sau lần dùng đầu, nhưng lần dùng đầu vẫn cần Internet.
+- Web Push khi app đóng vẫn cần người quản trị cấu hình VAPID Variables/Secrets. 0.19.0 có `npm run vapid:generate`, nhưng private key không thể và không nên được đóng sẵn trong source.
+- PDF.js và JSZip được service worker cố prewarm; nếu CDN không truy cập được ngay lúc cài/cache thì runtime vẫn cần mạng ở lần lấy đầu tiên. Transformers.js/model AI Local vẫn tải theo nhu cầu.
 - AI Local phụ thuộc WebGPU; thiết bị/trình duyệt không hỗ trợ sẽ phải dùng Online.
 - Phát nhạc khi khóa màn hình vẫn phụ thuộc chính sách Safari/iOS dù có Media Session.
 - Native live widget iOS/Android không thể làm bằng PWA thuần; cần wrapper/native Swift/Kotlin nếu muốn WidgetKit/App Widget.
 
 ## QA / hiệu năng
 
-- Chưa có QA đầy đủ trên iPhone/iPad Safari/PWA thật.
-- Chưa có accessibility audit toàn diện cho keyboard/screen reader/20 theme.
-- Main bundle vẫn hơi vượt ngưỡng 500 kB minified; cần code-splitting thêm để giảm cold-start trên máy yếu.
+- CI có static audit + lint + typecheck/build + Vitest, nhưng QA iPhone/iPad Safari/PWA thật vẫn cần thiết bị vật lý.
+- Chưa có accessibility audit toàn diện bằng screen reader trên toàn bộ 20 theme, dù focus/reduced-motion cơ bản đã có.
+- Huyền Học đã được lazy-load khỏi entry path; kích thước bundle 0.19.0 phải lấy từ log Vite CI sau khi upload để xác nhận mức giảm thực tế.

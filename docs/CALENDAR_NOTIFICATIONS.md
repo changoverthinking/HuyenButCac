@@ -42,6 +42,15 @@ Project Supabase mới có thể chạy toàn bộ `supabase/schema.sql`.
 
 ### 2. Tạo VAPID key
 
+Bản 0.19.0 có trình tạo key không cần cài thêm package:
+
+```bash
+npm run vapid:generate
+```
+
+Lệnh chỉ in key ra terminal; private key không được ghi vào repository.
+
+
 Trên máy có Node.js:
 
 ```bash

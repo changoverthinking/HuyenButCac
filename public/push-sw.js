@@ -1,4 +1,45 @@
 /* Huyền Bút Các — Web Push handler. Không chứa secret hay dữ liệu lịch rõ. */
+
+/*
+ * 0.19.0: làm ấm runtime PDF/ZIP ngay khi service worker được cài trong lúc có mạng.
+ * Runtime caching của Workbox vẫn là lớp fallback; prewarm giúp lần mở PDF/đọc DOCX đầu tiên
+ * vẫn hoạt động khi người dùng vừa mất mạng sau khi cài PWA.
+ */
+const HBC_PREWARM_TARGETS = [
+  { cacheName: "hbc-pdf-runtime-v1", url: "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.min.mjs" },
+  { cacheName: "hbc-pdf-runtime-v1", url: "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs" },
+  { cacheName: "hbc-document-runtime-v1", url: "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm" },
+];
+
+
+async function hbcFetchPrewarm(url) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    return await fetch(url, { mode: "cors", cache: "no-cache", signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+self.addEventListener("install", (event) => {
+  event.waitUntil((async () => {
+    try {
+      await Promise.allSettled(HBC_PREWARM_TARGETS.map(async ({ cacheName, url }) => {
+        // Dùng CHÍNH cacheName của Workbox runtimeCaching; nếu dùng cache riêng thì
+        // CacheFirst của Workbox sẽ không nhìn thấy tệp đã prewarm khi offline.
+        const cache = await caches.open(cacheName);
+        const existing = await cache.match(url);
+        if (existing) return;
+        const response = await hbcFetchPrewarm(url);
+        if (response.ok) await cache.put(url, response.clone());
+      }));
+    } catch {
+      // Không làm install PWA thất bại chỉ vì CDN đang offline. Runtime cache sẽ thử lại khi có mạng.
+    }
+  })());
+});
+
 self.addEventListener("push", (event) => {
   event.waitUntil((async () => {
     let payload = {};
