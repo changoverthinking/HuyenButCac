@@ -1,6 +1,6 @@
+// HBC-FIX-132: jsdom/fake-indexeddb Blob structuredClone compatibility.
 import "fake-indexeddb/auto";
 import Dexie from "dexie";
-import { Blob as NodeBlob, File as NodeFile } from "node:buffer";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { db, switchWorkspace } from "../database/db";
 import { createNote } from "../features/notes/notesService";
@@ -16,21 +16,57 @@ import {
 
 const cleanupNames = new Set<string>();
 
-// fake-indexeddb dùng structuredClone của Node. Blob/File do jsdom tạo thuộc realm
-// khác nên có thể bị clone thành object rỗng, làm test backup binary báo sai dù browser
-// thật giữ Blob đúng chuẩn. Chỉ trong suite này, dùng Blob/File native của Node để
-// structured clone mô phỏng IndexedDB chính xác cho MP3/PDF.
-const originalBlob = globalThis.Blob;
-const originalFile = globalThis.File;
+// fake-indexeddb dùng global structuredClone. Trong môi trường Vitest + jsdom,
+// Blob/File thuộc realm jsdom có thể bị structuredClone native của Node biến thành
+// object không còn prototype Blob. Khi đó test backup binary báo sai dù browser thật
+// vẫn lưu Blob qua IndexedDB bình thường. Polyfill cục bộ này chỉ áp dụng trong suite
+// backup, giữ nguyên Blob/File và để structuredClone native xử lý các kiểu còn lại.
+const originalStructuredClone = globalThis.structuredClone;
+
+function cloneForIndexedDb<T>(value: T): T {
+  if (typeof File !== "undefined" && value instanceof File) {
+    return new File([value], value.name, {
+      type: value.type,
+      lastModified: value.lastModified,
+    }) as T;
+  }
+
+  if (typeof Blob !== "undefined" && value instanceof Blob) {
+    return value.slice(0, value.size, value.type) as T;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => cloneForIndexedDb(item)) as T;
+  }
+
+  if (value && typeof value === "object") {
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype === Object.prototype || prototype === null) {
+      const clone: Record<string, unknown> = {};
+      for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+        clone[key] = cloneForIndexedDb(item);
+      }
+      return clone as T;
+    }
+  }
+
+  return originalStructuredClone(value);
+}
 
 beforeAll(() => {
-  Object.defineProperty(globalThis, "Blob", { configurable: true, writable: true, value: NodeBlob });
-  Object.defineProperty(globalThis, "File", { configurable: true, writable: true, value: NodeFile });
+  Object.defineProperty(globalThis, "structuredClone", {
+    configurable: true,
+    writable: true,
+    value: cloneForIndexedDb,
+  });
 });
 
 afterAll(() => {
-  Object.defineProperty(globalThis, "Blob", { configurable: true, writable: true, value: originalBlob });
-  Object.defineProperty(globalThis, "File", { configurable: true, writable: true, value: originalFile });
+  Object.defineProperty(globalThis, "structuredClone", {
+    configurable: true,
+    writable: true,
+    value: originalStructuredClone,
+  });
 });
 
 afterEach(async () => {
@@ -76,7 +112,6 @@ describe("workspaceBackupService", () => {
     expect((await getLibraryBook(book.id))?.pdfBlob?.size).toBe(4);
     expect((await loadTieuNhiMessages())[0]?.content).toBe("Hãy nhớ dữ liệu này");
   });
-
 
   it("từ chối file backup cố ghi database ngoài phạm vi Huyền Bút Các", async () => {
     localStorage.setItem("hbc-legacy-workspace-migrated-to", "test-skip-legacy");
