@@ -10,3 +10,65 @@
 .library-modal{scrollbar-gutter:stable}
 .library-modal-backdrop{overscroll-behavior:none;touch-action:pan-y}
 @media(max-width:767px){.library-modal-backdrop{padding:.5rem;align-items:stretch}.library-modal{width:100%;max-height:100dvh;border-radius:.85rem}}
+
+/* 0.19.0 — Mobile form rules promoted from the old global hotfix. */
+@media (max-width: 767px) {
+  .library-modal input:not([type="file"]):not([type="checkbox"]):not([type="radio"]),
+  .library-modal textarea,
+  .library-modal select,
+  .library-search input,
+  .library-card-edit input,
+  .library-card-edit textarea {
+    font-size: 16px !important;
+    line-height: 1.35 !important;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  .library-modal .library-field > input {
+    width: 100% !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    padding: 0.62rem 0.72rem !important;
+  }
+  .library-modal .library-field > textarea {
+    width: 100% !important;
+    min-height: 96px !important;
+    max-height: 220px !important;
+    padding: 0.62rem 0.72rem !important;
+    resize: vertical;
+  }
+  .library-modal .library-field { gap: 0.3rem !important; }
+  .library-modal-backdrop {
+    z-index: 190 !important;
+    padding: 0.5rem 0.5rem calc(4.9rem + env(safe-area-inset-bottom)) 0.5rem !important;
+    align-items: stretch !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+  .library-modal {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding: 0.85rem !important;
+    gap: 0.65rem !important;
+    border-radius: 0.85rem !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+  .library-modal-actions {
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 4 !important;
+    margin: 0.25rem -0.85rem -0.85rem !important;
+    padding: 0.72rem 0.85rem calc(0.72rem + env(safe-area-inset-bottom)) 0.85rem !important;
+    border-top: 1px solid var(--color-border) !important;
+    background: color-mix(in srgb, var(--color-surface) 97%, transparent) !important;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+  .library-modal-actions .library-button { min-height: 44px !important; font-size: 0.9rem !important; }
+}

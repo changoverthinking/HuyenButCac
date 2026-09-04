@@ -4,6 +4,7 @@ import type { Note } from "../../types/entities";
 import { RichTextToolbar } from "./RichTextToolbar";
 import { Icon } from "../common/Icons";
 import { sanitizeRichHtml } from "../../features/security/htmlSanitizer";
+import { registerBeforeReloadFlush } from "../../features/app/appLifecycle";
 
 const AUTOSAVE_DEBOUNCE_MS = 400;
 
@@ -35,6 +36,8 @@ export function NoteEditor({ note }: { note: Note }) {
     saveQueue.current = task;
     return task;
   }, [note.id, updateNote]);
+
+  useEffect(() => registerBeforeReloadFlush(flushSave), [flushSave]);
 
   useEffect(() => {
     const flushWhenHidden = () => { if (document.visibilityState === "hidden") void flushSave(); };

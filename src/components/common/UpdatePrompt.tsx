@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
+import { APP_CONFIG } from "../../app/appConfig";
+import { flushPendingWrites } from "../../features/app/appLifecycle";
+import { downloadWorkspaceBackup } from "../../features/backup/workspaceBackupService";
 
 export function UpdatePrompt() {
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState("");
 
   const {
     needRefresh: [needRefresh],
@@ -28,8 +32,6 @@ export function UpdatePrompt() {
     const intervalId = window.setInterval(checkForUpdate, 60_000);
     window.addEventListener("focus", checkForUpdate);
     document.addEventListener("visibilitychange", onVisibilityChange);
-
-    // Kiểm tra sớm sau khi app được mở.
     const initialId = window.setTimeout(checkForUpdate, 1500);
 
     return () => {
@@ -45,24 +47,29 @@ export function UpdatePrompt() {
   const applyUpdate = async () => {
     if (updating) return;
     setUpdating(true);
+    setError("");
     try {
+      // Không reload trong khi editor còn debounce/autosave. Sau đó xuất một recovery file
+      // để cả dữ liệu local-only (PDF/ảnh/nhạc/Tiểu Nhị) cũng có đường khôi phục.
+      await flushPendingWrites();
+      await downloadWorkspaceBackup(APP_CONFIG.version);
       await updateServiceWorker(true);
-    } catch {
-      // Nếu trình duyệt chặn reload/cập nhật, cho phép người dùng thử lại.
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Không thể chuẩn bị dữ liệu để cập nhật.");
       setUpdating(false);
     }
   };
 
   return (
     <div className="hbc-update-prompt" role="status" aria-live="polite" aria-atomic="true">
-      <span className="hbc-update-copy">Đã có bản cập nhật mới.</span>
+      <span className="hbc-update-copy">{error || "Đã có bản cập nhật mới. App sẽ sao lưu trước khi reload."}</span>
       <button
         type="button"
         className="hbc-update-action"
         disabled={updating}
         onClick={() => void applyUpdate()}
       >
-        {updating ? "Đang cập nhật…" : "Cập nhật ngay"}
+        {updating ? "Đang sao lưu…" : "Sao lưu & cập nhật"}
       </button>
     </div>
   );

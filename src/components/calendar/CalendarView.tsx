@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { AppErrorBoundary } from "../common/AppErrorBoundary";
 import type { CalendarEvent, CalendarEventColor } from "../../types/entities";
 import {
   createCalendarEvent,
@@ -24,6 +25,8 @@ import {
   sameSolarDate,
   VIETNAM_TIMEZONE,
 } from "../../features/calendar/lunarCalendar";
+
+const HuyenHocPanel = lazy(() => import("../metaphysics/HuyenHocPanel").then((module) => ({ default: module.HuyenHocPanel })));
 
 const WEEKDAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 const MONTHS = Array.from({ length: 12 }, (_, index) => index);
@@ -340,6 +343,12 @@ export function CalendarView() {
             </section>
           </aside>
         </div>
+
+        <AppErrorBoundary area="Huyền Học Các" compact>
+          <Suspense fallback={<div className="hh-loading">Đang mở Huyền Học Các…</div>}>
+            <HuyenHocPanel />
+          </Suspense>
+        </AppErrorBoundary>
       </div>
 
       {composerOpen && <div className="van-nien-event-modal" role="dialog" aria-modal="true" aria-label={editing ? "Sửa lịch hẹn" : "Tạo lịch hẹn"}>

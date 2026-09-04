@@ -105,6 +105,10 @@ export async function resetVault(user: User, newPassphrase: string) {
     }
     throw error;
   }
+  // Full-workspace backup cũ được mã hóa bằng khóa vừa bị reset nên không còn khả năng
+  // giải mã. Xóa best-effort để UI không hiểu nhầm đó là bản khôi phục hợp lệ.
+  await supabase.storage.from("hbc-private").remove([`${user.id}/workspace/latest.hbc-backup.enc`]).catch(() => undefined);
+  try { localStorage.removeItem(`hbc-last-full-backup-${user.id}`); } catch { /* marker UI only */ }
   keys.set(user.id, key);
 }
 
@@ -118,3 +122,38 @@ export const encryptRecord = (userId: string, entityType: string, entityId: stri
   encryptJson(requireKey(userId), payload, `${userId}:${entityType}:${entityId}`);
 export const decryptRecord = <T>(userId: string, entityType: string, entityId: string, payload: EncryptedEnvelope) =>
   decryptJson<T>(requireKey(userId), payload, `${userId}:${entityType}:${entityId}`);
+
+const BINARY_MAGIC = new Uint8Array([0x48, 0x42, 0x43, 0x31]); // HBC1
+
+export async function encryptBytes(userId: string, clear: Uint8Array, aad: string) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = new Uint8Array(await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv, additionalData: encoder.encode(aad), tagLength: 128 },
+    requireKey(userId),
+    clear as BufferSource,
+  ));
+  const output = new Uint8Array(BINARY_MAGIC.length + iv.length + encrypted.length);
+  output.set(BINARY_MAGIC, 0);
+  output.set(iv, BINARY_MAGIC.length);
+  output.set(encrypted, BINARY_MAGIC.length + iv.length);
+  return output;
+}
+
+export async function decryptBytes(userId: string, payload: Uint8Array, aad: string) {
+  if (payload.length < BINARY_MAGIC.length + 12 + 16) throw new Error("Bản sao lưu mã hóa không hợp lệ.");
+  for (let index = 0; index < BINARY_MAGIC.length; index += 1) {
+    if (payload[index] !== BINARY_MAGIC[index]) throw new Error("Bản sao lưu mã hóa không đúng định dạng Huyền Bút Các.");
+  }
+  const iv = payload.slice(BINARY_MAGIC.length, BINARY_MAGIC.length + 12);
+  const ciphertext = payload.slice(BINARY_MAGIC.length + 12);
+  try {
+    const clear = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv, additionalData: encoder.encode(aad), tagLength: 128 },
+      requireKey(userId),
+      ciphertext as BufferSource,
+    );
+    return new Uint8Array(clear);
+  } catch {
+    throw new Error("Không thể giải mã bản sao lưu. Kho bảo mật không đúng hoặc dữ liệu cloud đã bị thay đổi.");
+  }
+}

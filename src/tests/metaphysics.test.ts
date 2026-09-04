@@ -282,7 +282,7 @@ describe("Tam Nguyên Cửu Vận & Huyền Không Phi Tinh", () => {
     for (const degree of [0, 15, 45, 90, 135, 180, 225, 270, 315]) {
       const chart = buildNatalFlyingStarChart(2026, degree);
       for (const key of ["periodStar", "mountainStar", "facingStar"] as const) {
-        expect([...chart.chart.map((cell) => cell[key])].sort((a,b) => a-b)).toEqual([1,2,3,4,5,6,7,8,9]);
+        expect(chart.chart.map((cell) => cell[key]).sort((a,b) => a-b)).toEqual([1,2,3,4,5,6,7,8,9]);
       }
     }
   });

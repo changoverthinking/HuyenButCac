@@ -19,6 +19,7 @@ type CloudRecord = {
   entity_id: string;
   payload: Record<string, unknown>;
   client_updated_at: number;
+  server_updated_at?: string;
 };
 
 type LocalRecord = Record<string, unknown> & {
@@ -36,6 +37,7 @@ type UploadSnapshot = {
 };
 
 const runningByWorkspace = new Map<string, Promise<void>>();
+const remoteCursorSupportByWorkspace = new Map<string, boolean>();
 
 export function shouldPullRemote(localSyncState: string | undefined) {
   return localSyncState === undefined || localSyncState === "synced";
@@ -52,6 +54,24 @@ function assertWorkspaceActive(userId: string, workspaceDb: HuyenButDB) {
   }
 }
 
+function remoteCursorKey(userId: string) {
+  return `hbc-remote-sync-cursor-${userId}`;
+}
+
+export function getRemoteSyncCursor(userId: string) {
+  return localStorage.getItem(remoteCursorKey(userId)) ?? "";
+}
+
+function setRemoteSyncCursor(userId: string, value: string) {
+  if (value) localStorage.setItem(remoteCursorKey(userId), value);
+}
+
+function laterIso(current: string, candidate?: string | null) {
+  if (!candidate) return current;
+  if (!current) return candidate;
+  return Date.parse(candidate) > Date.parse(current) ? candidate : current;
+}
+
 export function syncNow(user: User): Promise<void> {
   const workspaceDb = db;
   assertWorkspaceActive(user.id, workspaceDb);
@@ -66,32 +86,65 @@ export function syncNow(user: User): Promise<void> {
   return task;
 }
 
+async function supportsRemoteCursor(userId: string, workspaceDb: HuyenButDB) {
+  const cacheKey = `${userId}:${workspaceDb.name}`;
+  const cached = remoteCursorSupportByWorkspace.get(cacheKey);
+  if (cached !== undefined) return cached;
+  if (!supabase) return false;
+  try {
+    const { data, error } = await supabase.rpc("hbc_sync_cursor_version");
+    const supported = !error && Number(data) >= 1;
+    remoteCursorSupportByWorkspace.set(cacheKey, supported);
+    return supported;
+  } catch {
+    remoteCursorSupportByWorkspace.set(cacheKey, false);
+    return false;
+  }
+}
+
+async function pullRemoteChanges(user: User, workspaceDb: HuyenButDB) {
+  if (!supabase) return { remote: [] as CloudRecord[], maxCursor: "", cursorEnabled: false };
+  // Server 0.18.x không có trigger cập nhật server_updated_at. Khi RPC capability chưa tồn tại,
+  // giữ nguyên full-pull cũ để tuyệt đối không bỏ sót bản ghi cloud.
+  const cursorEnabled = await supportsRemoteCursor(user.id, workspaceDb);
+  const cursor = cursorEnabled ? getRemoteSyncCursor(user.id) : "";
+  const remote: CloudRecord[] = [];
+  let maxCursor = cursor;
+  for (let from = 0; ; from += 1000) {
+    let query = supabase
+      .from("sync_records")
+      .select("entity_type,entity_id,payload,client_updated_at,server_updated_at")
+      .eq("user_id", user.id)
+      .order("server_updated_at", { ascending: true });
+    if (cursor) query = query.gt("server_updated_at", cursor);
+    const { data, error } = await query.range(from, from + 999);
+    if (error) throw error;
+    const rows = (data ?? []) as CloudRecord[];
+    remote.push(...rows);
+    if (cursorEnabled) for (const row of rows) maxCursor = laterIso(maxCursor, row.server_updated_at);
+    if (rows.length < 1000) break;
+  }
+  return { remote, maxCursor, cursorEnabled };
+}
+
 async function performSync(user: User, workspaceDb: HuyenButDB) {
   if (!supabase || !navigator.onLine) throw new Error("Không có kết nối mạng");
   if (!isVaultUnlocked(user.id)) throw new Error("Hãy mở Kho bảo mật trước khi đồng bộ");
   assertWorkspaceActive(user.id, workspaceDb);
 
-  // Kéo toàn bộ bản ghi của chính tài khoản. .eq bổ sung lớp giới hạn client bên cạnh RLS máy chủ.
-  const remote: CloudRecord[] = [];
-  for (let from = 0; ; from += 1000) {
-    const { data, error } = await supabase
-      .from("sync_records")
-      .select("entity_type,entity_id,payload,client_updated_at")
-      .eq("user_id", user.id)
-      .range(from, from + 999);
-    if (error) throw error;
-    remote.push(...((data ?? []) as CloudRecord[]));
-    if (!data || data.length < 1000) break;
-  }
+  // Chỉ kéo thay đổi mới kể từ cursor server. Migration 0.19.0 duy trì server_updated_at khi UPDATE.
+  const { remote, maxCursor: pulledCursor, cursorEnabled } = await pullRemoteChanges(user, workspaceDb);
+  let maxCursor = pulledCursor;
 
   // Giải mã ngoài transaction IndexedDB để transaction không bị đóng trong lúc WebCrypto chạy.
-  const decodedRemote: Array<CloudRecord & { clearPayload: Record<string, unknown> }> = [];
+  const decodedRemote: Array<CloudRecord & { clearPayload: Record<string, unknown>; wasLegacyPlaintext: boolean }> = [];
   for (const item of remote) {
     if (!SYNC_TABLES.includes(item.entity_type as SyncTableName)) continue;
-    const clearPayload = isEncryptedEnvelope(item.payload)
-      ? await decryptRecord<Record<string, unknown>>(user.id, item.entity_type, item.entity_id, item.payload)
-      : item.payload; // Dữ liệu cloud cũ dạng plaintext được đọc rồi mã hóa lại ở bước push.
-    decodedRemote.push({ ...item, clearPayload });
+    const encryptedPayload = isEncryptedEnvelope(item.payload) ? item.payload : null;
+    const clearPayload = encryptedPayload
+      ? await decryptRecord<Record<string, unknown>>(user.id, item.entity_type, item.entity_id, encryptedPayload)
+      : item.payload;
+    decodedRemote.push({ ...item, clearPayload, wasLegacyPlaintext: !encryptedPayload });
   }
 
   assertWorkspaceActive(user.id, workspaceDb);
@@ -106,18 +159,20 @@ async function performSync(user: User, workspaceDb: HuyenButDB) {
 
       // Pending/local luôn thắng remote. Remote chỉ thay bản đã sync nếu remote không cũ hơn.
       if (shouldPullRemote(local?.syncState) && (!local || remoteUpdatedAt >= localUpdatedAt)) {
-        await table.put({ ...item.clearPayload, id: item.entity_id, syncState: "synced" });
+        // Dữ liệu cloud legacy plaintext được đánh pending để lần push này mã hóa lại ngay.
+        await table.put({ ...item.clearPayload, id: item.entity_id, syncState: item.wasLegacyPlaintext ? "pending" : "synced" });
         changedTables.add(item.entity_type);
       }
     }
   }));
 
-  // Chụp snapshot trước khi gọi mạng. Chỉ snapshot này mới được phép đánh dấu synced sau upload.
+  // Chỉ snapshot record chưa đồng bộ. Đây là delta upload; dataset lớn không còn bị mã hóa/upload lại toàn bộ.
   assertWorkspaceActive(user.id, workspaceDb);
   const snapshots: UploadSnapshot[] = [];
   for (const name of SYNC_TABLES) {
     const entities = await workspaceDb.table(name).toArray() as LocalRecord[];
     for (const entity of entities) {
+      if (entity.syncState === "synced") continue;
       const id = String(entity.id);
       const updatedAt = Number(entity.updatedAt ?? entity.createdAt ?? Date.now());
       const clearForCloud = { ...entity, syncState: "synced" };
@@ -156,11 +211,14 @@ async function performSync(user: User, workspaceDb: HuyenButDB) {
     }
   }));
 
-  // Không cập nhật marker owner của database legacy: marker này chỉ được đọc để migration <=0.12.1.
-  // Nếu thay đổi nó theo tài khoản đang đăng nhập, một database legacy chưa migrate có thể bị gán nhầm owner.
   assertWorkspaceActive(user.id, workspaceDb);
+  // Chỉ tiến cursor tới mốc đã THỰC SỰ pull. Không dùng timestamp của chính batch upload:
+  // nếu thiết bị khác ghi sau pull nhưng trước upload, nhảy cursor theo upload sẽ bỏ sót thay đổi đó.
+  if (cursorEnabled && maxCursor) setRemoteSyncCursor(user.id, maxCursor);
   localStorage.setItem(`hbc-last-sync-${user.id}`, String(Date.now()));
-  window.dispatchEvent(new CustomEvent("hbc-sync-complete", { detail: { tables: [...changedTables] } }));
+  window.dispatchEvent(new CustomEvent("hbc-sync-complete", {
+    detail: { tables: [...changedTables], uploaded: snapshots.length, pulled: decodedRemote.length, cursorEnabled },
+  }));
 }
 
 export function getLastSync(userId: string) {

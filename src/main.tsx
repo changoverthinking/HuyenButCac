@@ -4,14 +4,14 @@ import './index.css'
 import './themes/festival-themes.css'
 import './app-enhancements.css'
 import './media-fixes.css'
-import './hotfix-tangthu-mobile.css'
 import './metaphysics.css'
 import App from './App.tsx'
-import { HuyenHocBridge } from './components/metaphysics/HuyenHocBridge.tsx'
+import { AppErrorBoundary } from './components/common/AppErrorBoundary.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
-    <HuyenHocBridge />
+    <AppErrorBoundary area="Ứng dụng">
+      <App />
+    </AppErrorBoundary>
   </StrictMode>,
 )
