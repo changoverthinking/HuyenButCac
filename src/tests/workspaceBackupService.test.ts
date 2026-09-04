@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import Dexie from "dexie";
-import { afterEach, describe, expect, it } from "vitest";
+import { Blob as NodeBlob, File as NodeFile } from "node:buffer";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { db, switchWorkspace } from "../database/db";
 import { createNote } from "../features/notes/notesService";
 import { addMusicFiles, listMusicTracks } from "../features/media/mediaService";
@@ -14,6 +15,23 @@ import {
 } from "../features/backup/workspaceBackupService";
 
 const cleanupNames = new Set<string>();
+
+// fake-indexeddb dùng structuredClone của Node. Blob/File do jsdom tạo thuộc realm
+// khác nên có thể bị clone thành object rỗng, làm test backup binary báo sai dù browser
+// thật giữ Blob đúng chuẩn. Chỉ trong suite này, dùng Blob/File native của Node để
+// structured clone mô phỏng IndexedDB chính xác cho MP3/PDF.
+const originalBlob = globalThis.Blob;
+const originalFile = globalThis.File;
+
+beforeAll(() => {
+  Object.defineProperty(globalThis, "Blob", { configurable: true, writable: true, value: NodeBlob });
+  Object.defineProperty(globalThis, "File", { configurable: true, writable: true, value: NodeFile });
+});
+
+afterAll(() => {
+  Object.defineProperty(globalThis, "Blob", { configurable: true, writable: true, value: originalBlob });
+  Object.defineProperty(globalThis, "File", { configurable: true, writable: true, value: originalFile });
+});
 
 afterEach(async () => {
   await switchWorkspace(null);
