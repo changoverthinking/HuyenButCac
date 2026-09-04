@@ -14,7 +14,13 @@ import {
   getNinePeriod,
   type ReplacementProfile,
 } from "../../features/metaphysics/huyenKhong";
-import { PHYSIOGNOMY_CATALOG } from "../../features/metaphysics/tuongSo";
+import {
+  PHYSIOGNOMY_AREAS,
+  PHYSIOGNOMY_CATALOG,
+  PHYSIOGNOMY_SOURCES,
+  getPhysiognomySource,
+  type PhysiognomyArea,
+} from "../../features/metaphysics/tuongSo";
 import {
   buildAnnualTransit,
   buildTuViChart,
@@ -38,7 +44,6 @@ const MODULES: Array<{ id: ModuleId; label: string; short: string }> = [
 ];
 
 const COMPASS: CompassDirection[] = ["Bắc", "Đông Bắc", "Đông", "Đông Nam", "Nam", "Tây Nam", "Tây", "Tây Bắc"];
-const PHYSIOGNOMY_AREAS = ["Trán", "Mắt", "Mũi", "Miệng", "Cằm"] as const;
 
 function clampYear(value: number, min: number, max: number) {
   if (!Number.isFinite(value)) return min;
@@ -140,12 +145,58 @@ function BatTrachModule() {
 }
 
 function TuongSoModule() {
-  const [area, setArea] = useState<(typeof PHYSIOGNOMY_AREAS)[number]>("Trán");
-  const items = PHYSIOGNOMY_CATALOG.filter((item) => item.area === area);
-  return <div className="hh-module-body">
-    <div className="hh-segmented">{PHYSIOGNOMY_AREAS.map((item) => <button type="button" key={item} className={area === item ? "is-active" : ""} onClick={() => setArea(item)}>{item}</button>)}</div>
-    <div className="hh-catalog-grid">{items.map((item) => <article key={item.id}><span>{item.area}</span><h4>{item.label}</h4><p>{item.traditionalMeaning}</p></article>)}</div>
-    <p className="hh-note">Không nhận diện khuôn mặt, không suy đoán tính cách từ ảnh. Mục này chỉ là catalog mô tả quan niệm tướng học truyền thống.</p>
+  const [area, setArea] = useState<PhysiognomyArea>("Tổng luận");
+  const [query, setQuery] = useState("");
+  const normalizedQuery = query.trim().toLocaleLowerCase("vi");
+  const items = useMemo(() => PHYSIOGNOMY_CATALOG.filter((item) => {
+    if (item.area !== area) return false;
+    if (!normalizedQuery) return true;
+    return [item.label, item.traditionalMeaning, item.howToRead, ...item.tags]
+      .join(" ")
+      .toLocaleLowerCase("vi")
+      .includes(normalizedQuery);
+  }), [area, normalizedQuery]);
+
+  return <div className="hh-module-body hh-tuong-library">
+    <div className="hh-tuong-intro">
+      <div>
+        <span className="hh-kicker">THƯ VIỆN TƯỚNG PHÁP · {PHYSIOGNOMY_CATALOG.length} MỤC</span>
+        <h4>Tra cứu theo bộ vị, đọc theo cụm</h4>
+        <p>Kho dữ liệu được tổng hợp và đối chiếu từ cổ thư Trung Hoa cùng các tài liệu Việt ngữ. Mỗi mục tách rõ <strong>lời luận truyền thống</strong> và <strong>cách đọc thận trọng</strong>.</p>
+      </div>
+      <div className="hh-tuong-count"><strong>{items.length}</strong><small>mục trong nhóm</small></div>
+    </div>
+
+    <div className="hh-tuong-toolbar">
+      <label className="hh-tuong-search">Tìm trong Tướng Số
+        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ví dụ: mày dài, Ấn Đường, thần khí…" />
+      </label>
+    </div>
+
+    <div className="hh-segmented hh-tuong-areas">{PHYSIOGNOMY_AREAS.map((item) => <button type="button" key={item} className={area === item ? "is-active" : ""} onClick={() => setArea(item)}>{item}</button>)}</div>
+
+    {items.length > 0 ? <div className="hh-catalog-grid hh-tuong-grid">{items.map((item) => <article key={item.id} className="hh-tuong-card">
+      <div className="hh-tuong-card-head"><span>{item.area}</span><div>{item.tags.slice(0, 2).map((tag) => <small key={tag}>#{tag}</small>)}</div></div>
+      <h4>{item.label}</h4>
+      <div className="hh-tuong-reading"><strong>Luận theo cổ thư</strong><p>{item.traditionalMeaning}</p></div>
+      <div className="hh-tuong-method"><strong>Cách đọc</strong><p>{item.howToRead}</p></div>
+      <div className="hh-source-chips" aria-label="Nguồn tham khảo">{item.sourceIds.map((sourceId) => {
+        const source = getPhysiognomySource(sourceId);
+        return source ? <span key={sourceId} title={`${source.title} · ${source.note}`}>{sourceId}</span> : null;
+      })}</div>
+    </article>)}</div> : <div className="hh-empty-state">Không có mục nào khớp từ khóa trong nhóm này.</div>}
+
+    <details className="hh-reference hh-tuong-sources">
+      <summary>Nguồn tài liệu đã đối chiếu ({PHYSIOGNOMY_SOURCES.length})</summary>
+      <div className="hh-source-list">{PHYSIOGNOMY_SOURCES.map((source) => <article key={source.id}>
+        <div><strong>{source.id} · {source.title}</strong><span>{source.period}</span></div>
+        <small>{source.role}</small>
+        <p>{source.note}</p>
+        <a href={source.url} target="_blank" rel="noreferrer">Mở nguồn tham khảo ↗</a>
+      </article>)}</div>
+    </details>
+
+    <div className="hh-safety-box hh-tuong-disclaimer"><strong>Nguyên tắc sử dụng</strong><p>Đây là thư viện văn hóa về tướng học truyền thống, không phải phương pháp khoa học để xác định tính cách, đạo đức, sức khỏe, tuổi thọ, khả năng sinh sản hay tương lai của một người. Không luận từ ảnh và không dùng một nét riêng lẻ để kết luận con người.</p></div>
   </div>;
 }
 
