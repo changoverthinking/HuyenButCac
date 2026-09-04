@@ -4,6 +4,7 @@ import { useProjectsStore } from "../../stores/projectsStore";
 import type { ProjectChapter } from "../../types/entities";
 import { RichTextToolbar } from "../editor/RichTextToolbar";
 import { sanitizeRichHtml } from "../../features/security/htmlSanitizer";
+import { registerBeforeReloadFlush } from "../../features/app/appLifecycle";
 
 export function FocusWriter({
   chapter,
@@ -40,6 +41,8 @@ export function FocusWriter({
     saveQueue.current = task;
     return task;
   }, [chapter.id, updateChapter]);
+
+  useEffect(() => registerBeforeReloadFlush(flushSave), [flushSave]);
 
   useEffect(() => {
     const flushWhenHidden = () => { if (document.visibilityState === "hidden") void flushSave(); };
