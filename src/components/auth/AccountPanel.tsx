@@ -17,6 +17,7 @@ import { getActiveWorkspaceUserId } from "../../database/db";
 import { unregisterPushSubscription } from "../../features/calendar/notificationService";
 import { AppearanceSettings } from "../settings/AppearanceSettings";
 import { AppearanceLayer } from "../common/AdjustedImage";
+import { localGet, localRemove, localSet } from "../../features/app/safeStorage";
 
 type AccountTab = "profile" | "security" | "sync" | "settings";
 type VaultResetNotice = { tone: "success" | "error"; text: string };
@@ -24,7 +25,7 @@ type VaultResetNotice = { tone: "success" | "error"; text: string };
 export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: boolean; onClose: () => void; onRecoveryRequired?: () => void }) {
   const [session, setSession] = useState<Session | null>(null);
   const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
-  const rememberedEmail = localStorage.getItem("hbc-remembered-email") ?? "";
+  const rememberedEmail = localGet("hbc-remembered-email") ?? "";
   const [email, setEmail] = useState(rememberedEmail);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -93,8 +94,9 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
     }
 
     let disposed = false;
+    let authEventSeen = false;
     void supabase.auth.getSession().then(({ data, error }) => {
-      if (disposed) return;
+      if (disposed || authEventSeen) return;
       setSession(data.session);
       if (recoveryUrl) {
         setRecoveryChecking(false);
@@ -108,6 +110,7 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
     });
 
     const { data } = supabase.auth.onAuthStateChange((event, next) => {
+      authEventSeen = true;
       const previousUserId = sessionRef.current?.user.id;
       setSession(next);
       if (event === "PASSWORD_RECOVERY") {
@@ -202,7 +205,7 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
       if (mode === "register") {
         const { error } = await supabase.auth.signUp({ email: normalizedEmail, password, options: { emailRedirectTo: getAuthRedirectUrl() } });
         if (error) throw error;
-        if (rememberLogin) localStorage.setItem("hbc-remembered-email", normalizedEmail);
+        if (rememberLogin) localSet("hbc-remembered-email", normalizedEmail);
         setNeedsEmailConfirmation(true);
         setMessage("Đã tạo tài khoản. Hãy mở email xác minh rồi đăng nhập.");
       } else if (mode === "forgot") {
@@ -212,8 +215,8 @@ export function AccountPanel({ open, onClose, onRecoveryRequired }: { open: bool
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
         if (error) throw error;
-        if (rememberLogin) localStorage.setItem("hbc-remembered-email", normalizedEmail);
-        else localStorage.removeItem("hbc-remembered-email");
+        if (rememberLogin) localSet("hbc-remembered-email", normalizedEmail);
+        else localRemove("hbc-remembered-email");
         setNeedsEmailConfirmation(false);
       }
     } catch (error) {

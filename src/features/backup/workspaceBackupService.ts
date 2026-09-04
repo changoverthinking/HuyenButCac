@@ -1,9 +1,53 @@
 import { APP_CONFIG } from "../../app/appConfig";
 import { getActiveWorkspaceUserId } from "../../database/db";
+import { localRemove, localSet } from "../app/safeStorage";
 
 const BACKUP_FORMAT = "huyen-but-cac-workspace-backup";
 const BACKUP_VERSION = 1;
 const TYPE_KEY = "__hbcType";
+
+const DEVICE_LOCAL_STORES = new Set(["calendarNotificationReceipts"]);
+const DEVICE_LOCAL_STORAGE_PREFIXES = [
+  "hbc-calendar-device-id",
+  "hbc-remote-sync-cursor-",
+  "hbc-last-sync-",
+  "hbc-last-full-backup-",
+  "hbc-last-ui-error",
+  "hbc-last-safe-update",
+  "hbc-remembered-email",
+  "hbc-legacy-workspace-migrated-to",
+  "hbc-synced-data-owner",
+];
+
+const MAIN_DATABASE_STORES = new Set([
+  "notes", "folders", "tags", "themePreferences", "projects", "projectSections", "projectChapters",
+  "projectTasks", "projectMilestones", "mindMaps", "mindMapNodes", "mindMapEdges", "whiteboards",
+  "whiteboardObjects", "musicTracks", "customBackgrounds", "mindMapStrokes", "whiteboardStrokes",
+  "storyCharacters", "storyLocations", "storyLoreEntries", "storyTimelineEvents", "calendarEvents",
+  "calendarNotificationReceipts",
+]);
+const LIBRARY_DATABASE_STORES = new Set(["books", "projectMeta"]);
+const APPEARANCE_DATABASE_STORES = new Set(["assets"]);
+const TIEU_NHI_DATABASE_STORES = new Set(["messages", "memories", "chunks", "indexes", "settings"]);
+
+function isDeviceLocalStorageKey(key: string) {
+  return DEVICE_LOCAL_STORAGE_PREFIXES.some((prefix) => key === prefix || key.startsWith(prefix));
+}
+
+function allowedStoresForDatabase(name: string) {
+  if (name.startsWith("huyen-but-cac-workspace-")) return MAIN_DATABASE_STORES;
+  if (name.startsWith("huyen-but-cac-library-v1-")) return LIBRARY_DATABASE_STORES;
+  if (name.startsWith("huyen-but-cac-appearance-v1-")) return APPEARANCE_DATABASE_STORES;
+  if (name.startsWith("huyen-but-cac-tieu-nhi-v1-")) return TIEU_NHI_DATABASE_STORES;
+  return null;
+}
+
+function validKeyPath(value: unknown, allowNull: boolean) {
+  if (allowNull && value === null) return true;
+  if (typeof value === "string") return value.length > 0 && value.length <= 200;
+  return Array.isArray(value) && value.length > 0 && value.length <= 12 && value.every((item) => typeof item === "string" && item.length > 0 && item.length <= 200);
+}
+
 
 type EncodedSpecial =
   | { [TYPE_KEY]: "Undefined" }
@@ -179,6 +223,11 @@ function assertBackupScope(backup: WorkspaceBackup) {
     if (!expected.has(database.name)) {
       throw new Error(`Bản sao lưu chứa database ngoài phạm vi workspace: ${database.name}`);
     }
+    const allowedStores = allowedStoresForDatabase(database.name);
+    if (!allowedStores) throw new Error(`Không nhận diện được database Huyền Bút Các: ${database.name}`);
+    for (const store of database.stores) {
+      if (!allowedStores.has(store.name)) throw new Error(`Bản sao lưu chứa store ngoài phạm vi ứng dụng: ${database.name}/${store.name}`);
+    }
   }
   for (const key of Object.keys(backup.localStorage ?? {})) {
     if (!key.startsWith("hbc-") && !key.startsWith("huyen-but-cac")) {
@@ -201,23 +250,39 @@ async function existingWorkspaceDatabases(userId: string | null) {
 async function exportDatabase(name: string): Promise<BackupDatabase> {
   const database = await openDatabase(name);
   try {
-    const stores: BackupStore[] = [];
-    for (const storeName of Array.from(database.objectStoreNames)) {
-      const transaction = database.transaction(storeName, "readonly");
+    const storeNames = Array.from(database.objectStoreNames).filter((storeName) => !DEVICE_LOCAL_STORES.has(storeName));
+    if (!storeNames.length) return { name, version: database.version, stores: [] };
+
+    // Một readonly transaction duy nhất tạo snapshot nhất quán giữa các store của cùng database.
+    const transaction = database.transaction(storeNames, "readonly");
+    const done = transactionDone(transaction);
+    const snapshots = storeNames.map((storeName) => {
       const store = transaction.objectStore(storeName);
-      const rawRecords = await requestResult(store.getAll());
       const indexes = Array.from(store.indexNames).map((indexName) => {
         const index = store.index(indexName);
         return { name: index.name, keyPath: index.keyPath, multiEntry: index.multiEntry, unique: index.unique };
       });
-      stores.push({
+      return {
         name: storeName,
         keyPath: store.keyPath,
         autoIncrement: store.autoIncrement,
         indexes,
-        records: await Promise.all(rawRecords.map(encodeValue)),
+        recordsRequest: requestResult(store.getAll()),
+      };
+    });
+    const rawRecords = await Promise.all(snapshots.map((snapshot) => snapshot.recordsRequest));
+    await done;
+
+    const stores: BackupStore[] = [];
+    for (let index = 0; index < snapshots.length; index += 1) {
+      const snapshot = snapshots[index];
+      stores.push({
+        name: snapshot.name,
+        keyPath: snapshot.keyPath,
+        autoIncrement: snapshot.autoIncrement,
+        indexes: snapshot.indexes,
+        records: await Promise.all(rawRecords[index].map(encodeValue)),
       });
-      await transactionDone(transaction);
     }
     return { name, version: database.version, stores };
   } finally {
@@ -227,13 +292,19 @@ async function exportDatabase(name: string): Promise<BackupDatabase> {
 
 function exportLocalStorage() {
   const values: Record<string, string> = {};
-  if (typeof localStorage === "undefined") return values;
-  for (let index = 0; index < localStorage.length; index += 1) {
-    const key = localStorage.key(index);
-    if (!key) continue;
-    if (!key.startsWith("hbc-") && !key.startsWith("huyen-but-cac")) continue;
-    const value = localStorage.getItem(key);
-    if (value !== null) values[key] = value;
+  if (typeof window === "undefined") return values;
+  try {
+    const storage = window.localStorage;
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (!key) continue;
+      if (!key.startsWith("hbc-") && !key.startsWith("huyen-but-cac")) continue;
+      if (isDeviceLocalStorageKey(key)) continue;
+      const value = storage.getItem(key);
+      if (value !== null) values[key] = value;
+    }
+  } catch {
+    // Safari private/storage denied: IndexedDB backup vẫn tiếp tục, chỉ bỏ preference localStorage.
   }
   return values;
 }
@@ -282,8 +353,15 @@ export function parseWorkspaceBackup(content: string): WorkspaceBackup {
   }
   const validWorkspaceId = parsed.workspaceUserId === null || typeof parsed.workspaceUserId === "string";
   const validDatabases = Array.isArray(parsed.databases) && parsed.databases.every((database) =>
-    Boolean(database && typeof database.name === "string" && Number.isInteger(database.version) && database.version > 0 && Array.isArray(database.stores)) &&
-    database.stores.every((store) => Boolean(store && typeof store.name === "string" && Array.isArray(store.records))),
+    Boolean(database && typeof database.name === "string" && database.name.length <= 300 && Number.isInteger(database.version) && database.version > 0 && Array.isArray(database.stores)) &&
+    database.stores.every((store) => Boolean(
+      store && typeof store.name === "string" && store.name.length > 0 && store.name.length <= 120 &&
+      validKeyPath(store.keyPath, true) && typeof store.autoIncrement === "boolean" && Array.isArray(store.records) &&
+      Array.isArray(store.indexes) && store.indexes.every((index) => Boolean(
+        index && typeof index.name === "string" && index.name.length > 0 && index.name.length <= 120 &&
+        validKeyPath(index.keyPath, false) && typeof index.multiEntry === "boolean" && typeof index.unique === "boolean"
+      ))
+    )),
   );
   if (parsed.format !== BACKUP_FORMAT || parsed.version !== BACKUP_VERSION || !validWorkspaceId || !validDatabases) {
     throw new Error("Tệp không phải bản sao lưu Huyền Bút Các hợp lệ hoặc dùng định dạng chưa được hỗ trợ.");
@@ -317,6 +395,7 @@ function sameWorkspace(backup: WorkspaceBackup) {
 
 function createSchema(database: IDBDatabase, backup: BackupDatabase) {
   for (const storeBackup of backup.stores) {
+    if (DEVICE_LOCAL_STORES.has(storeBackup.name)) continue;
     if (database.objectStoreNames.contains(storeBackup.name)) continue;
     const store = database.createObjectStore(storeBackup.name, {
       keyPath: storeBackup.keyPath,
@@ -339,6 +418,10 @@ async function restoreDatabase(databaseBackup: BackupDatabase, summary: RestoreS
   const database = await openForRestore(databaseBackup);
   try {
     const restoreStores = databaseBackup.stores.filter((storeBackup) => {
+      if (DEVICE_LOCAL_STORES.has(storeBackup.name)) {
+        summary.skippedStores.push(`${databaseBackup.name}/${storeBackup.name}`);
+        return false;
+      }
       const exists = database.objectStoreNames.contains(storeBackup.name);
       if (!exists) summary.skippedStores.push(`${databaseBackup.name}/${storeBackup.name}`);
       return exists;
@@ -379,14 +462,14 @@ export async function restoreWorkspaceBackup(backup: WorkspaceBackup): Promise<R
   }
   const summary: RestoreSummary = { restoredDatabases: 0, restoredStores: 0, restoredRecords: 0, skippedStores: [] };
   for (const database of backup.databases) await restoreDatabase(database, summary);
-  if (typeof localStorage !== "undefined") {
-    for (const [key, value] of Object.entries(backup.localStorage ?? {})) localStorage.setItem(key, value);
-    const userId = getActiveWorkspaceUserId();
-    if (userId) {
-      // Buộc lần sync kế tiếp kéo lại cursor server để bản cloud mới hơn có thể thắng bản backup cũ.
-      localStorage.removeItem(`hbc-remote-sync-cursor-${userId}`);
-      localStorage.removeItem(`hbc-last-sync-${userId}`);
-    }
+  for (const [key, value] of Object.entries(backup.localStorage ?? {})) {
+    if (!isDeviceLocalStorageKey(key)) localSet(key, value);
+  }
+  const userId = getActiveWorkspaceUserId();
+  if (userId) {
+    // Buộc lần sync kế tiếp kéo lại cursor server để bản cloud mới hơn có thể thắng bản backup cũ.
+    localRemove(`hbc-remote-sync-cursor-${userId}`);
+    localRemove(`hbc-last-sync-${userId}`);
   }
   window.dispatchEvent(new CustomEvent("hbc-workspace-restored", { detail: summary }));
   return summary;

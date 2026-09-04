@@ -6,7 +6,8 @@ import { supabase } from "../../features/auth/supabase";
 import { isVaultUnlocked } from "../../features/crypto/vaultService";
 import { getActiveWorkspaceUserId } from "../../database/db";
 import { getLastSync, syncNow } from "../../features/sync/syncService";
-import { flushPendingWrites } from "../../features/app/appLifecycle";
+import { prepareForReload } from "../../features/app/appLifecycle";
+import { localGet, localSet } from "../../features/app/safeStorage";
 import {
   downloadWorkspaceBackup,
   restoreWorkspaceBackupFile,
@@ -43,7 +44,7 @@ export function SafeUpdateSettings() {
   const [backupBusy, setBackupBusy] = useState(false);
   const [restoreBusy, setRestoreBusy] = useState(false);
   const [storagePersisted, setStoragePersisted] = useState<boolean | null>(null);
-  const [lastSafeUpdate, setLastSafeUpdate] = useState(() => Number(localStorage.getItem(LAST_SAFE_UPDATE_KEY) ?? 0));
+  const [lastSafeUpdate, setLastSafeUpdate] = useState(() => Number(localGet(LAST_SAFE_UPDATE_KEY) ?? 0));
   const [, setBackupRevision] = useState(0);
   const [notice, setNotice] = useState<Notice>(null);
 
@@ -61,11 +62,13 @@ export function SafeUpdateSettings() {
 
   useEffect(() => {
     let disposed = false;
+    let authEventSeen = false;
     if (supabase) {
       void supabase.auth.getSession().then(({ data }) => {
-        if (!disposed) setSession(data.session);
+        if (!disposed && !authEventSeen) setSession(data.session);
       });
       const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+        authEventSeen = true;
         if (!disposed) setSession(nextSession);
       });
       return () => {
@@ -140,7 +143,7 @@ export function SafeUpdateSettings() {
     setBackupBusy(true);
     setNotice({ tone: "info", text: "Đang chốt autosave và tạo bản sao toàn workspace…" });
     try {
-      await flushPendingWrites();
+      await prepareForReload();
       const result = await downloadWorkspaceBackup(APP_CONFIG.version);
       setNotice({ tone: "success", text: `Đã xuất bản sao toàn workspace (${result.databaseCount} database, ${formatBytes(result.bytes)}). PDF, ảnh, nhạc và dữ liệu Tiểu Nhị nằm trong cùng tệp.` });
     } catch (error) {
@@ -162,7 +165,7 @@ export function SafeUpdateSettings() {
     setBackupBusy(true);
     setNotice({ tone: "info", text: "Đang mã hóa và sao lưu toàn workspace lên cloud…" });
     try {
-      await flushPendingWrites();
+      await prepareForReload();
       await syncNow(session.user);
       const result = await uploadLatestWorkspaceBackup(session.user, APP_CONFIG.version);
       setBackupRevision((value) => value + 1);
@@ -179,7 +182,7 @@ export function SafeUpdateSettings() {
     setRestoreBusy(true);
     setNotice({ tone: "info", text: "Đang khôi phục bản sao cục bộ…" });
     try {
-      await flushPendingWrites();
+      await prepareForReload();
       const result = await restoreWorkspaceBackupFile(file);
       setNotice({ tone: "success", text: `Đã khôi phục ${result.restoredRecords} bản ghi. Ứng dụng sẽ tải lại để mọi công cụ đọc dữ liệu mới.` });
       window.setTimeout(() => window.location.reload(), 350);
@@ -202,7 +205,7 @@ export function SafeUpdateSettings() {
     setRestoreBusy(true);
     setNotice({ tone: "info", text: "Đang tải, giải mã và khôi phục bản sao cloud…" });
     try {
-      await flushPendingWrites();
+      await prepareForReload();
       const result = await restoreLatestWorkspaceBackup(session.user);
       setNotice({ tone: "success", text: `Đã khôi phục ${result.restoredRecords} bản ghi từ cloud. Ứng dụng sẽ tải lại.` });
       window.setTimeout(() => window.location.reload(), 350);
@@ -216,7 +219,7 @@ export function SafeUpdateSettings() {
     setUpdating(true);
     setNotice({ tone: "info", text: "Đang chốt dữ liệu đang soạn trước khi cập nhật…" });
     try {
-      await flushPendingWrites();
+      await prepareForReload();
       if (!online) throw new Error("Thiết bị đang ngoại tuyến. Hãy kết nối mạng trước khi cập nhật an toàn.");
 
       if (session) {
@@ -245,7 +248,7 @@ export function SafeUpdateSettings() {
       }
 
       const now = Date.now();
-      localStorage.setItem(LAST_SAFE_UPDATE_KEY, String(now));
+      localSet(LAST_SAFE_UPDATE_KEY, String(now));
       setLastSafeUpdate(now);
 
       if (!needRefresh) {

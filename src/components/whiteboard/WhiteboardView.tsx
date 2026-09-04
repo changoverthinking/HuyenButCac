@@ -29,6 +29,10 @@ export function WhiteboardView() {
   const pinch = useRef<{distance:number;zoom:number;pan:Point;center:Point}|null>(null);
   const drawing=useRef<{pointerId:number;points:Point[]}|null>(null);
   const strokeDrag=useRef<{id:string;pointerId:number;start:Point;points:Point[]}|null>(null);
+  const rootRef=useRef<HTMLDivElement|null>(null);
+  const activeRef=useRef<string|null>(null);
+  const queuedRemoteRefresh=useRef(false);
+  const remoteRefreshRef=useRef<()=>void>(()=>undefined);
 
   const clampZoom = (value: number) => Math.min(2.5, Math.max(0.35, value));
   const updatePinch = (element:HTMLDivElement) => {
@@ -51,7 +55,7 @@ export function WhiteboardView() {
     setSelected(id);return false;
   };
 
-  const reload = async (id = active) => {
+  const reload = async (id = activeRef.current) => {
     const items = await listWhiteboards();
     setBoards(items);
     if (id && items.some((board) => board.id === id)) {
@@ -72,6 +76,8 @@ export function WhiteboardView() {
     await reload(board.id);
   };
 
+  useEffect(() => { activeRef.current = active; }, [active]);
+
   useEffect(() => {
     void listWhiteboards().then(async (items) => {
       setBoards(items);
@@ -85,6 +91,35 @@ export function WhiteboardView() {
       setObjects(await getBoardObjects(items[0].id));
       setStrokes(await listStrokes("whiteboard", items[0].id));
     });
+  }, []);
+
+  useEffect(() => {
+    let disposed = false;
+    const interactionBusy = () => {
+      const activeElement = document.activeElement;
+      const editingText = Boolean(rootRef.current && activeElement && rootRef.current.contains(activeElement) && (
+        activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement ||
+        (activeElement instanceof HTMLElement && activeElement.isContentEditable)
+      ));
+      return editingText || Boolean(drag.current || drawing.current || strokeDrag.current || pointers.current.size > 0);
+    };
+    const runRefresh = () => {
+      if (disposed) return;
+      queuedRemoteRefresh.current = false;
+      void reload(activeRef.current);
+    };
+    remoteRefreshRef.current = () => {
+      if (!queuedRemoteRefresh.current || interactionBusy()) return;
+      runRefresh();
+    };
+    const onSync = (event: Event) => {
+      const tables = (event as CustomEvent<{ tables?: string[] }>).detail?.tables ?? [];
+      if (!tables.some((table) => table === "whiteboards" || table === "whiteboardObjects" || table === "whiteboardStrokes")) return;
+      if (interactionBusy()) { queuedRemoteRefresh.current = true; return; }
+      runRefresh();
+    };
+    window.addEventListener("hbc-sync-complete", onSync);
+    return () => { disposed = true; remoteRefreshRef.current = () => undefined; window.removeEventListener("hbc-sync-complete", onSync); };
   }, []);
 
   const add = async (kind: WhiteboardObjectKind) => {
@@ -114,7 +149,7 @@ export function WhiteboardView() {
   const finishDrawing=async()=>{const current=drawing.current;drawing.current=null;if(!active||!current||current.points.length<2)return;const points=smooth?smoothPoints(current.points):current.points;const created=await addStroke("whiteboard",{ownerId:active,points,color:"#4fd1c5",width:strokeWidth,dash:strokeDashStyle,arrow:strokeArrow,smoothed:smooth,locked:false});setStrokes(items=>[...items.filter(item=>item.id!=="__preview"),created]);};
 
   return (
-    <div className="h-full flex flex-col">
+    <div ref={rootRef} className="h-full flex flex-col">
       <header className="whiteboard-toolbar shrink-0 border-b" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
         <div className="flex gap-2 p-2 min-w-0">
         <button className="shrink-0" onClick={() => void createBoard()}>＋ Bảng <span className="hidden sm:inline">({boards.length})</span></button>
@@ -184,14 +219,14 @@ export function WhiteboardView() {
         }}
         onPointerUp={(event) => {
           pointers.current.delete(event.pointerId);if(pointers.current.size<2)pinch.current=null;if(canvasPan.current?.pointerId===event.pointerId)canvasPan.current=null;
-          if(drawing.current?.pointerId===event.pointerId)void finishDrawing();
-          if(strokeDrag.current?.pointerId===event.pointerId){const item=strokes.find(entry=>entry.id===strokeDrag.current?.id);if(item)void updateStroke("whiteboard",item.id,{points:item.points});strokeDrag.current=null;}
+          if(drawing.current?.pointerId===event.pointerId)void finishDrawing().finally(()=>remoteRefreshRef.current());
+          if(strokeDrag.current?.pointerId===event.pointerId){const item=strokes.find(entry=>entry.id===strokeDrag.current?.id);if(item)void updateStroke("whiteboard",item.id,{points:item.points}).finally(()=>remoteRefreshRef.current());strokeDrag.current=null;}
           const current = drag.current;
           const item = objects.find((entry) => entry.id === current?.id);
-          if (item) void updateBoardObject(item.id, { x: item.x, y: item.y });
+          if (item) void updateBoardObject(item.id, { x: item.x, y: item.y }).finally(()=>remoteRefreshRef.current());
           drag.current = null;
         }}
-        onPointerCancel={(event) => { pointers.current.delete(event.pointerId);pinch.current=null;drawing.current=null;strokeDrag.current=null;setStrokes(items=>items.filter(item=>item.id!=="__preview"));canvasPan.current=null;drag.current = null; }}
+        onPointerCancel={(event) => { pointers.current.delete(event.pointerId);pinch.current=null;drawing.current=null;strokeDrag.current=null;setStrokes(items=>items.filter(item=>item.id!=="__preview"));canvasPan.current=null;drag.current = null; window.setTimeout(()=>remoteRefreshRef.current(),0); }}
       >
         {!active && (
           <div
@@ -260,7 +295,7 @@ export function WhiteboardView() {
                 value={item.text}
                 onPointerDown={(event) => { event.stopPropagation();void selectObject(item.id); }}
                 onChange={(event) => setObjects((items) => items.map((entry) => entry.id === item.id ? { ...entry, text: event.target.value } : entry))}
-                onBlur={(event) => void updateBoardObject(item.id, { text: event.target.value })}
+                onBlur={(event) => void updateBoardObject(item.id, { text: event.target.value }).finally(()=>remoteRefreshRef.current())}
                 className="w-full resize-none bg-transparent outline-none px-3 pb-3"
                 style={{ height: Math.max(20, item.height - 36) }}
               />

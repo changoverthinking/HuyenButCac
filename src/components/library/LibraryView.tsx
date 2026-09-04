@@ -24,6 +24,7 @@ import {
 } from "../../features/library/libraryService";
 import { loadPdfRuntime, type PdfDocumentHandle, type PdfRenderTask } from "../../features/library/pdfRuntime";
 import { DEFAULT_IMAGE_TRANSFORM, normalizeImageTransform, type ImageTransform } from "../../features/appearance/imageTypes";
+import { registerBeforeReloadFlush } from "../../features/app/appLifecycle";
 import "./LibraryView.css";
 
 type AddMode = "pdf" | "book" | "novel" | null;
@@ -315,6 +316,8 @@ function PdfReader({ book, onClose, onChanged }: { book: LibraryBook; onClose: (
       void saveLibraryReadingPosition(book.id, page);
     };
   }, [book.id, page]);
+
+  useEffect(() => registerBeforeReloadFlush(() => saveLibraryReadingPosition(book.id, page).then(() => undefined)), [book.id, page]);
 
   const go = (nextPage: number) => {
     const finite = Number.isFinite(nextPage) ? Math.floor(nextPage) : 1;

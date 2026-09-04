@@ -136,4 +136,51 @@ describe("workspaceBackupService", () => {
     await switchWorkspace(userB);
     await expect(restoreWorkspaceBackup(backup)).rejects.toThrow("workspace/tài khoản khác");
   });
+  it("không mang receipt/marker chỉ thuộc thiết bị vào backup hoặc restore", async () => {
+    localStorage.setItem("hbc-legacy-workspace-migrated-to", "test-skip-legacy");
+    localStorage.setItem("hbc-calendar-device-id", "device-A");
+    localStorage.setItem("hbc-last-sync-device", "123");
+    const userId = `backup-device-${Date.now()}`;
+    cleanupNames.add(`huyen-but-cac-workspace-${userId}`);
+    await switchWorkspace(userId);
+    await db.calendarNotificationReceipts.put({ id: "device-A:event:1", eventId: "event", remindAt: 1, notifiedAt: 2 });
+
+    const backup = await createWorkspaceBackup("test");
+    expect(backup.localStorage["hbc-calendar-device-id"]).toBeUndefined();
+    expect(backup.localStorage["hbc-last-sync-device"]).toBeUndefined();
+    const main = backup.databases.find((database) => database.name === `huyen-but-cac-workspace-${userId}`);
+    expect(main?.stores.some((store) => store.name === "calendarNotificationReceipts")).toBe(false);
+
+    const legacy = JSON.parse(stringifyWorkspaceBackup(backup));
+    legacy.databases.find((database: { name: string }) => database.name === `huyen-but-cac-workspace-${userId}`).stores.push({
+      name: "calendarNotificationReceipts",
+      keyPath: "id",
+      autoIncrement: false,
+      indexes: [
+        { name: "eventId", keyPath: "eventId", multiEntry: false, unique: false },
+        { name: "remindAt", keyPath: "remindAt", multiEntry: false, unique: false },
+        { name: "notifiedAt", keyPath: "notifiedAt", multiEntry: false, unique: false },
+      ],
+      records: [{ id: "device-B:event:1", eventId: "event", remindAt: 1, notifiedAt: 3 }],
+    });
+    legacy.localStorage["hbc-calendar-device-id"] = "device-B";
+
+    const restored = await restoreWorkspaceBackup(parseWorkspaceBackup(JSON.stringify(legacy)));
+    expect(restored.skippedStores.some((item) => item.endsWith("/calendarNotificationReceipts"))).toBe(true);
+    expect(await db.calendarNotificationReceipts.get("device-A:event:1")).toBeDefined();
+    expect(await db.calendarNotificationReceipts.get("device-B:event:1")).toBeUndefined();
+    expect(localStorage.getItem("hbc-calendar-device-id")).toBe("device-A");
+  });
+
+  it("từ chối store lạ dù database name hợp lệ", async () => {
+    localStorage.setItem("hbc-legacy-workspace-migrated-to", "test-skip-legacy");
+    const userId = `backup-store-scope-${Date.now()}`;
+    cleanupNames.add(`huyen-but-cac-workspace-${userId}`);
+    await switchWorkspace(userId);
+    const backup = JSON.parse(stringifyWorkspaceBackup(await createWorkspaceBackup("test")));
+    const main = backup.databases.find((database: { name: string }) => database.name === `huyen-but-cac-workspace-${userId}`);
+    main.stores.push({ name: "foreignStore", keyPath: "id", autoIncrement: false, indexes: [], records: [] });
+    expect(() => parseWorkspaceBackup(JSON.stringify(backup))).toThrow("store ngoài phạm vi ứng dụng");
+  });
+
 });

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { APP_CONFIG } from "../../app/appConfig";
-import { flushPendingWrites } from "../../features/app/appLifecycle";
+import { prepareForReload } from "../../features/app/appLifecycle";
 import { downloadWorkspaceBackup } from "../../features/backup/workspaceBackupService";
 
 export function UpdatePrompt() {
@@ -51,7 +51,7 @@ export function UpdatePrompt() {
     try {
       // Không reload trong khi editor còn debounce/autosave. Sau đó xuất một recovery file
       // để cả dữ liệu local-only (PDF/ảnh/nhạc/Tiểu Nhị) cũng có đường khôi phục.
-      await flushPendingWrites();
+      await prepareForReload();
       await downloadWorkspaceBackup(APP_CONFIG.version);
       await updateServiceWorker(true);
     } catch (reason) {

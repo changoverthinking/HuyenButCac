@@ -1,5 +1,6 @@
 import { useEffect, useState, type RefObject } from "react";
 import { Icon } from "../common/Icons";
+import { localGet, localSet } from "../../features/app/safeStorage";
 
 type Props = {
   editorRef: RefObject<HTMLElement | null>;
@@ -10,10 +11,10 @@ type Props = {
 const buttonClass = "rich-text-tool-button min-w-8 px-2 py-1.5 rounded border text-sm hover:opacity-80";
 
 export function RichTextToolbar({ editorRef, onFormat, compact = false }: Props) {
-  const [collapsed, setCollapsed] = useState(() => typeof localStorage !== "undefined" && localStorage.getItem("hbc-rich-toolbar-collapsed") === "1");
+  const [collapsed, setCollapsed] = useState(() => localGet("hbc-rich-toolbar-collapsed") === "1");
 
   useEffect(() => {
-    if (typeof localStorage !== "undefined") localStorage.setItem("hbc-rich-toolbar-collapsed", collapsed ? "1" : "0");
+    localSet("hbc-rich-toolbar-collapsed", collapsed ? "1" : "0");
   }, [collapsed]);
 
   const run = (command: string, value?: string) => {

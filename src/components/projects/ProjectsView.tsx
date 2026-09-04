@@ -5,6 +5,7 @@ import type { ProjectChapter, ProjectKind, ProjectSection } from "../../types/en
 import { FocusWriter } from "./FocusWriter";
 import { KanbanBoard } from "./KanbanBoard";
 import { StoryBibleTab } from "./StoryBibleTab";
+import { registerBeforeReloadFlush } from "../../features/app/appLifecycle";
 
 const KIND_LABEL: Record<ProjectKind, string> = {
   novel: "Tiểu thuyết / Truyện dài",
@@ -96,6 +97,9 @@ function ChapterSynopsis({ chapterId, synopsis }: { chapterId: string; synopsis:
   const updateChapter = useProjectsStore((s) => s.updateChapter);
   const [draft, setDraft] = useState(synopsis);
   const [open, setOpen] = useState(false);
+  useEffect(() => registerBeforeReloadFlush(async () => {
+    if (draft !== synopsis) await updateChapter(chapterId, { synopsis: draft });
+  }), [chapterId, draft, synopsis, updateChapter]);
   return (
     <div className="px-2 pb-1.5 -mt-1">
       <button

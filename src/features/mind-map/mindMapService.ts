@@ -1,5 +1,6 @@
 import { v4 as uuid } from "uuid";
 import { db } from "../../database/db";
+import { trackPendingWrite } from "../app/appLifecycle";
 import type { MindMap, MindMapEdge, MindMapEdgeType, MindMapNode, ProjectChapter, ProjectSection } from "../../types/entities";
 
 const base = () => ({
@@ -228,7 +229,7 @@ export async function listMindMaps(): Promise<MindMap[]> {
 }
 
 export const renameMindMap = (id: string, title: string) =>
-  db.mindMaps.update(id, { title, updatedAt: Date.now() });
+  trackPendingWrite(db.mindMaps.update(id, { title, updatedAt: Date.now() }));
 
 export async function deleteMindMap(id: string) {
   const deletedAt = Date.now();
@@ -318,7 +319,7 @@ export async function updateMindMapNode(
   changes: Partial<Pick<MindMapNode, "title" | "x" | "y" | "color" | "collapsed" | "parentId" | "linkType" | "linkId">>,
   syncProject = true,
 ) {
-  const updated = await db.mindMapNodes.update(id, { ...changes, updatedAt: Date.now() });
+  const updated = await trackPendingWrite(db.mindMapNodes.update(id, { ...changes, updatedAt: Date.now() }));
   if (updated && syncProject && isProjectStructureChange(changes)) {
     const node = await db.mindMapNodes.get(id);
     if (node && node.deletedAt === null) await syncProjectFromMindMap(node.mapId);
@@ -361,7 +362,7 @@ export async function addMindMapEdge(
 }
 
 export async function updateMindMapEdge(id: string, patch: Pick<Partial<MindMapEdge>, "label">) {
-  await db.mindMapEdges.update(id, { ...patch, updatedAt: Date.now() });
+  await trackPendingWrite(db.mindMapEdges.update(id, { ...patch, updatedAt: Date.now() }));
 }
 
 export async function deleteMindMapEdge(id: string) {

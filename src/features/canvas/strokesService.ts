@@ -1,5 +1,6 @@
 import { v4 as uuid } from "uuid";
 import { db } from "../../database/db";
+import { trackPendingWrite } from "../app/appLifecycle";
 import type { CanvasStroke } from "../../types/entities";
 
 export type StrokeSpace = "mindmap" | "whiteboard";
@@ -9,12 +10,12 @@ const now = () => Date.now();
 export async function addStroke(space: StrokeSpace, input: Omit<CanvasStroke, "id" | "createdAt" | "updatedAt" | "schemaVersion" | "deletedAt" | "syncState">) {
   const time = now();
   const stroke: CanvasStroke = { ...input, id: uuid(), createdAt: time, updatedAt: time, schemaVersion: 1, deletedAt: null, syncState: "local" };
-  await table(space).add(stroke);
+  await trackPendingWrite(table(space).add(stroke));
   return stroke;
 }
 export const listStrokes = (space: StrokeSpace, ownerId: string) => table(space).where("ownerId").equals(ownerId).filter(item => item.deletedAt === null).toArray();
-export const updateStroke = (space: StrokeSpace, id: string, patch: Partial<Pick<CanvasStroke, "points" | "color" | "width" | "dash" | "arrow" | "smoothed" | "locked">>) => table(space).update(id, { ...patch, updatedAt: now() });
-export const deleteStroke = (space: StrokeSpace, id: string) => table(space).update(id, { deletedAt: now(), updatedAt: now() });
+export const updateStroke = (space: StrokeSpace, id: string, patch: Partial<Pick<CanvasStroke, "points" | "color" | "width" | "dash" | "arrow" | "smoothed" | "locked">>) => trackPendingWrite(table(space).update(id, { ...patch, updatedAt: now() }));
+export const deleteStroke = (space: StrokeSpace, id: string) => trackPendingWrite(table(space).update(id, { deletedAt: now(), updatedAt: now() }));
 
 export function smoothPoints(points: {x:number;y:number}[]) {
   if (points.length < 3) return points;

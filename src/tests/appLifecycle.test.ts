@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { flushPendingWrites, pendingFlushHandlerCount, registerBeforeReloadFlush } from "../features/app/appLifecycle";
+import { flushPendingWrites, pendingFlushHandlerCount, pendingWriteCount, registerBeforeReloadFlush, trackPendingWrite } from "../features/app/appLifecycle";
 
 describe("appLifecycle", () => {
   it("chờ tất cả autosave đã đăng ký trước reload", async () => {
@@ -17,4 +17,17 @@ describe("appLifecycle", () => {
     await expect(flushPendingWrites()).rejects.toThrow("save failed");
     cleanup();
   });
+  it("chờ IndexedDB write chạy nền trước reload", async () => {
+    let release!: () => void;
+    const operation = new Promise<void>((resolve) => { release = resolve; });
+    void trackPendingWrite(operation);
+    expect(pendingWriteCount()).toBe(1);
+    const flushing = flushPendingWrites();
+    await Promise.resolve();
+    expect(pendingWriteCount()).toBe(1);
+    release();
+    await flushing;
+    expect(pendingWriteCount()).toBe(0);
+  });
+
 });

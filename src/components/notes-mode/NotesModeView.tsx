@@ -7,6 +7,7 @@ import { NoteEditor } from "../editor/NoteEditor";
 import { Icon } from "../common/Icons";
 import { isNoteUnlocked } from "../../features/notes/notesService";
 import type { Note } from "../../types/entities";
+import { localGet, localSet } from "../../features/app/safeStorage";
 
 function LockedNoteGate({ note }: { note: Note }) {
   const unlockNote = useNotesStore((s) => s.unlockNote);
@@ -43,13 +44,13 @@ export function NotesModeView() {
   const selectedFolderId = useFoldersStore((s) => s.selectedFolderId);
   const view = useNotesStore((s) => s.view);
   const [mobileView, setMobileView] = useState<"list" | "editor">("list");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("hbc-notes-sidebar-collapsed") === "1");
-  const [listCollapsed, setListCollapsed] = useState(() => localStorage.getItem("hbc-notes-list-collapsed") === "1");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localGet("hbc-notes-sidebar-collapsed") === "1");
+  const [listCollapsed, setListCollapsed] = useState(() => localGet("hbc-notes-list-collapsed") === "1");
 
   useEffect(() => { loadFolders(); loadNotes(); }, [loadFolders, loadNotes]);
   useEffect(() => { if (selectedNoteId) setMobileView("editor"); }, [selectedNoteId]);
-  useEffect(() => { localStorage.setItem("hbc-notes-sidebar-collapsed", sidebarCollapsed ? "1" : "0"); }, [sidebarCollapsed]);
-  useEffect(() => { localStorage.setItem("hbc-notes-list-collapsed", listCollapsed ? "1" : "0"); }, [listCollapsed]);
+  useEffect(() => { localSet("hbc-notes-sidebar-collapsed", sidebarCollapsed ? "1" : "0"); }, [sidebarCollapsed]);
+  useEffect(() => { localSet("hbc-notes-list-collapsed", listCollapsed ? "1" : "0"); }, [listCollapsed]);
 
   const selectedNote = view === "active" ? notes.find((note) => note.id === selectedNoteId) ?? null : null;
   async function handleCreateNote() { await createNote(selectedFolderId); setMobileView("editor"); }

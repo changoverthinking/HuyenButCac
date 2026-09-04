@@ -74,7 +74,7 @@ if (!errors.some((item) => item.startsWith('CSS braces:'))) pass('CSS block bala
 for (const file of ['src/components/editor/NoteEditor.tsx', 'src/components/projects/FocusWriter.tsx']) {
   if (!read(file).includes('registerBeforeReloadFlush')) fail('Autosave lifecycle', `${file} is not registered`);
 }
-if (!read('src/components/common/UpdatePrompt.tsx').includes('flushPendingWrites')) fail('Update safety', 'UpdatePrompt does not flush pending writes');
+if (!read('src/components/common/UpdatePrompt.tsx').includes('prepareForReload')) fail('Update safety', 'UpdatePrompt does not prepare/flush pending writes');
 if (!read('src/components/settings/SafeUpdateSettings.tsx').includes('uploadLatestWorkspaceBackup')) fail('Update safety', 'SafeUpdateSettings does not create full cloud backup');
 if (!errors.some((item) => item.startsWith('Autosave lifecycle:')) && !errors.some((item) => item.startsWith('Update safety:'))) pass('Autosave/update safety wiring');
 
@@ -119,6 +119,27 @@ for (const [file, expectedHash] of Object.entries(coreBaseline)) {
   if (actualHash !== expectedHash) fail('Core regression hash', `${file} changed outside the 0.19 stability scope`);
 }
 if (!errors.some((item) => item.startsWith('Core regression hash:'))) pass('Unrelated source files unchanged');
+
+// 13) Runtime stability: sync/auth/update không được làm mất thao tác đang soạn.
+const lifecycle = read('src/features/app/appLifecycle.ts');
+const appSource = read('src/App.tsx');
+const notificationSource = read('src/features/calendar/notificationService.ts');
+if (!lifecycle.includes('trackPendingWrite') || !lifecycle.includes('prepareForReload') || !lifecycle.includes('FLUSH_TIMEOUT_MS')) {
+  fail('Runtime data safety', 'pending write queue / reload preparation / timeout missing');
+}
+if (!syncService.includes('flushPendingWrites()') || !syncService.includes('fingerprint(local) !== fingerprint(nextRecord)')) {
+  fail('Runtime data safety', 'sync must flush local writes and ignore identical remote payloads');
+}
+if (!appSource.includes('authEventSeen') || !appSource.includes('SYNC_TABLES_BY_MODE')) {
+  fail('Runtime data safety', 'auth race guard or table-scoped UI refresh missing');
+}
+if (!backupService.includes('DEVICE_LOCAL_STORES') || !backupService.includes('isDeviceLocalStorageKey')) {
+  fail('Runtime data safety', 'device-local notification state must not cross backup/restore');
+}
+if (!notificationSource.includes('checkDueCalendarReminders().catch')) {
+  fail('Runtime data safety', 'calendar reminder runtime must contain background errors');
+}
+if (!errors.some((item) => item.startsWith('Runtime data safety:'))) pass('Runtime data-safety guards');
 
 if (errors.length) {
   console.error(`STATIC AUDIT FAILED (${errors.length})`);

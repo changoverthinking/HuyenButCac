@@ -17,6 +17,7 @@ import {
 } from "../../features/mind-map/mindMapService";
 import { listProjects } from "../../features/projects/projectsService";
 import { addStroke, deleteStroke, listStrokes, smoothPoints, strokeDash, strokePath, updateStroke } from "../../features/canvas/strokesService";
+import { localGet, localRemove, localSet } from "../../features/app/safeStorage";
 
 type DragState = {
   id: string;
@@ -30,7 +31,7 @@ type Point = { x: number; y: number };
 const ACTIVE_MAP_STORAGE_KEY = "hbc-active-mindmap-id";
 const NODE_HANDLE_WIDTH = 38;
 const nodeWidth = (title: string) => Math.min(320, Math.max(110, 40 + Array.from(title).length * 9));
-const readStoredActiveMap = () => (typeof window === "undefined" ? null : window.localStorage.getItem(ACTIVE_MAP_STORAGE_KEY));
+const readStoredActiveMap = () => localGet(ACTIVE_MAP_STORAGE_KEY);
 
 function edgePath(edge: MindMapEdge, source: MindMapNode, target: MindMapNode) {
   const tree = getMindMapEdgeType(edge) === "tree";
@@ -61,8 +62,8 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
   const [strokeDashStyle, setStrokeDashStyle] = useState<CanvasStroke["dash"]>("solid");
   const [strokeArrow, setStrokeArrow] = useState<CanvasStroke["arrow"]>("none");
   const [smooth, setSmooth] = useState(true);
-  const [freeNodeActionVisible, setFreeNodeActionVisible] = useState(() => localStorage.getItem("hbc-mindmap-free-node-action-visible") !== "hidden");
-  const [freeNodeActionIcon, setFreeNodeActionIcon] = useState(() => localStorage.getItem("hbc-mindmap-free-node-action-icon") ?? "plus");
+  const [freeNodeActionVisible, setFreeNodeActionVisible] = useState(() => localGet("hbc-mindmap-free-node-action-visible") !== "hidden");
+  const [freeNodeActionIcon, setFreeNodeActionIcon] = useState(() => localGet("hbc-mindmap-free-node-action-icon") ?? "plus");
   const [customizingFreeNodeAction, setCustomizingFreeNodeAction] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
@@ -74,6 +75,9 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
   const pinch = useRef<{ distance: number; zoom: number; pan: Point; center: Point } | null>(null);
   const drawing = useRef<{ pointerId: number; points: Point[] } | null>(null);
   const strokeDrag = useRef<{ id: string; pointerId: number; start: Point; points: Point[] } | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const queuedRemoteRefresh = useRef(false);
+  const remoteRefreshRef = useRef<() => void>(() => undefined);
   const selectedNode = nodes.find((node) => node.id === selected) ?? null;
   const selectedEdgeItem = edges.find((edge) => edge.id === selectedEdge) ?? null;
   const connectSource = nodes.find((node) => node.id === connectSourceId) ?? null;
@@ -82,10 +86,8 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
   const setActiveMap = (id: string | null) => {
     activeRef.current = id;
     setActive(id);
-    if (typeof window !== "undefined") {
-      if (id) window.localStorage.setItem(ACTIVE_MAP_STORAGE_KEY, id);
-      else window.localStorage.removeItem(ACTIVE_MAP_STORAGE_KEY);
-    }
+    if (id) localSet(ACTIVE_MAP_STORAGE_KEY, id);
+    else localRemove(ACTIVE_MAP_STORAGE_KEY);
   };
 
   const updatePinch = (element: SVGSVGElement) => {
@@ -153,16 +155,37 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
     };
     void initialise();
 
-    const refreshAfterSync = () => {
+    const runRefresh = () => {
+      queuedRemoteRefresh.current = false;
       void listProjects().then((items) => {
         if (!disposed) setProjects(items);
       });
-      // Giữ đúng sơ đồ đang mở thay vì lấy phần tử đầu tiên sau khi App đồng bộ/remount.
-      void reload(readStoredActiveMap());
+      // Giữ đúng sơ đồ đang mở thay vì lấy phần tử đầu tiên sau khi đồng bộ.
+      void reload(activeRef.current);
+    };
+    const interactionBusy = () => {
+      const activeElement = document.activeElement;
+      const editingText = Boolean(rootRef.current && activeElement && rootRef.current.contains(activeElement) && (
+        activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement ||
+        (activeElement instanceof HTMLElement && activeElement.isContentEditable)
+      ));
+      return editingText || Boolean(drag.current || drawing.current || strokeDrag.current || pointers.current.size > 0);
+    };
+    remoteRefreshRef.current = () => {
+      if (!queuedRemoteRefresh.current || interactionBusy()) return;
+      runRefresh();
+    };
+    const refreshAfterSync = (event: Event) => {
+      const tables = (event as CustomEvent<{ tables?: string[] }>).detail?.tables ?? [];
+      const relevant = new Set(["mindMaps", "mindMapNodes", "mindMapEdges", "mindMapStrokes", "projects", "projectSections", "projectChapters"]);
+      if (!tables.some((table) => relevant.has(table))) return;
+      if (interactionBusy()) { queuedRemoteRefresh.current = true; return; }
+      runRefresh();
     };
     window.addEventListener("hbc-sync-complete", refreshAfterSync);
     return () => {
       disposed = true;
+      remoteRefreshRef.current = () => undefined;
       window.removeEventListener("hbc-sync-complete", refreshAfterSync);
     };
   }, []);
@@ -272,8 +295,9 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
     const current = drag.current;
     if (!current) return;
     const node = nodes.find((item) => item.id === current.id);
-    if (node) void updateMindMapNode(node.id, { x: node.x, y: node.y });
     drag.current = null;
+    if (node) void updateMindMapNode(node.id, { x: node.x, y: node.y }).finally(() => remoteRefreshRef.current());
+    else remoteRefreshRef.current();
   };
 
   const worldPoint = (event: { clientX: number; clientY: number }, element: SVGSVGElement) => {
@@ -310,7 +334,7 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
   };
 
   return (
-    <div className="h-full min-h-0 flex flex-col md:flex-row">
+    <div ref={rootRef} className="h-full min-h-0 flex flex-col md:flex-row">
       <div className="md:hidden shrink-0 border-b p-2" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
         <div className="flex gap-2 min-w-0">
           <select aria-label="Chọn sơ đồ" className="min-w-0 flex-1 rounded border bg-transparent px-2 py-2" style={{ borderColor: "var(--color-border)" }} value={active ?? ""} onChange={(event) => { if (event.target.value) selectMap(event.target.value); }}>
@@ -353,8 +377,8 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
             {freeNodeActionVisible ? <>
               <button disabled={!active} aria-label="Tạo ô tự do" title="Tạo ô tự do" className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)" }} onClick={() => void addFreeNode()}>{freeNodeActionIcon === "target" ? <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg> : "＋"}<span className="sr-only">Ô tự do</span></button>
               <button aria-label="Tùy chỉnh nút tạo ô tự do" title="Tùy chỉnh nút tạo ô tự do" className="shrink-0 rounded px-2 py-2" style={{ background: "var(--color-surface)" }} onClick={()=>setCustomizingFreeNodeAction(value=>!value)}>⚙</button>
-            </> : <button aria-label="Khôi phục nút tạo ô tự do" className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)" }} onClick={()=>{localStorage.removeItem("hbc-mindmap-free-node-action-visible");setFreeNodeActionVisible(true);}}>Khôi phục ô tự do</button>}
-            {customizingFreeNodeAction&&freeNodeActionVisible&&<><button aria-label="Dùng icon Tâm điểm" className="shrink-0 rounded px-3 py-2" style={{background:"var(--color-surface)"}} onClick={()=>{localStorage.setItem("hbc-mindmap-free-node-action-icon","target");setFreeNodeActionIcon("target");}}>◎ Tâm điểm</button><button aria-label="Ẩn icon tạo ô tự do" className="shrink-0 rounded px-3 py-2" style={{background:"var(--color-surface)"}} onClick={()=>{localStorage.setItem("hbc-mindmap-free-node-action-visible","hidden");setFreeNodeActionVisible(false);setCustomizingFreeNodeAction(false);}}>Ẩn</button></>}
+            </> : <button aria-label="Khôi phục nút tạo ô tự do" className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)" }} onClick={()=>{localRemove("hbc-mindmap-free-node-action-visible");setFreeNodeActionVisible(true);}}>Khôi phục ô tự do</button>}
+            {customizingFreeNodeAction&&freeNodeActionVisible&&<><button aria-label="Dùng icon Tâm điểm" className="shrink-0 rounded px-3 py-2" style={{background:"var(--color-surface)"}} onClick={()=>{localSet("hbc-mindmap-free-node-action-icon","target");setFreeNodeActionIcon("target");}}>◎ Tâm điểm</button><button aria-label="Ẩn icon tạo ô tự do" className="shrink-0 rounded px-3 py-2" style={{background:"var(--color-surface)"}} onClick={()=>{localSet("hbc-mindmap-free-node-action-visible","hidden");setFreeNodeActionVisible(false);setCustomizingFreeNodeAction(false);}}>Ẩn</button></>}
             <button disabled={!active} className="shrink-0 rounded px-3 py-2" style={{ background: "var(--color-surface-alt)" }} onClick={() => void addBranch()}>＋ Nhánh con</button>
             <button aria-label="Thu nhỏ" className="rounded px-2 py-2" style={{ background: "var(--color-surface)" }} onClick={() => zoomAt(zoom - 0.15, { x: 200, y: 160 })}>−</button>
             <button title="Đặt lại góc nhìn" className="rounded px-2 py-2 text-xs" style={{ background: "var(--color-surface)" }} onClick={resetView}>{Math.round(zoom * 100)}%</button>
@@ -390,11 +414,11 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
             pointers.current.delete(event.pointerId);
             if (pointers.current.size < 2) pinch.current = null;
             if (canvasPan.current?.pointerId === event.pointerId) canvasPan.current = null;
-            if (drawing.current?.pointerId === event.pointerId) { setStrokes((items) => items.filter((item) => item.id !== "__preview")); void finishDrawing(); }
-            if (strokeDrag.current?.pointerId === event.pointerId) { const current = strokeDrag.current; const point = worldPoint(event, event.currentTarget); const dx = point.x - current.start.x; const dy = point.y - current.start.y; const points = current.points.map((entry) => ({ x: entry.x + dx, y: entry.y + dy })); void updateStroke("mindmap", current.id, { points }); setStrokes((items) => items.map((item) => item.id === current.id ? { ...item, points } : item)); strokeDrag.current = null; }
+            if (drawing.current?.pointerId === event.pointerId) { setStrokes((items) => items.filter((item) => item.id !== "__preview")); void finishDrawing().finally(() => remoteRefreshRef.current()); }
+            if (strokeDrag.current?.pointerId === event.pointerId) { const current = strokeDrag.current; const point = worldPoint(event, event.currentTarget); const dx = point.x - current.start.x; const dy = point.y - current.start.y; const points = current.points.map((entry) => ({ x: entry.x + dx, y: entry.y + dy })); void updateStroke("mindmap", current.id, { points }).finally(() => remoteRefreshRef.current()); setStrokes((items) => items.map((item) => item.id === current.id ? { ...item, points } : item)); strokeDrag.current = null; }
             finishDrag();
           }}
-          onPointerCancel={() => { pointers.current.clear(); pinch.current = null; drawing.current = null; strokeDrag.current = null; setStrokes((items) => items.filter((item) => item.id !== "__preview")); canvasPan.current = null; finishDrag(); }}
+          onPointerCancel={() => { pointers.current.clear(); pinch.current = null; drawing.current = null; strokeDrag.current = null; setStrokes((items) => items.filter((item) => item.id !== "__preview")); canvasPan.current = null; finishDrag(); window.setTimeout(() => remoteRefreshRef.current(), 0); }}
         >
           <defs><marker id="mindmap-arrow-end" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--color-accent)" /></marker><marker id="mindmap-arrow-start" markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto"><path d="M8,0 L0,4 L8,8 z" fill="var(--color-accent)" /></marker></defs>
           <g transform={`translate(${pan.x} ${pan.y}) scale(${zoom})`}>
@@ -415,7 +439,7 @@ export function MindMapView({ onOpenProject }: { onOpenProject: (target: { proje
                 <text x="19" y="28" textAnchor="middle" fill={selected === node.id || connectSourceId === node.id ? "var(--color-bg)" : "var(--color-text-muted)"} fontSize="18" className="pointer-events-none select-none">⠿</text>
                 <title>{connectMode ? "Chạm để nối ô này" : "Giữ dấu ⠿ rồi kéo để di chuyển ô"}</title>
                 <foreignObject x={NODE_HANDLE_WIDTH} width={nodeWidth(node.title) - NODE_HANDLE_WIDTH} height="44">
-                  <input aria-label="Tên nút" value={node.title} onPointerDown={(event) => { event.stopPropagation(); if (connectMode) { event.preventDefault(); void connectNodes(node.id); } else { setSelected(node.id); setSelectedEdge(null); setSelectedStroke(null); } }} onChange={(event) => setNodes((items) => items.map((item) => item.id === node.id ? { ...item, title: event.target.value } : item))} onBlur={(event) => void updateMindMapNode(node.id, { title: event.target.value })} className="w-full h-full text-center bg-transparent px-2 outline-none" />
+                  <input aria-label="Tên nút" value={node.title} onPointerDown={(event) => { event.stopPropagation(); if (connectMode) { event.preventDefault(); void connectNodes(node.id); } else { setSelected(node.id); setSelectedEdge(null); setSelectedStroke(null); } }} onChange={(event) => setNodes((items) => items.map((item) => item.id === node.id ? { ...item, title: event.target.value } : item))} onBlur={(event) => void updateMindMapNode(node.id, { title: event.target.value }).finally(() => remoteRefreshRef.current())} className="w-full h-full text-center bg-transparent px-2 outline-none" />
                 </foreignObject>
               </g>
             ))}

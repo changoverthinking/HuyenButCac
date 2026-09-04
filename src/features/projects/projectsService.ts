@@ -1,5 +1,6 @@
 import { v4 as uuid } from "uuid";
 import { db } from "../../database/db";
+import { trackPendingWrite } from "../app/appLifecycle";
 import type {
   Project,
   ProjectChapter,
@@ -199,7 +200,7 @@ export async function updateChapter(
     update.contentText = text;
     update.wordCount = countWords(text);
   }
-  await db.projectChapters.update(id, update);
+  await trackPendingWrite(db.projectChapters.update(id, update));
 }
 
 export async function softDeleteChapter(id: string): Promise<void> {
@@ -299,7 +300,7 @@ export async function createTask(projectId: string, title: string): Promise<Proj
 }
 
 export async function updateTaskStatus(id: string, status: ProjectTask["status"]): Promise<void> {
-  await db.projectTasks.update(id, { status, updatedAt: now() });
+  await trackPendingWrite(db.projectTasks.update(id, { status, updatedAt: now() }));
 }
 
 export async function softDeleteTask(id: string): Promise<void> {

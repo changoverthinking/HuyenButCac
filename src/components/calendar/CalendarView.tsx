@@ -145,9 +145,13 @@ export function CalendarView() {
     };
     void load();
     const changed = () => void reloadEvents();
+    const synced = (event: Event) => {
+      const tables = (event as CustomEvent<{ tables?: string[] }>).detail?.tables ?? [];
+      if (tables.includes("calendarEvents")) void reloadEvents();
+    };
     window.addEventListener("hbc-calendar-events-changed", changed);
-    window.addEventListener("hbc-sync-complete", changed);
-    return () => { disposed = true; window.removeEventListener("hbc-calendar-events-changed", changed); window.removeEventListener("hbc-sync-complete", changed); };
+    window.addEventListener("hbc-sync-complete", synced);
+    return () => { disposed = true; window.removeEventListener("hbc-calendar-events-changed", changed); window.removeEventListener("hbc-sync-complete", synced); };
     // Deep-link chỉ xử lý một lần khi mở module.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -1,6 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import { v4 as uuid } from "uuid";
 import { db, getActiveWorkspaceUserId } from "../../database/db";
+import { trackPendingWrite } from "../app/appLifecycle";
 import type { ProjectKind } from "../../types/entities";
 import { createNote, listActiveNotes, softDeleteNote, stripDiacritics, updateNote } from "../notes/notesService";
 import {
@@ -168,7 +169,7 @@ export async function saveTieuNhiMessage(message: Omit<TieuNhiStoredMessage, "id
     mode: message.mode,
     createdAt: message.createdAt ?? Date.now(),
   };
-  await aiDb().messages.put(row);
+  await trackPendingWrite(aiDb().messages.put(row));
   return row;
 }
 
@@ -178,7 +179,7 @@ export async function loadTieuNhiMessages(limit = 40) {
 }
 
 export async function clearTieuNhiMessages() {
-  await aiDb().messages.clear();
+  await trackPendingWrite(aiDb().messages.clear());
 }
 
 export async function listTieuNhiMemories() {
@@ -194,12 +195,12 @@ export async function rememberTieuNhi(label: string, value: string) {
   const row: TieuNhiMemory = existing
     ? { ...existing, label: normalizedLabel, value: normalizedValue, updatedAt: now }
     : { id: uuid(), label: normalizedLabel, value: normalizedValue, createdAt: now, updatedAt: now };
-  await aiDb().memories.put(row);
+  await trackPendingWrite(aiDb().memories.put(row));
   return row;
 }
 
 export async function forgetTieuNhiMemory(id: string) {
-  await aiDb().memories.delete(id);
+  await trackPendingWrite(aiDb().memories.delete(id));
 }
 
 export async function getTieuNhiSetting<T>(id: string, fallback: T): Promise<T> {
@@ -208,7 +209,7 @@ export async function getTieuNhiSetting<T>(id: string, fallback: T): Promise<T> 
 }
 
 export async function setTieuNhiSetting(id: string, value: unknown) {
-  await aiDb().settings.put({ id, value, updatedAt: Date.now() });
+  await trackPendingWrite(aiDb().settings.put({ id, value, updatedAt: Date.now() }));
 }
 
 function chunkText(text: string, target = 1_500, overlap = 220) {

@@ -1,6 +1,8 @@
 import { db } from "../../database/db";
 import type { CalendarEvent } from "../../types/entities";
 import { supabase } from "../auth/supabase";
+import { localGet, localSet, sessionGet, sessionRemove, sessionSet } from "../app/safeStorage";
+import { trackPendingWrite } from "../app/appLifecycle";
 
 export type NotificationCapability = {
   supported: boolean;
@@ -15,10 +17,10 @@ const DEVICE_ID_KEY = "hbc-calendar-device-id";
 const DEEP_LINK_ACK_PREFIX = "hbc-calendar-push-ack:";
 
 function getDeviceId() {
-  let id = localStorage.getItem(DEVICE_ID_KEY);
+  let id = localGet(DEVICE_ID_KEY);
   if (!id) {
     id = crypto.randomUUID();
-    localStorage.setItem(DEVICE_ID_KEY, id);
+    localSet(DEVICE_ID_KEY, id);
   }
   return id;
 }
@@ -30,12 +32,12 @@ function receiptId(event: CalendarEvent) {
 function consumeRecentDeepLinkAck(event: CalendarEvent, now: number) {
   if (event.remindAt === null) return false;
   const key = `${DEEP_LINK_ACK_PREFIX}${event.id}`;
-  const acknowledgedAt = Number(sessionStorage.getItem(key) ?? 0);
+  const acknowledgedAt = Number(sessionGet(key) ?? 0);
   if (!acknowledgedAt) return false;
   const recent = now - acknowledgedAt <= 7 * 24 * 60 * 60 * 1000;
   const atOrNearDue = acknowledgedAt >= event.remindAt - 2 * 60 * 1000;
   if (!recent || !atOrNearDue) return false;
-  sessionStorage.removeItem(key);
+  sessionRemove(key);
   return true;
 }
 
@@ -170,11 +172,11 @@ export async function checkDueCalendarReminders(now = Date.now()) {
     const id = receiptId(event);
     if (await db.calendarNotificationReceipts.get(id)) continue;
     if (consumeRecentDeepLinkAck(event, now)) {
-      await db.calendarNotificationReceipts.put({ id, eventId: event.id, remindAt: event.remindAt!, notifiedAt: now });
+      await trackPendingWrite(db.calendarNotificationReceipts.put({ id, eventId: event.id, remindAt: event.remindAt!, notifiedAt: now }));
       continue;
     }
     if (await showNotification(event)) {
-      await db.calendarNotificationReceipts.put({ id, eventId: event.id, remindAt: event.remindAt!, notifiedAt: now });
+      await trackPendingWrite(db.calendarNotificationReceipts.put({ id, eventId: event.id, remindAt: event.remindAt!, notifiedAt: now }));
       shown += 1;
     }
   }
@@ -203,21 +205,21 @@ export async function updateCalendarBadge() {
 export async function acknowledgeDeepLinkedCalendarReminder(now = Date.now()) {
   const eventId = new URLSearchParams(window.location.search).get("event");
   if (!eventId) return false;
-  sessionStorage.setItem(`${DEEP_LINK_ACK_PREFIX}${eventId}`, String(now));
+  sessionSet(`${DEEP_LINK_ACK_PREFIX}${eventId}`, String(now));
   const event = await db.calendarEvents.get(eventId) as CalendarEvent | undefined;
   if (!event || event.deletedAt !== null || event.remindAt === null || event.remindAt > now) return false;
-  await db.calendarNotificationReceipts.put({
+  await trackPendingWrite(db.calendarNotificationReceipts.put({
     id: receiptId(event), eventId: event.id, remindAt: event.remindAt, notifiedAt: now,
-  });
-  sessionStorage.removeItem(`${DEEP_LINK_ACK_PREFIX}${event.id}`);
+  }));
+  sessionRemove(`${DEEP_LINK_ACK_PREFIX}${event.id}`);
   await updateCalendarBadge();
   return true;
 }
 
 export function startCalendarReminderRuntime() {
   let disposed = false;
-  const run = () => { if (!disposed) void checkDueCalendarReminders(); };
-  void acknowledgeDeepLinkedCalendarReminder().finally(run);
+  const run = () => { if (!disposed) void checkDueCalendarReminders().catch(() => undefined); };
+  void acknowledgeDeepLinkedCalendarReminder().catch(() => false).finally(run);
   const timer = window.setInterval(run, 30_000);
   const visible = () => { if (document.visibilityState === "visible") run(); };
   const changed = () => run();

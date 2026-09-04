@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useThemeStore } from "./stores/themeStore";
 import { useAppearanceStore } from "./stores/appearanceStore";
 import { UpdatePrompt } from "./components/common/UpdatePrompt";
@@ -35,6 +35,15 @@ function initialMode(): Mode {
   const candidate = new URLSearchParams(window.location.search).get("mode");
   return candidate === "library" || candidate === "projects" || candidate === "mindmap" || candidate === "whiteboard" || candidate === "calendar" ? candidate : "notes";
 }
+
+
+const SYNC_TABLES_BY_MODE: Partial<Record<Mode, Set<string>>> = {
+  notes: new Set(["notes", "folders", "tags"]),
+  projects: new Set([
+    "projects", "projectSections", "projectChapters", "projectTasks", "projectMilestones",
+    "storyCharacters", "storyLocations", "storyLoreEntries", "storyTimelineEvents",
+  ]),
+};
 
 const MODE_TABS: { id: Mode; label: string; kicker: string; icon: IconName }[] = [
   { id: "notes", label: "Ghi chú", kicker: "TRÚC GIẢN", icon: "notes" },
@@ -142,6 +151,7 @@ export default function App() {
   const [railCollapsed, setRailCollapsed] = useState(false);
   const [online, setOnline] = useState(() => typeof navigator === "undefined" || navigator.onLine);
   const [syncRevision, setSyncRevision] = useState(0);
+  const modeRef = useRef<Mode>(mode);
   const [workspaceReady, setWorkspaceReady] = useState(false);
   const [workspaceError, setWorkspaceError] = useState("");
   const loadProjects = useProjectsStore((state) => state.loadProjects);
@@ -152,6 +162,7 @@ export default function App() {
   // Trên mobile, mọi thay đổi tab phải đóng drawer. Điều này loại bỏ race khi
   // người dùng chạm gần như đồng thời nút menu và một tab ở bottom navigation.
   useEffect(() => {
+    modeRef.current = mode;
     setMobileMenuOpen(false);
   }, [mode]);
 
@@ -181,13 +192,31 @@ export default function App() {
         setWorkspaceError(error instanceof Error ? error.message : "Không thể mở không gian dữ liệu.");
       }
     };
-    if (!supabase) void activate(null);
+    let authEventSeen = false;
+    let activatedUserId: string | null | undefined;
+    const activateIfChanged = (userId: string | null) => {
+      if (activatedUserId === userId) return;
+      activatedUserId = userId;
+      void activate(userId);
+    };
+    if (!supabase) activateIfChanged(null);
     else {
-      void supabase.auth.getSession().then(({ data }) => activate(data.session?.user.id ?? null));
-      const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => { void activate(nextSession?.user.id ?? null); });
+      void supabase.auth.getSession().then(({ data }) => {
+        // onAuthStateChange có thể tới trước getSession; kết quả getSession cũ không được ghi đè trạng thái mới.
+        if (!authEventSeen) activateIfChanged(data.session?.user.id ?? null);
+      });
+      const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+        authEventSeen = true;
+        activateIfChanged(nextSession?.user.id ?? null);
+      });
       unsubscribeAuth = () => data.subscription.unsubscribe();
     }
-    const refresh = () => setSyncRevision((value) => value + 1);
+    const refresh = (event: Event) => {
+      const tables = (event as CustomEvent<{ tables?: string[] }>).detail?.tables ?? [];
+      if (!tables.length) return;
+      const relevant = SYNC_TABLES_BY_MODE[modeRef.current];
+      if (relevant && tables.some((table) => relevant.has(table))) setSyncRevision((value) => value + 1);
+    };
     const handleOnline = () => setOnline(true);
     const handleOffline = () => setOnline(false);
     window.addEventListener("hbc-sync-complete", refresh); window.addEventListener("online", handleOnline); window.addEventListener("offline", handleOffline);
@@ -197,12 +226,12 @@ export default function App() {
   useEffect(() => {
     if (!workspaceReady) return;
     const stop = startCalendarReminderRuntime();
-    void reconcileCalendarReminderJobs();
+    void reconcileCalendarReminderJobs().catch(() => undefined);
     if (typeof Notification !== "undefined" && Notification.permission === "granted") void registerPushSubscription().catch(() => undefined);
-    const reconcile = () => { void reconcileCalendarReminderJobs(); if (typeof Notification !== "undefined" && Notification.permission === "granted") void registerPushSubscription().catch(() => undefined); };
+    const reconcile = () => { void reconcileCalendarReminderJobs().catch(() => undefined); if (typeof Notification !== "undefined" && Notification.permission === "granted") void registerPushSubscription().catch(() => undefined); };
     window.addEventListener("online", reconcile); window.addEventListener("hbc-workspace-changed", reconcile);
     return () => { stop(); window.removeEventListener("online", reconcile); window.removeEventListener("hbc-workspace-changed", reconcile); };
-  }, [workspaceReady, syncRevision]);
+  }, [workspaceReady]);
 
   if (!workspaceReady) {
     return <div className="grid h-screen w-screen place-items-center p-6" style={{ background: "var(--color-bg)", color: "var(--color-text)" }}><div className="max-w-md text-center"><div className="brand-sigil mx-auto mb-3"><Icon name="seal" size={24} /></div>{workspaceError ? <><div className="font-semibold">Không thể mở không gian dữ liệu</div><div className="mt-2 text-sm opacity-70">{workspaceError}</div><button type="button" className="mt-4 rounded-xl border px-4 py-2" style={{ borderColor: "var(--color-border)" }} onClick={() => window.location.reload()}>Thử mở lại</button></> : <><div className="font-semibold">Đang mở không gian dữ liệu…</div><div className="mt-1 text-sm opacity-60">Đang tách dữ liệu theo tài khoản để bảo vệ ghi chú trên thiết bị này.</div></>}</div></div>;
@@ -239,10 +268,10 @@ export default function App() {
           <div className="app-mode-content">
             <Suspense fallback={<div className="grid h-full place-items-center text-sm opacity-65">Đang mở khu vực…</div>}>
               {mode === "notes" && <NotesModeView key={`notes-${syncRevision}`} />}
-              {mode === "library" && <LibraryView key={`library-${syncRevision}`} onOpenProject={async (projectId) => { await loadProjects(); await selectProject(projectId); navigate("projects"); }} />}
+              {mode === "library" && <LibraryView onOpenProject={async (projectId) => { await loadProjects(); await selectProject(projectId); navigate("projects"); }} />}
               {mode === "projects" && <ProjectsView key={`projects-${syncRevision}`} focusedSectionId={focusedSectionId} />}
               {mode === "mindmap" && <MindMapView onOpenProject={async (target) => { setFocusedSectionId(target.sectionId); await loadProjects(); await selectProject(target.projectId); selectChapter(target.chapterId); navigate("projects"); }} />}
-              {mode === "whiteboard" && <WhiteboardView key={`whiteboard-${syncRevision}`} />}
+              {mode === "whiteboard" && <WhiteboardView />}
               {mode === "calendar" && <CalendarView />}
             </Suspense>
           </div>

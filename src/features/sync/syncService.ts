@@ -2,6 +2,8 @@ import type { User } from "@supabase/supabase-js";
 import { asInternalSyncWrite, db, getActiveWorkspaceUserId, type HuyenButDB } from "../../database/db";
 import { supabase } from "../auth/supabase";
 import { decryptRecord, encryptRecord, isEncryptedEnvelope, isVaultUnlocked } from "../crypto/vaultService";
+import { flushPendingWrites } from "../app/appLifecycle";
+import { localGet, localSet } from "../app/safeStorage";
 
 export type SyncStatus = "offline" | "idle" | "syncing" | "synced" | "error";
 
@@ -59,11 +61,11 @@ function remoteCursorKey(userId: string) {
 }
 
 export function getRemoteSyncCursor(userId: string) {
-  return localStorage.getItem(remoteCursorKey(userId)) ?? "";
+  return localGet(remoteCursorKey(userId)) ?? "";
 }
 
 function setRemoteSyncCursor(userId: string, value: string) {
-  if (value) localStorage.setItem(remoteCursorKey(userId), value);
+  if (value) localSet(remoteCursorKey(userId), value);
 }
 
 function laterIso(current: string, candidate?: string | null) {
@@ -79,9 +81,11 @@ export function syncNow(user: User): Promise<void> {
   const existing = runningByWorkspace.get(key);
   if (existing) return existing;
 
-  const task = performSync(user, workspaceDb).finally(() => {
-    if (runningByWorkspace.get(key) === task) runningByWorkspace.delete(key);
-  });
+  const task = flushPendingWrites()
+    .then(() => performSync(user, workspaceDb))
+    .finally(() => {
+      if (runningByWorkspace.get(key) === task) runningByWorkspace.delete(key);
+    });
   runningByWorkspace.set(key, task);
   return task;
 }
@@ -160,8 +164,15 @@ async function performSync(user: User, workspaceDb: HuyenButDB) {
       // Pending/local luôn thắng remote. Remote chỉ thay bản đã sync nếu remote không cũ hơn.
       if (shouldPullRemote(local?.syncState) && (!local || remoteUpdatedAt >= localUpdatedAt)) {
         // Dữ liệu cloud legacy plaintext được đánh pending để lần push này mã hóa lại ngay.
-        await table.put({ ...item.clearPayload, id: item.entity_id, syncState: item.wasLegacyPlaintext ? "pending" : "synced" });
-        changedTables.add(item.entity_type);
+        const nextRecord = { ...item.clearPayload, id: item.entity_id, syncState: item.wasLegacyPlaintext ? "pending" : "synced" };
+        // Full-pull/fallback có thể trả lại cùng dữ liệu. Không ghi/remount UI nếu payload thực tế không đổi.
+        if (!local || fingerprint(local) !== fingerprint(nextRecord)) {
+          await table.put(nextRecord);
+          changedTables.add(item.entity_type);
+        } else if (item.wasLegacyPlaintext && local.syncState === "synced") {
+          // Legacy plaintext vẫn cần được đánh pending để mã hóa lại, nhưng không phải remote UI change.
+          await table.update(item.entity_id, { syncState: "pending" });
+        }
       }
     }
   }));
@@ -215,12 +226,12 @@ async function performSync(user: User, workspaceDb: HuyenButDB) {
   // Chỉ tiến cursor tới mốc đã THỰC SỰ pull. Không dùng timestamp của chính batch upload:
   // nếu thiết bị khác ghi sau pull nhưng trước upload, nhảy cursor theo upload sẽ bỏ sót thay đổi đó.
   if (cursorEnabled && maxCursor) setRemoteSyncCursor(user.id, maxCursor);
-  localStorage.setItem(`hbc-last-sync-${user.id}`, String(Date.now()));
+  localSet(`hbc-last-sync-${user.id}`, String(Date.now()));
   window.dispatchEvent(new CustomEvent("hbc-sync-complete", {
     detail: { tables: [...changedTables], uploaded: snapshots.length, pulled: decodedRemote.length, cursorEnabled },
   }));
 }
 
 export function getLastSync(userId: string) {
-  return Number(localStorage.getItem(`hbc-last-sync-${userId}`) ?? 0);
+  return Number(localGet(`hbc-last-sync-${userId}`) ?? 0);
 }

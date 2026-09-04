@@ -1,6 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import { v4 as uuidv4 } from "uuid";
 import { getActiveWorkspaceUserId } from "../../database/db";
+import { trackPendingWrite } from "../app/appLifecycle";
 import { DEFAULT_IMAGE_TRANSFORM, normalizeImageTransform, type ImageTransform } from "../appearance/imageTypes";
 
 export type LibraryBookKind = "book" | "novel" | "pdf";
@@ -215,13 +216,13 @@ export async function deleteLibraryBook(bookId: string) {
 
 export async function saveLibraryReadingPosition(bookId: string, page: number) {
   const nextPage = normalizePage(page);
-  await currentDb().books.update(bookId, { lastPage: nextPage, updatedAt: Date.now() });
+  await trackPendingWrite(currentDb().books.update(bookId, { lastPage: nextPage, updatedAt: Date.now() }));
   return nextPage;
 }
 
 export async function pinLibraryReadingPage(bookId: string, page: number | null) {
   const pinnedPage = page === null ? null : normalizePage(page);
-  await currentDb().books.update(bookId, { pinnedPage, updatedAt: Date.now() });
+  await trackPendingWrite(currentDb().books.update(bookId, { pinnedPage, updatedAt: Date.now() }));
   return pinnedPage;
 }
 

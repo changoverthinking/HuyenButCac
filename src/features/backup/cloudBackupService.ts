@@ -10,6 +10,7 @@ import {
   type RestoreSummary,
   type WorkspaceBackup,
 } from "./workspaceBackupService";
+import { localGet, localSet } from "../app/safeStorage";
 
 const BUCKET = "hbc-private";
 const CLOUD_BACKUP_AAD_VERSION = 1;
@@ -100,7 +101,7 @@ export async function uploadLatestWorkspaceBackup(user: User, appVersion = APP_C
     }
     throw error;
   }
-  localStorage.setItem(`hbc-last-full-backup-${user.id}`, String(Date.now()));
+  localSet(`hbc-last-full-backup-${user.id}`, String(Date.now()));
   return {
     createdAt: backup.createdAt,
     databaseCount: backup.databases.length,
@@ -130,5 +131,5 @@ export async function restoreLatestWorkspaceBackup(user: User): Promise<RestoreS
 }
 
 export function getLastFullCloudBackup(userId: string) {
-  return Number(localStorage.getItem(`hbc-last-full-backup-${userId}`) ?? 0);
+  return Number(localGet(`hbc-last-full-backup-${userId}`) ?? 0);
 }

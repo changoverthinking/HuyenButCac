@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { localSet } from "../../features/app/safeStorage";
 
 type Props = {
   children: ReactNode;
@@ -25,7 +26,7 @@ export class AppErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     try {
       const key = "hbc-last-ui-error";
-      localStorage.setItem(key, JSON.stringify({
+      localSet(key, JSON.stringify({
         id: this.state.errorId,
         area: this.props.area ?? "Ứng dụng",
         message: error.message,
