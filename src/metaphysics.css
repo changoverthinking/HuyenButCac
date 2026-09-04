@@ -12,3 +12,108 @@
 @media(max-width:430px){.hh-annual-strip{grid-template-columns:1fr 1fr}.hh-annual-strip span:last-child{grid-column:span 2}}
 .hh-structure-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.hh-structure-list span{padding:5px 8px;border:1px solid color-mix(in srgb,var(--accent,#b98a42) 30%,transparent);border-radius:999px;background:color-mix(in srgb,var(--accent,#b98a42) 8%,transparent);font-size:.68rem;font-weight:700}
 .hh-replacement-strip{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}.hh-replacement-strip span{padding:10px 12px;border:1px solid color-mix(in srgb,var(--accent,#b98a42) 28%,transparent);border-radius:11px;background:color-mix(in srgb,var(--accent,#b98a42) 7%,transparent)}.hh-replacement-strip small,.hh-replacement-strip strong,.hh-replacement-strip em{display:block}.hh-replacement-strip small{font-size:.65rem;opacity:.58}.hh-replacement-strip strong{margin-top:3px;font-size:.95rem}.hh-replacement-strip em{margin-top:2px;font-size:.68rem;font-style:normal;opacity:.66}@media(max-width:430px){.hh-replacement-strip{grid-template-columns:1fr}}
+
+/* =========================================================
+   Huyền Học Các — đồng bộ theme Huyền Bút Các
+   Không tạo bảng màu riêng. Toàn bộ màu được kế thừa từ
+   --color-* của theme đang hoạt động, nên đổi theme app là
+   Huyền Học đổi theo ngay mà không cần reload/JS riêng.
+   ========================================================= */
+.huyen-hoc-cac{
+  --accent:var(--color-accent);
+  --panel:var(--color-surface);
+  --hh-tone:var(--color-accent);
+  color:var(--color-text)!important;
+  border-color:color-mix(in srgb,var(--color-border) 82%,var(--color-accent) 18%)!important;
+  background:
+    radial-gradient(circle at 94% 5%,color-mix(in srgb,var(--color-accent) 9%,transparent),transparent 30%),
+    linear-gradient(145deg,color-mix(in srgb,var(--color-surface) 97%,var(--color-accent) 3%),color-mix(in srgb,var(--color-surface) 96%,var(--color-bg) 4%))!important;
+  box-shadow:0 14px 40px color-mix(in srgb,var(--color-bg) 18%,transparent),inset 0 1px color-mix(in srgb,var(--color-text) 5%,transparent)!important;
+  scrollbar-color:color-mix(in srgb,var(--color-accent) 42%,transparent) transparent;
+}
+.huyen-hoc-cac :where(h1,h2,h3,h4,h5,h6,strong,label,summary){color:var(--color-text)}
+.huyen-hoc-cac :where(p,small){color:inherit}
+.hh-header,.hh-tabs,.hh-disclaimer{border-color:var(--color-border)!important}
+.hh-header h3{color:var(--color-text)!important}
+.hh-header p,.hh-kicker,.hh-note,.hh-disclaimer,.hh-reference-grid small,.hh-tuvi-summary small,.hh-palace-head>span,.hh-palace-meta,.hh-replacement-strip small,.hh-replacement-strip em{color:var(--color-text-muted)!important;opacity:1}
+.hh-seal{color:var(--color-accent)!important;border-color:color-mix(in srgb,var(--color-accent) 72%,var(--color-border))!important;background:color-mix(in srgb,var(--color-accent) 7%,transparent)!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--color-accent) 12%,transparent)}
+
+.huyen-hoc-cac :is(input,select,textarea){
+  color:var(--color-text)!important;
+  -webkit-text-fill-color:var(--color-text)!important;
+  caret-color:var(--color-accent);
+  border-color:var(--color-border)!important;
+  background:color-mix(in srgb,var(--color-surface) 88%,var(--color-surface-alt) 12%)!important;
+  box-shadow:inset 0 1px 3px color-mix(in srgb,var(--color-bg) 10%,transparent)!important;
+  color-scheme:normal;
+}
+.huyen-hoc-cac :is(input,select,textarea):focus{
+  border-color:var(--color-focus)!important;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--color-focus) 16%,transparent),inset 0 1px 3px color-mix(in srgb,var(--color-bg) 8%,transparent)!important;
+}
+.huyen-hoc-cac select option{background:var(--color-surface);color:var(--color-text)}
+.huyen-hoc-cac input[type="checkbox"],.huyen-hoc-cac input[type="radio"]{accent-color:var(--color-accent)}
+
+.hh-tabs button,.hh-segmented button{
+  color:var(--color-text-muted)!important;
+  border-color:var(--color-border)!important;
+  background:color-mix(in srgb,var(--color-surface-alt) 70%,transparent)!important;
+  box-shadow:none!important;
+}
+.hh-tabs button:hover,.hh-segmented button:hover{color:var(--color-text)!important;background:var(--color-surface-alt)!important}
+.hh-tabs button.is-active,.hh-segmented button.is-active{
+  color:var(--color-accent)!important;
+  border-color:color-mix(in srgb,var(--color-accent) 52%,var(--color-border))!important;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--color-accent) 14%,var(--color-surface-alt)),color-mix(in srgb,var(--color-accent) 7%,var(--color-surface)))!important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--color-accent) 12%,transparent),0 4px 14px color-mix(in srgb,var(--color-accent) 9%,transparent)!important;
+}
+.hh-tabs button.is-active span,.hh-segmented button.is-active{color:var(--color-accent)!important}
+
+.hh-result-card,.hh-stat-grid span,.hh-tuvi-summary span,.hh-relation,.hh-reference-grid div,.hh-catalog-grid article,.hh-tuvi-palace,.hh-flying-grid>div,.hh-advanced,.hh-annual-strip span{
+  color:var(--color-text)!important;
+  border-color:var(--color-border)!important;
+  background:color-mix(in srgb,var(--color-surface-alt) 56%,var(--color-surface) 44%)!important;
+}
+.hh-result-card,.hh-catalog-grid article,.hh-advanced{box-shadow:inset 0 1px color-mix(in srgb,var(--color-text) 4%,transparent)}
+.hh-tuvi-board{
+  color:var(--color-text)!important;
+  border-color:color-mix(in srgb,var(--color-accent) 34%,var(--color-border))!important;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--color-surface) 94%,var(--color-accent) 6%),var(--color-surface))!important;
+}
+.hh-tuvi-center{border-color:color-mix(in srgb,var(--color-accent) 44%,var(--color-border))!important;background:color-mix(in srgb,var(--color-surface) 82%,transparent)}
+.hh-tuvi-palace em,.hh-star-line em,.hh-structure-list span,.hh-replacement-strip span,.hh-kua{
+  color:var(--color-accent)!important;
+  border-color:color-mix(in srgb,var(--color-accent) 38%,var(--color-border))!important;
+  background:color-mix(in srgb,var(--color-accent) 10%,var(--color-surface))!important;
+}
+.hh-palace-head,.hh-aux-stars,.hh-palace-meta{border-color:var(--color-border)!important}
+
+.is-good{--hh-tone:var(--color-success)!important}
+.is-bad{--hh-tone:var(--color-error)!important}
+.hh-relation span,.hh-house-eval,.hh-direction-grid article{color:var(--color-text)!important}
+.hh-relation span.is-good,.hh-house-eval.is-good,.hh-direction-grid article.is-good{border-color:color-mix(in srgb,var(--color-success) 46%,var(--color-border))!important;background:color-mix(in srgb,var(--color-success) 10%,var(--color-surface))!important}
+.hh-relation span.is-bad,.hh-house-eval.is-bad,.hh-direction-grid article.is-bad{border-color:color-mix(in srgb,var(--color-error) 46%,var(--color-border))!important;background:color-mix(in srgb,var(--color-error) 9%,var(--color-surface))!important}
+.hh-relation span.is-good,.hh-house-eval.is-good strong,.hh-direction-grid article.is-good strong{color:var(--color-success)!important}
+.hh-relation span.is-bad,.hh-house-eval.is-bad strong,.hh-direction-grid article.is-bad strong{color:var(--color-error)!important}
+
+.hh-star-line.chinh-tinh strong{color:var(--color-accent)!important}
+.hh-star-line.cat-tinh strong{color:var(--color-success)!important}
+.hh-star-line.sat-tinh strong{color:var(--color-error)!important}
+.hh-void-badge{color:var(--color-error)!important;border-color:color-mix(in srgb,var(--color-error) 48%,var(--color-border))!important;background:color-mix(in srgb,var(--color-error) 10%,var(--color-surface))!important}
+.hh-warning{color:var(--color-text)!important;border-color:color-mix(in srgb,var(--color-warning) 48%,var(--color-border))!important;background:color-mix(in srgb,var(--color-warning) 10%,var(--color-surface))!important}
+.hh-warning strong{color:var(--color-warning)!important}.hh-warning span{color:var(--color-text-muted)!important;opacity:1}
+.hh-safety-box{color:var(--color-text)!important;border-left-color:var(--color-accent)!important;background:color-mix(in srgb,var(--color-accent) 7%,var(--color-surface))!important}
+.hh-safety-box p{color:var(--color-text-muted)!important;opacity:1}
+
+.hh-flying-triple{background:transparent!important}
+.hh-flying-triple b:first-child{color:var(--color-focus)!important;background:color-mix(in srgb,var(--color-focus) 12%,var(--color-surface))!important}
+.hh-flying-triple strong{color:var(--color-accent)!important;background:color-mix(in srgb,var(--color-accent) 12%,var(--color-surface))!important}
+.hh-flying-triple b:last-child{color:var(--color-error)!important;background:color-mix(in srgb,var(--color-error) 10%,var(--color-surface))!important}
+
+/* iOS/mobile: không để control hệ thống tạo mảng sáng/tối lệch theme. */
+@media(max-width:760px){
+  .huyen-hoc-cac{margin:12px 10px 26px!important;border-radius:18px!important}
+  .hh-tabs{-webkit-overflow-scrolling:touch}
+  .hh-tabs button{min-height:48px}
+  .huyen-hoc-cac :is(input,select,textarea){min-height:44px}
+}
